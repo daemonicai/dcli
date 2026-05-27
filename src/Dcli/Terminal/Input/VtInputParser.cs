@@ -71,6 +71,14 @@ internal sealed class VtInputParser
     }
 
     /// <summary>
+    /// <see langword="true"/> when the parser is holding a bare, unresolved ESC byte
+    /// (state == <c>Esc</c>). The §6 input reader uses this to decide whether to call
+    /// <see cref="Flush"/> on a 0-byte timed-read: flush only when this is
+    /// <see langword="true"/>; do NOT flush on a partial CSI/UTF-8/paste boundary.
+    /// </summary>
+    public bool HasPendingEscape => _state == State.Esc;
+
+    /// <summary>
     /// Resolves a pending lone ESC into a <see cref="NamedKey.Escape"/> key event.
     /// Call this when a timed read returns no bytes while the parser is in the
     /// <c>Esc</c> state (i.e. the §6 reader's ESC-disambiguation timeout has expired).

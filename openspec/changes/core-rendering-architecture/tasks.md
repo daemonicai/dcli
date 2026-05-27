@@ -36,8 +36,8 @@
 
 ## 6. Input reader thread (terminal-input)
 
-- [ ] 6.1 Implement `InputReader` on a dedicated thread doing timed byte reads, feeding the parser, posting events to the inbound channel
-- [ ] 6.2 Surface Ctrl+C as a `KeyEvent` (no process termination by the library)
+- [x] 6.1 Implement `InputReader` on a dedicated thread doing timed byte reads, feeding the parser, posting events to the inbound channel
+- [x] 6.2 Surface Ctrl+C as a `KeyEvent` (no process termination by the library)
 
 ## 7. Render loop core (render-loop)
 

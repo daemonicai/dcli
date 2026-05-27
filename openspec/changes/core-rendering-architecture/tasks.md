@@ -27,12 +27,12 @@
 
 ## 5. VT input parser (terminal-input)
 
-- [ ] 5.1 Implement the parser state machine (GROUND → ESC → CSI → emit) with UTF-8 accumulation, emitting `KeyEvent`/`PasteEvent`/`ResizeEvent`
-- [ ] 5.2 Implement `KeyCode = Char(Rune) | Named(...)` + `[Flags]` modifiers; named-key table (arrows, Home/End, PgUp/Dn, F-keys, BackTab, etc.)
-- [ ] 5.3 ESC disambiguation via read timeout; Alt-as-ESC-prefix
-- [ ] 5.4 Bracketed paste (`ESC[?2004h`) → single `PasteEvent`
-- [ ] 5.5 Terminal-truth rules: named key for Ctrl-letter collisions; Shift implicit in runes; no Shift under Ctrl
-- [ ] 5.6 Tests: byte-fixture suite covering arrows, unicode scalars, paste, lone-ESC vs sequence, Tab≡0x09, 'A' has no Shift
+- [x] 5.1 Implement the parser state machine (GROUND → ESC → CSI → emit) with UTF-8 accumulation, emitting `KeyEvent`/`PasteEvent`/`ResizeEvent`
+- [x] 5.2 Implement `KeyCode = Char(Rune) | Named(...)` + `[Flags]` modifiers; named-key table (arrows, Home/End, PgUp/Dn, F-keys, BackTab, etc.)
+- [x] 5.3 ESC disambiguation via read timeout; Alt-as-ESC-prefix
+- [x] 5.4 Bracketed paste (`ESC[?2004h`) → single `PasteEvent`
+- [x] 5.5 Terminal-truth rules: named key for Ctrl-letter collisions; Shift implicit in runes; no Shift under Ctrl
+- [x] 5.6 Tests: byte-fixture suite covering arrows, unicode scalars, paste, lone-ESC vs sequence, Tab≡0x09, 'A' has no Shift
 
 ## 6. Input reader thread (terminal-input)
 

@@ -1,8 +1,8 @@
 ## 1. Project setup
 
-- [ ] 1.1 Create the `dcli` class-library project (target `net10.0`; nullable + analyzers enabled) and the test project
-- [ ] 1.2 Add CI building/testing on Linux, macOS, and Windows; wire NuGet packaging metadata (id, license, README placeholder)
-- [ ] 1.3 Define the public namespace/assembly layout and `InternalsVisibleTo` for tests
+- [x] 1.1 Create the `dcli` class-library project (target `net10.0`; nullable + analyzers enabled) and the test project
+- [x] 1.2 Add CI building/testing on Linux, macOS, and Windows; wire NuGet packaging metadata (id, license, README placeholder)
+- [x] 1.3 Define the public namespace/assembly layout and `InternalsVisibleTo` for tests
 
 ## 2. Styled text (styled-text)
 

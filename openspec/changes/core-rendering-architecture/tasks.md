@@ -67,11 +67,11 @@
 
 ## 10. Fixed region: input editor & status (fixed-region)
 
-- [ ] 10.1 Implement the owned input `TextBuffer`: caret, multiline, width-aware wrap, internal scroll, history recall
-- [ ] 10.2 Implement grapheme-cluster handling at the editing layer (navigate/measure by visual character)
-- [ ] 10.3 Implement the `StatusLine` component and the bottom-pinned component stack
-- [ ] 10.4 Implement the `MaxHeight` budget `clamp(appSet ?? 50%, 8, rows)` + internal-scroll priority (status sacred / caret visible / overlay absorbs squeeze)
-- [ ] 10.5 Tests: wrap tracks caret; history recall; default/min-floor/tiny-terminal cap values
+- [x] 10.1 Implement the owned input `TextBuffer`: caret, multiline, width-aware wrap, internal scroll, history recall
+- [x] 10.2 Implement grapheme-cluster handling at the editing layer (navigate/measure by visual character)
+- [x] 10.3 Implement the `StatusLine` component and the bottom-pinned component stack
+- [x] 10.4 Implement the `MaxHeight` budget `clamp(appSet ?? 50%, 8, rows)` + internal-scroll priority (status sacred / caret visible / overlay absorbs squeeze)
+- [x] 10.5 Tests: wrap tracks caret; history recall; default/min-floor/tiny-terminal cap values
 
 ## 11. Fixed region: overlays — autocomplete & dialog (fixed-region)
 

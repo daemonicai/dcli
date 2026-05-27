@@ -342,10 +342,11 @@ public sealed class RenderLoopTests
         using (engine)
         {
             // Consumer never reads from OutboundEvents — events accumulate unboundedly.
+            // Use Enter (a fall-through key that emits KeyPressed) to produce outbound events.
             ChannelWriter<InputEvent> inputWriter = engine.InputWriter;
             for (int i = 0; i < 20; i++)
             {
-                inputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new System.Text.Rune('x')), Modifiers.None));
+                inputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Enter), Modifiers.None));
             }
 
             // Advance the virtual clock so the throttle deadline is met.
@@ -471,7 +472,8 @@ public sealed class RenderLoopTests
         (LoopEngine engine, _, _) = CreateEngine();
         using (engine)
         {
-            KeyEvent ke = new(KeyCode.FromRune(new System.Text.Rune('z')), Modifiers.None);
+            // Use Enter — a fall-through key (§10 routes editing keys to the editor; Enter falls through).
+            KeyEvent ke = new(KeyCode.Named(NamedKey.Enter), Modifiers.None);
             engine.InputWriter.TryWrite(ke);
 
             using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));

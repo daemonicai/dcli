@@ -1,3 +1,4 @@
+using Dcli.Internal.FixedRegion;
 using Dcli.Internal.Scrollback;
 
 namespace Dcli.Internal.RenderLoop;
@@ -118,6 +119,21 @@ internal sealed class RenderModel
     /// <see cref="ScrollbackModel.ClearCommitted"/>.
     /// </summary>
     internal ScrollbackModel Scrollback { get; } = new();
+
+    /// <summary>
+    /// The fixed-region composer (§10). Populates <see cref="FixedRegionRows"/> and
+    /// <see cref="EditorCaretLocal"/> each paint cycle, before scrollback PrePaint.
+    /// </summary>
+    internal FixedRegionComposer FixedRegion { get; } = new(new TextBuffer(), new StatusLine());
+
+    /// <summary>
+    /// The editor-relative caret position set by <see cref="FixedRegionComposer.Compose"/>:
+    /// (row within the visible input rows, display col). <see langword="null"/> when the caret
+    /// is hidden (degenerate tiny-terminal or modal dialog — §11). The loop thread offsets the
+    /// row by <see cref="LiveWindowRows"/>.Count after scrollback PrePaint to produce
+    /// <see cref="CaretPosition"/>.
+    /// </summary>
+    internal (int Row, int Col)? EditorCaretLocal { get; set; }
 
     // ── Dirtyness ─────────────────────────────────────────────────────────────
 

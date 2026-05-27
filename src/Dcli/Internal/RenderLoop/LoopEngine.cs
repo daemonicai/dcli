@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text;
 using System.Threading.Channels;
 using Dcli.Internal.Input;
 
@@ -248,10 +249,23 @@ internal sealed class LoopEngine : IDisposable
                 TimeSpan now = _clock.Now;
                 if (_model.IsDirty && now >= nextPaintDeadline)
                 {
+                    // §10 integration point: compose the fixed region (input + status) first.
+                    // This sets FixedRegionRows, which §9's PrePaint reads to compute the live
+                    // window budget (maxHeight = rows − fixedRegionRows.Count).
+                    _model.FixedRegion.Compose(_model);
+
                     // §9 integration point: recompute LiveWindowRows and NewlyCommittedRows
                     // from the live object list, applying the commit-horizon overflow rule.
-                    // Must run before Paint so the painter sees the final paint-state.
+                    // Must run after fixed-region compose and before Paint.
                     _model.Scrollback.PrePaint(_model);
+
+                    // §10 caret finalisation: offset the editor-local caret row by
+                    // LiveWindowRows.Count to produce the full-frame caret position.
+                    if (_model.EditorCaretLocal is (int editorRow, int editorCol))
+                        _model.CaretPosition = (_model.LiveWindowRows.Count + editorRow, editorCol);
+                    else
+                        _model.CaretPosition = null;
+
                     _sink.Paint(_model);
                     // Reset NewlyCommittedRows to empty after the frame — committed rows must
                     // be emitted exactly once (never rewritten on the next frame).
@@ -310,9 +324,28 @@ internal sealed class LoopEngine : IDisposable
     }
 
     /// <summary>
-    /// Minimal input-event handling. Marks the model dirty and emits an outbound event
-    /// to prove the inbound → loop → outbound path. Full editor semantics are §10/§12.
+    /// Routes an input event to the editor or falls through to the outbound channel.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>Editing keys</strong> (consumed — mutate the editor, mark dirty, do NOT emit):
+    /// printable Unicode scalars → <c>Insert</c>; Backspace → <c>Backspace</c>;
+    /// Delete → <c>Delete</c>; Left/Right → <c>MoveLeft/MoveRight</c>;
+    /// Home/End → <c>MoveHome/MoveEnd</c>; Up/Down → history navigation when the caret is on
+    /// the first/last visual row respectively, otherwise <c>MoveUp/MoveDown</c>.
+    /// </para>
+    /// <para>
+    /// <strong>Fall-through keys</strong> (not consumed here — emitted on the outbound channel):
+    /// Enter, Tab, Ctrl+*, Alt+*, and any key not listed above. §12 handles submit-on-Enter,
+    /// completion, and the full event story.
+    /// </para>
+    /// <para>
+    /// <strong>History-nav convention:</strong> Up navigates to the previous (older) history
+    /// entry when the caret is on the <em>first</em> visual row; otherwise moves the caret up
+    /// within the editor. Down navigates to the next (newer) entry when the caret is on the
+    /// <em>last</em> visual row; otherwise moves the caret down.
+    /// </para>
+    /// </remarks>
     private void ApplyInputEvent(InputEvent ev)
     {
         _model.MarkDirty();
@@ -320,7 +353,8 @@ internal sealed class LoopEngine : IDisposable
         switch (ev)
         {
             case KeyEvent ke:
-                _outbound.Writer.TryWrite(new KeyPressed(ke));
+                if (!RouteEditorKey(ke))
+                    _outbound.Writer.TryWrite(new KeyPressed(ke));
                 break;
 
             case ResizeEvent re:
@@ -330,6 +364,89 @@ internal sealed class LoopEngine : IDisposable
                 _outbound.Writer.TryWrite(new Resized(re.Columns, re.Rows));
                 break;
         }
+    }
+
+    /// <summary>
+    /// Attempts to route <paramref name="ke"/> to the input editor.
+    /// Returns <see langword="true"/> when the key was consumed (editor mutated or navigation
+    /// performed); <see langword="false"/> when the key should fall through to the outbound channel.
+    /// </summary>
+    private bool RouteEditorKey(KeyEvent ke)
+    {
+        // Keys with Ctrl or Alt modifiers fall through (§12 owns submit / completion / etc.).
+        if ((ke.Modifiers & (Modifiers.Ctrl | Modifiers.Alt)) != Modifiers.None)
+            return false;
+
+        int width = _model.Columns;
+        var editor = _model.FixedRegion.Editor;
+
+        if (ke.Code.Kind == KeyCode.KeyCodeKind.UnicodeScalar)
+        {
+            Rune rune = ke.Code.RuneValue;
+            // Only insert displayable characters — skip control characters (U+0000..U+001F, U+007F).
+            if (rune.Value >= 0x20 && rune.Value != 0x7F)
+            {
+                editor.Insert(rune);
+                return true;
+            }
+            return false;
+        }
+
+        if (ke.Code.Kind == KeyCode.KeyCodeKind.Named)
+        {
+            switch (ke.Code.NamedValue)
+            {
+                case NamedKey.Backspace:
+                    editor.Backspace();
+                    return true;
+
+                case NamedKey.Delete:
+                    editor.Delete();
+                    return true;
+
+                case NamedKey.Left:
+                    editor.MoveLeft();
+                    return true;
+
+                case NamedKey.Right:
+                    editor.MoveRight();
+                    return true;
+
+                case NamedKey.Home:
+                    editor.MoveHome(width);
+                    return true;
+
+                case NamedKey.End:
+                    editor.MoveEnd(width);
+                    return true;
+
+                case NamedKey.Up:
+                    {
+                        (bool isFirst, _) = editor.GetCaretVisualRowBounds(width);
+                        if (isFirst)
+                            editor.RecallPrevious();
+                        else
+                            editor.MoveUp(width);
+                        return true;
+                    }
+
+                case NamedKey.Down:
+                    {
+                        (_, bool isLast) = editor.GetCaretVisualRowBounds(width);
+                        if (isLast)
+                            editor.RecallNext();
+                        else
+                            editor.MoveDown(width);
+                        return true;
+                    }
+
+                // Enter, Tab, and all others fall through to §12.
+                default:
+                    return false;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

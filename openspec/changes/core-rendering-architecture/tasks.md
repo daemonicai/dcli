@@ -58,12 +58,12 @@
 
 ## 9. Scrollback model (inline-scrollback)
 
-- [ ] 9.1 Implement the `ILineObject` contract `Render(width) → rows` for `TextBlock`
-- [ ] 9.2 Implement the commit horizon + bounded live window; commit/freeze topmost live lines on overflow; drop committed objects from memory
-- [ ] 9.3 Implement the live (streaming) block: `AppendText` / `SetContent` / `Commit`
-- [ ] 9.4 Implement one-way `Collapsible`: collapsed summary, single `Expand`, freeze-collapsed at horizon
-- [ ] 9.5 Implement oversized-expansion reprint-into-flow (β)
-- [ ] 9.6 Tests: overflow commits & never rewrites frozen rows; live append/settle/commit; expand-once & no-recollapse; oversized reprint
+- [x] 9.1 Implement the `ILineObject` contract `Render(width) → rows` for `TextBlock`
+- [x] 9.2 Implement the commit horizon + bounded live window; commit/freeze topmost live lines on overflow; drop committed objects from memory
+- [x] 9.3 Implement the live (streaming) block: `AppendText` / `SetContent` / `Commit`
+- [x] 9.4 Implement one-way `Collapsible`: collapsed summary, single `Expand`, freeze-collapsed at horizon
+- [x] 9.5 Implement oversized-expansion reprint-into-flow (β)
+- [x] 9.6 Tests: overflow commits & never rewrites frozen rows; live append/settle/commit; expand-once & no-recollapse; oversized reprint
 
 ## 10. Fixed region: input editor & status (fixed-region)
 

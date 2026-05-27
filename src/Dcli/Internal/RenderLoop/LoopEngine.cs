@@ -248,7 +248,14 @@ internal sealed class LoopEngine : IDisposable
                 TimeSpan now = _clock.Now;
                 if (_model.IsDirty && now >= nextPaintDeadline)
                 {
+                    // §9 integration point: recompute LiveWindowRows and NewlyCommittedRows
+                    // from the live object list, applying the commit-horizon overflow rule.
+                    // Must run before Paint so the painter sees the final paint-state.
+                    _model.Scrollback.PrePaint(_model);
                     _sink.Paint(_model);
+                    // Reset NewlyCommittedRows to empty after the frame — committed rows must
+                    // be emitted exactly once (never rewritten on the next frame).
+                    _model.Scrollback.ClearCommitted(_model);
                     _model.ClearDirty();
                     nextPaintDeadline = now + _minFrameInterval;
                 }

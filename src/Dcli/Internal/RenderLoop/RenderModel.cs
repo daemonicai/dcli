@@ -1,3 +1,5 @@
+using Dcli.Internal.Scrollback;
+
 namespace Dcli.Internal.RenderLoop;
 
 /// <summary>
@@ -104,10 +106,18 @@ internal sealed class RenderModel
 
     /// <summary>
     /// Rows that became committed (scrolled above the anchor) this frame.
-    /// Empty in Chunk A; Chunk B will populate and emit them above the re-paint region.
-    /// §9 appends to this list; the painter drains it then clears it each frame.
+    /// §9's <see cref="ScrollbackModel.PrePaint"/> fills this before each paint;
+    /// <see cref="ScrollbackModel.ClearCommitted"/> resets it to empty after the frame so
+    /// committed rows are emitted exactly once and never rewritten.
     /// </summary>
     internal IReadOnlyList<Line> NewlyCommittedRows { get; set; } = [];
+
+    /// <summary>
+    /// The scrollback model (§9). Owned by the render loop; called from the loop's
+    /// apply→paint cycle via <see cref="ScrollbackModel.PrePaint"/> and
+    /// <see cref="ScrollbackModel.ClearCommitted"/>.
+    /// </summary>
+    internal ScrollbackModel Scrollback { get; } = new();
 
     // ── Dirtyness ─────────────────────────────────────────────────────────────
 

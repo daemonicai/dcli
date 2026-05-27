@@ -23,11 +23,10 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 ## How to resume
 
 - Branch: **`change/core-rendering-architecture`** (created from `main`). Stay on it.
-- Working tree is **DIRTY mid-§12** (expected): §12 **Chunk A** (selection dialogs) is implemented and **reviewer-approved but uncommitted** —
-  §12 commits as **one section commit** only when all of 12.1–12.7 are done. Do **not** revert it; resume by continuing §12 **Chunk B**.
-- Sanity check (dirty tree): `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate core-rendering-architecture --strict`
-  → expect **0 warnings, 572 tests green, clean format, valid**.
-- Resume point = §12 **Chunk B (InputAsync)** — tasks 12.1 (input dialog), then Chunk C (façade+events) and Chunk D (ITerminal+fakeable tests). See the §12 section below.
+- Working tree is **CLEAN**: §12 is fully committed (`394c9ba`, chunks A–D). Resume at **§13**.
+- Sanity check: `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate core-rendering-architecture --strict`
+  → expect **0 warnings, 615 tests green, clean format, valid**.
+- Resume point = **§13 — Resize & reflow** (Open Question #2; expect a user confirmation like §8). See the §13 row in the Section status table.
 - Check the memory files (see below) before briefing — several encode hard-won constraints for upcoming sections.
 
 ## Section status (1 commit per section)
@@ -45,7 +44,7 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 | 9 | Scrollback model | `652f851` | 350 | `ILineObject`/`TextBlock`/`LiveBlock`/`Collapsible`, commit horizon, overflow-commits-top, one-way collapsible, oversized reprint. Feeds `LiveWindowRows`/`NewlyCommittedRows`. |
 | 10 | Fixed region: input editor & status | `84cbb48` | 442 | `TextBuffer` (grapheme-cluster nav via `StringInfo`, caret↔visual wrap, history recall), `StatusLine`, `MaxHeight` budget, loop frame-composition. Editor consumes editing keys; Enter/Tab/Ctrl fall through. |
 | 11 | Fixed region: overlays (autocomplete & dialog) | `bf35c99` | 554 | `ScrollableList` (reverse-video highlight, never the hardware cursor; viewport reconciled **on render** so it survives `MaxRows` changes between frames), `IOverlay` seam, `Autocomplete`/`Dialog` overlays, `OverlayState` invariant on the model (`ShowAutocomplete`/`ShowDialog`/`ClearOverlay`), intercept-chain routing (overlay→editor→emit), composer overlay-slot (dialog above / autocomplete below) + Decision-8 budget squeeze (status sacred → caret visible → overlay absorbs squeeze, **zero-cap guarded**) + cursor hide-while-modal. Built across 3 worker calls (A=ScrollableList, B-i=components, B-ii=integration). |
-| 12 | Public API: dialogs, events, façade | — | — | `ITerminal` + sub-surfaces, awaitable dialogs (`SelectAsync`/`MultiSelectAsync`/`InputAsync`/`ChoiceAsync` → `DialogResult<T>`), `Events` emission (`InputSubmitted`/`InputChanged`/`KeyPressed`/`Resized`), public `Scrollback`/`Input`/`Status`/`Autocomplete` façade + `ILiveBlock`/`ICollapsible` handles. Much of §9/§10/§11 was built as **internal model + commands** specifically so §12 wraps them. |
+| 12 | Public API: dialogs, events, façade | `394c9ba` | 615 | `ITerminal` + sub-surfaces, awaitable dialogs (`SelectAsync`/`MultiSelectAsync`/`InputAsync`/`ChoiceAsync` → `DialogResult<T>`), `Events` emission (`InputSubmitted`/`InputChanged`/`KeyPressed`/`Resized`), public `Scrollback`/`Input`/`Status`/`Autocomplete` façade + `ILiveBlock`/`ICollapsible` handles. Much of §9/§10/§11 was built as **internal model + commands** specifically so §12 wraps them. |
 | 13 | Resize & reflow | — | — | **Open Question #2** — will require a user confirmation like §8 did (SIGWINCH delivery + reflow/repaint; truecolor/sync-output/unicode-width detection + fallbacks). |
 | 14 | Cross-platform validation & packaging | — | — | **Human-in-the-loop:** 14.1 manual smoke on WT/macOS/Linux; 14.2 demo app; 14.3 finalize NuGet/README/XML docs + pre-release; 14.4 port a dmon `Dmon.Terminal` slice. |
 | 15 | Headless test harness (`Dcli.Testing`) | — | — | Generalize the in-memory edges (raw-mode no-op, scripted input, in-memory sink, virtual clock) into the public `Dcli.Testing` package: `HeadlessTerminal`, `SettleAsync`, frame `Snapshot`; retarget §5.6/§7.6/§8.5 tests onto it. The substrate already exists internally from §4/§6/§7/§8. |
@@ -113,7 +112,9 @@ These are recorded as memory files and should become their own future OpenSpec c
 
 ## Resume point
 
-**Section 12 — public API: dialogs, events, façade.** This section **wraps** the internal model+commands built in §9/§10/§11; little new
+> **NEXT: §13 — Resize & reflow.** §12 is COMPLETE and committed (`394c9ba`); the §12 detail below is kept as history. §13 is **Open Question #2** and will need a user confirmation like §8 (SIGWINCH delivery + reflow/repaint; truecolor / synchronized-output / unicode-width detection + fallbacks). See the §13 row in the Section status table.
+
+**Section 12 — public API: dialogs, events, façade.** This section **wrapped** the internal model+commands built in §9/§10/§11; little new
 mechanics, mostly surface. Per design Decisions 11 & 12:
 - **12.1** `DialogResult<T>` / `DialogOutcome (Submitted|Back|Cancelled)` + awaitable `SelectAsync`/`MultiSelectAsync`/`InputAsync`/`ChoiceAsync`
   via **TCS-bundled open-dialog commands** — the loop drives the modal `Dialog` overlay (§11) and completes the TCS on close
@@ -130,7 +131,7 @@ mechanics, mostly surface. Per design Decisions 11 & 12:
 - **12.7** tests: a hand-written fake `ITerminal` substitutes for the real façade; synthesized events/results drive consumer-style code;
   command-side calls recorded & asserted.
 
-### §12 chunk progress & plan
+### §12 chunk progress (COMPLETE — committed `394c9ba`)
 
 - **Chunk A — DONE (reviewer-approved, uncommitted).** Public `DialogOutcome {Submitted,Back,Cancelled}`, `DialogResult<T>(Outcome,Value)` (constructible);
   `SelectRequest`/`MultiSelectRequest`/`ChoiceRequest` (minimal: items/options + optional title/prompt `Line`); `Terminal.SelectAsync`/`MultiSelectAsync`/`ChoiceAsync`.
@@ -141,22 +142,43 @@ mechanics, mostly surface. Per design Decisions 11 & 12:
   `Dialog` got an optional **title row** (`Render` truncates `[title]++list` to `MaxRows`, so title-only at `MaxRows==1`); empty-list Submit → `Submitted(-1)`.
   Carry-forward nits: `AlreadyCancelledTokenReturnsCancelledNoOverlay` re-implements the fast path inline (tighten once Chunk D wires the real façade);
   test cancel-closures use `-1`/`[]` vs production `default!` — cosmetic.
-- **Chunk B — NEXT: `InputAsync`** (the 4th dialog; needs *text entry*, not a `ScrollableList`). Plan (worked out, not yet implemented):
-  add public `InputRequest(Line? Prompt = null, string? Default = null, bool IsSecret = false)` and `Terminal.InputAsync → DialogResult<string>`.
-  Build `InputDialog : IOverlay` (modal, AboveInput) hosting its **own** `TextBuffer` (seeded with `Default`; renders `IsSecret` masked, e.g. `•`); Enter→Submit(text)/Esc→Cancel.
-  **Seam work this requires:** (1) the hardware cursor must sit at the InputDialog's *own* caret (it's the focus) — extend `IOverlay` with a nullable
-  `CaretInOverlay (Row,Col)` (null for Autocomplete/Dialog; real for InputDialog); the composer places the cursor there (overlay is AboveInput → its rows start
-  at fixed-region row 0) instead of the main input / instead of hiding. (2) Generalize the pending-completion machinery so it isn't `Dialog`-only: either make
-  `PendingDialogCompletion` a parameterless `Action` (closure captures the overlay+TCS) invoked for any dismissed modal overlay, or extract `IModalOverlay { CloseRequest }`
-  that both `Dialog` and `InputDialog` implement, and generalize `OpenDialogCommand`/`ShowDialog`. Reuse Chunk A's cancellation/reject pattern (reject a 2nd modal overlay).
-- **Chunk C — façade surfaces + events** (12.3, 12.4, 12.5 round-trip): `Scrollback`/`Input`/`Status`/`Autocomplete` sub-objects on `Terminal` posting fire-and-forget
-  `ILoopCommand`s (wrap `ScrollbackModel.Append/BeginLive/BeginCollapsible`, `TextBuffer`, `StatusLine.Rows`, `RenderModel.ShowAutocomplete/ClearOverlay`).
-  **Events (currently only `KeyPressed`/`Resized` are emitted):** wire `InputSubmitted(text)` on main-input Enter (no overlay) — emit + add-to-history + clear the buffer
-  (readline-style; flag it) — and `InputChanged(text)` on every buffer mutation (this drives the autocomplete round-trip). `Autocomplete` candidates need an `InsertText`+display
-  shape (`AutocompleteCandidate` already exists internally).
-- **Chunk D — `ITerminal` + public exposure + fakeable tests** (12.6, 12.7): extract `ITerminal` (+ `IScrollback`/`IInput`/`IStatus`/`IAutocomplete`), `Terminal` implements it;
-  confirm `KeyEvent`/`PasteEvent`/`ResizeEvent`/`TerminalEvent.*`/`DialogResult<T>`/`DialogOutcome` are public & constructible (watch internal-only ctors); **no static/singleton
-  state** on consumer paths; tier-A test = a hand-written fake `ITerminal` records command-side calls and feeds synthesized events/results.
+- **Chunk B — DONE (reviewer-approved, uncommitted).** Public `InputRequest(Line? Prompt = null, string? Default = null, bool IsSecret = false)` +
+  `Terminal.InputAsync → DialogResult<string>` (no validator delegate — a `Func` validator would run consumer code on the loop thread, banned by Decision 10).
+  New `InputDialog : IModalOverlay` (modal, AboveInput) hosting its **own** `TextBuffer` (seeded via `SetText(Default)`; `IsSecret` masks each rune with
+  `DisplayWidth.Measure(rune)`×`'•'` so caret columns stay correct; real unmasked text returned on Submit). `HandleKey`: Enter→Submit, Esc→Cancel,
+  **Ctrl/Alt short-circuit to the modal catch-all (no insert/nav)**, else printable→Insert / Backspace / Delete / arrows / Home-End / Up-Down; modal catch-all swallows the rest.
+  **Seam 1 (cursor in overlay):** `IOverlay.CaretInOverlay (Row,Col)?` (null for Autocomplete/Dialog; real for InputDialog). `FixedRegionComposer.Compose` parks the
+  hardware cursor at `overlayStartRow + caret.Row` (start = 0 AboveInput / `inputRows.Count` BelowInput) **only when overlay rows were actually rendered** (phantom-row guard);
+  `InputDialog.HidesCursor => false` (cursor shown, unlike the select Dialog). **Seam 2 (generalized completion):** new `internal IModalOverlay : IOverlay { OverlayCloseKind? CloseRequest }`
+  (`Dialog` + `InputDialog` implement it); `RenderModel.ShowDialog`→`ShowModal(IModalOverlay, Action?)`, `PendingDialogCompletion`→`PendingModalCompletion` (parameterless `Action?`);
+  loop dismiss hook is now `PendingModalCompletion?.Invoke(); ClearOverlay()` (no `is Dialog` check); `OpenDialogCommand`/`CancelDialogCommand` take `IModalOverlay`; reject covers any
+  concurrent modal overlay (`is IModalOverlay`), Autocomplete still suppressed not rejected; `Terminal.OpenDialogAsync<T>`→`OpenModalAsync<T>(IModalOverlay, Func<DialogResult<T>>, ct)`.
+  N1 fix: `InputDialog._lastWidth` seeded on the loop thread via `OpenDialogCommand.Apply → SeedWidth(model.Columns)` (FIFO drain guarantees it's set before any same-batch width-dependent
+  `HandleKey`); `Render` keeps updating it for resize-while-open. Tests: `InputDialogTests.cs` (incl. type+Enter, seeded default, secret-mask-vs-real-text, Esc, token-cancel, Backspace,
+  **Ctrl+C not inserted**, seam-1 cursor-visible vs select-Dialog-cursor-hidden, cross-modal reject both directions); `DialogSelectionTests`/`OverlayRoutingTests` retargeted to the new API.
+  **589 tests green.** Reviewer note (architectural follow-up, not now): if a 2nd overlay ever needs open-time model state, promote the `is InputDialog` seed in `OpenDialogCommand` to an
+  `OnShown(model)`-style `IModalOverlay` method rather than chaining `is` checks.
+- **Chunk C — DONE (reviewer-approved, uncommitted).** Public concrete surfaces on `Terminal`: `ScrollbackSurface` (`Append(Line)`; `BeginLive()→ILiveBlock` with
+  `AppendText/SetContent/Commit`; `BeginCollapsible(summary, hiddenLines)→ICollapsible` with one-way `Expand`), `InputSurface` (`SetText`/`Clear` only — `Prompt`/`ReadOnly`
+  **deferred** by user decision, documented gap), `StatusSurface` (`Set(params Line[])` + `IReadOnlyList<Line>` overload → `FixedRegionComposer.Status` now exposes the `StatusLine`),
+  `AutocompleteSurface` (`Show(IReadOnlyList<AutocompleteCandidate>)` builds `new Autocomplete(model.FixedRegion.Editor)` on the loop thread + `ShowAutocomplete`; `Hide()` clears
+  directly when the active overlay is an `Autocomplete`). `AutocompleteCandidate(string InsertText, Line Display)` **promoted internal→public** in `Dcli` (no internal duplicate left);
+  public `ILiveBlock`/`ICollapsible` handle interfaces (internal handle classes hold the LoopEngine + the **pre-created** `LiveBlock`/`Collapsible` — the one allowed off-thread ref;
+  only mutated on the loop thread via FIFO-ordered commands, never the capture-callback `BeginLive/BeginCollapsibleCommand`). **Thread discipline:** every façade command pulls
+  loop-owned model state from its `Apply(model)` param; surfaces hold only the `LoopEngine`. **Events:** `InputSubmitted(text)` on plain Enter (no overlay, no Ctrl/Alt) →
+  emit + `AddToHistory` (skip empty) + `Clear()` (readline-style; suppresses `KeyPressed(Enter)`); `InputChanged(text)` when a key routed to the editor changed `editor.Text`
+  (before/after compare — covers Insert/Backspace/Delete/history-recall, excludes pure caret moves, the overlay path, and programmatic `SetText`/`Clear`). **Documented contract note
+  (reviewer, non-blocking):** accepting an Autocomplete candidate (`SetText` inside the overlay path) emits **no** `InputChanged` — a buffer-mirroring consumer would lag until the next
+  keystroke; revisit (emit-on-accept, or XML-doc it on `AutocompleteSurface`) only if a consumer needs it. Tests: `FacadeTests.cs` (14, incl. the real-`Terminal` `Events`-channel
+  round-trip); `FixedRegionTests`/`OverlayRoutingTests`/`RenderLoopTests` retargeted to the new Enter→`InputSubmitted` / printable→`InputChanged` behaviour. **603 tests green.**
+  Deferred (noted gaps, not Chunk C): `Scrollback.AppendRule`, incremental `Collapsible.AppendLine`, `PasteEvent` editor routing.
+- **Chunk D — DONE (reviewer-approved, committed in `394c9ba`).** New `src/Dcli/ITerminal.cs`: public `IScrollback`/`IInput`/`IStatus`/`IAutocomplete` + `ITerminal : IAsyncDisposable`;
+  `Terminal : ITerminal` with the four sub-surface properties retyped concrete→interface; each surface class carries `: IXxx`. Event/result types (`KeyEvent`/`PasteEvent`/`ResizeEvent`/
+  `TerminalEvent.*`/`DialogResult<T>`/`DialogOutcome`) were already public & constructible (no internal-only ctors). **Static-state audit clean** — all per-instance; only stateless static
+  factories (`KeyCode.FromRune`/`Named`, `Terminal.StartAsync`). **`IStatus.Set`→`SetRows`** (CA1716: `Set` is a VB.NET keyword once it sits on an interface/overridable member; rename-over-
+  suppress per the §7 precedent — design sketch's `Status.Set(...)` was illustrative, the normative spec doesn't pin Status method names). Tier-A test `tests/Dcli.Tests/FakeTerminalTests.cs`
+  (hand-written `FakeTerminal : ITerminal` records command-side calls + drives a consumer-style method with synthesized `KeyEvent`/`DialogResult`; 12 tests). **615 tests green.** Reviewer nit
+  (cosmetic, not re-spun): the fake's `SetCalls` field + a comment still say "Set" while the method is `SetRows` — align if the file is touched again.
 
 **Carry-over doc nit (not §11 scope):** `RenderModel.cs` XML docs (~lines 36–38, 72–76) still say `MaxFixedHeight` is "recorded but not yet
 enforced; §10 will apply…" — stale since §10 shipped and `FixedRegionComposer.ComputeCap` enforces it. Fold a correction into a §12/§13 doc pass.

@@ -13,9 +13,9 @@
 
 ## 3. Display width & wrapping (shared)
 
-- [ ] 3.1 Implement display-width measurement (wcwidth: wide CJK = 2, combining/zero-width = 0, control/tab handling)
-- [ ] 3.2 Implement width-aware wrapping of a `Line` into visual rows at a given width
-- [ ] 3.3 Tests: CJK/emoji/combining/zero-width width counts; wrap boundaries
+- [x] 3.1 Implement display-width measurement (wcwidth: wide CJK = 2, combining/zero-width = 0, control/tab handling)
+- [x] 3.2 Implement width-aware wrapping of a `Line` into visual rows at a given width
+- [x] 3.3 Tests: CJK/emoji/combining/zero-width width counts; wrap boundaries
 
 ## 4. Terminal driver: raw mode & capability detection (terminal-input)
 

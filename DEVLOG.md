@@ -23,10 +23,11 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 ## How to resume
 
 - Branch: **`change/core-rendering-architecture`** (created from `main`). Stay on it.
-- Working tree is **clean** at §11; resume at §12.
-- Sanity check: `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate core-rendering-architecture --strict`
-  → expect **0 warnings, 554 tests green, clean format, valid**.
-- Resume point = first unticked `- [ ]` in `openspec/changes/core-rendering-architecture/tasks.md` = **§12.1** (DialogResult + awaitable dialogs).
+- Working tree is **DIRTY mid-§12** (expected): §12 **Chunk A** (selection dialogs) is implemented and **reviewer-approved but uncommitted** —
+  §12 commits as **one section commit** only when all of 12.1–12.7 are done. Do **not** revert it; resume by continuing §12 **Chunk B**.
+- Sanity check (dirty tree): `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate core-rendering-architecture --strict`
+  → expect **0 warnings, 572 tests green, clean format, valid**.
+- Resume point = §12 **Chunk B (InputAsync)** — tasks 12.1 (input dialog), then Chunk C (façade+events) and Chunk D (ITerminal+fakeable tests). See the §12 section below.
 - Check the memory files (see below) before briefing — several encode hard-won constraints for upcoming sections.
 
 ## Section status (1 commit per section)
@@ -129,8 +130,33 @@ mechanics, mostly surface. Per design Decisions 11 & 12:
 - **12.7** tests: a hand-written fake `ITerminal` substitutes for the real façade; synthesized events/results drive consumer-style code;
   command-side calls recorded & asserted.
 
-Suggested chunking: A = dialog result/outcome types + awaitable dialog methods + cancellation/queue (12.1–12.2); B = façade surfaces + events
-(12.3–12.4); C = `ITerminal` interface extraction + public type exposure + fakeable-façade tests (12.6–12.7); fold 12.5 tests into A/B.
+### §12 chunk progress & plan
+
+- **Chunk A — DONE (reviewer-approved, uncommitted).** Public `DialogOutcome {Submitted,Back,Cancelled}`, `DialogResult<T>(Outcome,Value)` (constructible);
+  `SelectRequest`/`MultiSelectRequest`/`ChoiceRequest` (minimal: items/options + optional title/prompt `Line`); `Terminal.SelectAsync`/`MultiSelectAsync`/`ChoiceAsync`.
+  Plumbing: `OpenDialogCommand` + `CancelDialogCommand` (`src/Dcli/Internal/RenderLoop/`); `RenderModel.PendingDialogCompletion` (`Action<Dialog>`, set with
+  `ShowDialog`, invoked **before** `ClearOverlay` in the loop dismiss hook, cleared on clear); TCS bundled with `RunContinuationsAsynchronously`.
+  Decisions: **reject only a concurrent `Dialog`** (an active Autocomplete is *suppressed* via `ShowDialog`), reject = fault the task with `InvalidOperationException`;
+  cancel-token → `Cancelled` (registration disposed on every terminal path; already-cancelled fast path; `CancelDialogCommand` guards on `ReferenceEquals(ActiveOverlay, expected)`);
+  `Dialog` got an optional **title row** (`Render` truncates `[title]++list` to `MaxRows`, so title-only at `MaxRows==1`); empty-list Submit → `Submitted(-1)`.
+  Carry-forward nits: `AlreadyCancelledTokenReturnsCancelledNoOverlay` re-implements the fast path inline (tighten once Chunk D wires the real façade);
+  test cancel-closures use `-1`/`[]` vs production `default!` — cosmetic.
+- **Chunk B — NEXT: `InputAsync`** (the 4th dialog; needs *text entry*, not a `ScrollableList`). Plan (worked out, not yet implemented):
+  add public `InputRequest(Line? Prompt = null, string? Default = null, bool IsSecret = false)` and `Terminal.InputAsync → DialogResult<string>`.
+  Build `InputDialog : IOverlay` (modal, AboveInput) hosting its **own** `TextBuffer` (seeded with `Default`; renders `IsSecret` masked, e.g. `•`); Enter→Submit(text)/Esc→Cancel.
+  **Seam work this requires:** (1) the hardware cursor must sit at the InputDialog's *own* caret (it's the focus) — extend `IOverlay` with a nullable
+  `CaretInOverlay (Row,Col)` (null for Autocomplete/Dialog; real for InputDialog); the composer places the cursor there (overlay is AboveInput → its rows start
+  at fixed-region row 0) instead of the main input / instead of hiding. (2) Generalize the pending-completion machinery so it isn't `Dialog`-only: either make
+  `PendingDialogCompletion` a parameterless `Action` (closure captures the overlay+TCS) invoked for any dismissed modal overlay, or extract `IModalOverlay { CloseRequest }`
+  that both `Dialog` and `InputDialog` implement, and generalize `OpenDialogCommand`/`ShowDialog`. Reuse Chunk A's cancellation/reject pattern (reject a 2nd modal overlay).
+- **Chunk C — façade surfaces + events** (12.3, 12.4, 12.5 round-trip): `Scrollback`/`Input`/`Status`/`Autocomplete` sub-objects on `Terminal` posting fire-and-forget
+  `ILoopCommand`s (wrap `ScrollbackModel.Append/BeginLive/BeginCollapsible`, `TextBuffer`, `StatusLine.Rows`, `RenderModel.ShowAutocomplete/ClearOverlay`).
+  **Events (currently only `KeyPressed`/`Resized` are emitted):** wire `InputSubmitted(text)` on main-input Enter (no overlay) — emit + add-to-history + clear the buffer
+  (readline-style; flag it) — and `InputChanged(text)` on every buffer mutation (this drives the autocomplete round-trip). `Autocomplete` candidates need an `InsertText`+display
+  shape (`AutocompleteCandidate` already exists internally).
+- **Chunk D — `ITerminal` + public exposure + fakeable tests** (12.6, 12.7): extract `ITerminal` (+ `IScrollback`/`IInput`/`IStatus`/`IAutocomplete`), `Terminal` implements it;
+  confirm `KeyEvent`/`PasteEvent`/`ResizeEvent`/`TerminalEvent.*`/`DialogResult<T>`/`DialogOutcome` are public & constructible (watch internal-only ctors); **no static/singleton
+  state** on consumer paths; tier-A test = a hand-written fake `ITerminal` records command-side calls and feeds synthesized events/results.
 
 **Carry-over doc nit (not §11 scope):** `RenderModel.cs` XML docs (~lines 36–38, 72–76) still say `MaxFixedHeight` is "recorded but not yet
 enforced; §10 will apply…" — stale since §10 shipped and `FixedRegionComposer.ComputeCap` enforces it. Fold a correction into a §12/§13 doc pass.

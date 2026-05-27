@@ -1,4 +1,4 @@
-namespace Dcli.Terminal.Input;
+namespace Dcli.Internal.Input;
 
 /// <summary>
 /// Abstracts the OS-level byte source for the §6 input reader thread.

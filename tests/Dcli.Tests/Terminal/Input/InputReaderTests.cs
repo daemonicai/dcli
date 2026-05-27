@@ -1,5 +1,5 @@
 using System.Threading.Channels;
-using Dcli.Terminal.Input;
+using Dcli.Internal.Input;
 using Xunit;
 
 namespace Dcli.Tests.Terminal.Input;

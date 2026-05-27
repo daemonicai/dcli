@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Dcli.Terminal.Posix;
+using Dcli.Internal.Posix;
 
-namespace Dcli.Terminal.Input;
+namespace Dcli.Internal.Input;
 
 /// <summary>
 /// POSIX implementation of <see cref="IInputByteSource"/>.

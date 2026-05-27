@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Dcli.Terminal;
-using Dcli.Terminal.Posix;
+using Dcli.Internal;
+using Dcli.Internal.Posix;
 using Xunit;
 
 namespace Dcli.Tests;

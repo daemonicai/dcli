@@ -41,12 +41,12 @@
 
 ## 7. Render loop core (render-loop)
 
-- [ ] 7.1 Define the inbound message union (input events + API commands) and outbound `TerminalEvent` types
-- [ ] 7.2 Implement the single-writer loop on a dedicated thread: `await WaitToReadAsync(orUntil: nextPaintDeadline)`, drain-all, apply, throttled paint
-- [ ] 7.3 Implement fire-and-forget command intake (unbounded inbound `Channel`) and snapshot reads (terminal size)
-- [ ] 7.4 Implement the outbound `Channel<TerminalEvent>` (consumer drains on its own thread; loop never runs consumer code)
-- [ ] 7.5 Implement `Terminal.StartAsync` / `DisposeAsync` lifecycle, wiring raw mode + restore into the loop's `finally`
-- [ ] 7.6 Tests: no interleaving under concurrent producers; burst coalescing → one frame; idle = no repaint; slow consumer doesn't stall the loop (deterministic, via the headless harness — §15)
+- [x] 7.1 Define the inbound message union (input events + API commands) and outbound `TerminalEvent` types
+- [x] 7.2 Implement the single-writer loop on a dedicated thread: `await WaitToReadAsync(orUntil: nextPaintDeadline)`, drain-all, apply, throttled paint
+- [x] 7.3 Implement fire-and-forget command intake (unbounded inbound `Channel`) and snapshot reads (terminal size)
+- [x] 7.4 Implement the outbound `Channel<TerminalEvent>` (consumer drains on its own thread; loop never runs consumer code)
+- [x] 7.5 Implement `Terminal.StartAsync` / `DisposeAsync` lifecycle, wiring raw mode + restore into the loop's `finally`
+- [x] 7.6 Tests: no interleaving under concurrent producers; burst coalescing → one frame; idle = no repaint; slow consumer doesn't stall the loop (deterministic, via the headless harness — §15)
 
 ## 8. Frame painting (render-loop — Open Question #1)
 

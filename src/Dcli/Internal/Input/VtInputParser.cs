@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Text;
 
-namespace Dcli.Terminal.Input;
+namespace Dcli.Internal.Input;
 
 /// <summary>
 /// Incremental, pure-state-machine VT input parser.

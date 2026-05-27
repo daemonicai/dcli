@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace Dcli.Terminal.Posix;
+namespace Dcli.Internal.Posix;
 
 /// <summary>
 /// POSIX raw-mode session. Captures the current <c>termios</c> state, applies raw mode,

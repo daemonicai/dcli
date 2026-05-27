@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Dcli.Terminal;
+namespace Dcli.Internal;
 
 /// <summary>
 /// Checks whether the current environment supports VT terminal sequences.

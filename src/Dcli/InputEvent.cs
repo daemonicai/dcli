@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Dcli.Terminal.Input;
+namespace Dcli;
 
 /// <summary>
 /// Discriminated union of all events that the VT input pipeline can produce.
@@ -14,7 +14,7 @@ public abstract record InputEvent;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>
-/// A single key press, synthesised by <see cref="VtInputParser"/> from the raw byte stream.
+/// A single key press, synthesised by <c>VtInputParser</c> from the raw byte stream.
 /// </summary>
 /// <param name="Code">
 /// The key that was pressed, either a Unicode scalar value or a named terminal key.
@@ -32,7 +32,7 @@ public sealed record KeyEvent(KeyCode Code, Modifiers Modifiers) : InputEvent;
 /// A pasted block of text delivered via bracketed-paste mode
 /// (<c>ESC [ 2 0 0 ~</c> … <c>ESC [ 2 0 1 ~</c>).
 /// <para>
-/// <see cref="VtInputParser"/> accumulates all bytes between the start and end markers into
+/// <c>VtInputParser</c> accumulates all bytes between the start and end markers into
 /// a single event. The raw bytes are decoded as UTF-8; feed-call boundaries inside the paste
 /// body are transparent. A lone ESC that is not followed by the end marker is included verbatim
 /// as <c>U+001B</c> in the decoded text.
@@ -48,7 +48,7 @@ public sealed record PasteEvent(string Text) : InputEvent;
 /// <summary>
 /// Signals that the terminal window has been resized.
 /// <para>
-/// This event is <em>not</em> synthesised from bytes by <see cref="VtInputParser"/>.
+/// This event is <em>not</em> synthesised from bytes by <c>VtInputParser</c>.
 /// It originates from <c>SIGWINCH</c> (POSIX) or a <c>WINDOW_BUFFER_SIZE_EVENT</c>
 /// (Windows) and is injected into the event stream by the §13 signal handler.
 /// </para>

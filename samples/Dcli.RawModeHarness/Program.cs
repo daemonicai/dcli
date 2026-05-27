@@ -14,8 +14,9 @@
 
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Dcli.Terminal;
-using Dcli.Terminal.Posix;
+using Dcli;
+using Dcli.Internal;
+using Dcli.Internal.Posix;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 

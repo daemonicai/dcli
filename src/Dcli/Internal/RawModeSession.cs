@@ -1,7 +1,7 @@
-using Dcli.Terminal.Posix;
-using Dcli.Terminal.Windows;
+using Dcli.Internal.Posix;
+using Dcli.Internal.Windows;
 
-namespace Dcli.Terminal;
+namespace Dcli.Internal;
 
 /// <summary>
 /// Factory that creates the platform-appropriate <see cref="IRawModeSession"/>.

@@ -65,3 +65,4 @@ dotnet_diagnostic.CA1014.severity = none
 
 # CA2007 (ConfigureAwait) — library code; consumers set context; suppress globally
 dotnet_diagnostic.CA2007.severity = none
+

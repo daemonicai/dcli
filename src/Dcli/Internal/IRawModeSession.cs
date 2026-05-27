@@ -1,4 +1,4 @@
-namespace Dcli.Terminal;
+namespace Dcli.Internal;
 
 /// <summary>
 /// Represents an OS raw-mode session: the tty is in raw mode while this object is alive, and

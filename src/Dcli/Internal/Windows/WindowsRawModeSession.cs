@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace Dcli.Terminal.Windows;
+namespace Dcli.Internal.Windows;
 
 /// <summary>
 /// Windows raw-mode session. Saves the current console input/output modes, applies raw + VT mode,

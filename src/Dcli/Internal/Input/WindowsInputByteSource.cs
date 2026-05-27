@@ -1,6 +1,6 @@
 using System.Runtime.Versioning;
 
-namespace Dcli.Terminal.Input;
+namespace Dcli.Internal.Input;
 
 /// <summary>
 /// Windows implementation of <see cref="IInputByteSource"/>.

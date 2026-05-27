@@ -1,5 +1,5 @@
 using System.Text;
-using Dcli.Terminal.Input;
+using Dcli.Internal.Input;
 using Xunit;
 
 namespace Dcli.Tests;

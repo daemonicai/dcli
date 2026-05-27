@@ -1,10 +1,10 @@
-namespace Dcli.Terminal;
+namespace Dcli;
 
 /// <summary>
 /// Thrown when dcli detects that the current terminal does not support the VT escape sequences
 /// required for operation.
 /// <para>
-/// This exception is thrown by <see cref="TerminalCapabilityDetector.EnsureVtCapable"/> before
+/// This exception is thrown by <c>TerminalCapabilityDetector.EnsureVtCapable</c> before
 /// raw mode is entered, so the terminal is always in a known good state when the exception
 /// propagates.
 /// </para>

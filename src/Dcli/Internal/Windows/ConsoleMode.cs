@@ -16,7 +16,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace Dcli.Terminal.Windows;
+namespace Dcli.Internal.Windows;
 
 [SupportedOSPlatform("windows")]
 internal static partial class ConsoleMode

@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace Dcli.Terminal;
+namespace Dcli.Internal;
 
 /// <summary>
 /// Wires a last-resort restoration net around an <see cref="IRawModeSession"/>:

@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace Dcli.Terminal.Input;
+namespace Dcli.Internal.Input;
 
 /// <summary>
 /// Runs a dedicated long-running thread that reads bytes from an <see cref="IInputByteSource"/>,

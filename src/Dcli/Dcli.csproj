@@ -3,6 +3,8 @@
   <PropertyGroup>
     <AssemblyName>Dcli</AssemblyName>
     <RootNamespace>Dcli</RootNamespace>
+    <!-- Required for [LibraryImport] source-generated P/Invoke (termios / Win32 console). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- NuGet packaging -->
     <IsPackable>true</IsPackable>
@@ -25,6 +27,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Dcli.Tests" />
+    <InternalsVisibleTo Include="Dcli.RawModeHarness" />
   </ItemGroup>
 
 </Project>

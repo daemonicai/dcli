@@ -19,11 +19,11 @@
 
 ## 4. Terminal driver: raw mode & capability detection (terminal-input)
 
-- [ ] 4.1 Implement `RawModeSession` for POSIX (P/Invoke `termios`: clear ICANON/ECHO/ISIG/IEXTEN, IXON/ICRNL; VMIN=0/VTIME=1) with platform-specific struct layout
-- [ ] 4.2 Implement `RawModeSession` for Windows (`SetConsoleMode`: +VIRTUAL_TERMINAL_INPUT, −LINE/ECHO/PROCESSED_INPUT; +VIRTUAL_TERMINAL_PROCESSING on output)
-- [ ] 4.3 Capability detection: require a modern VT terminal; fail with a clear error otherwise
-- [ ] 4.4 Guaranteed restore: `IDisposable` + `PosixSignalRegistration` (SIGINT/SIGTERM/SIGQUIT/SIGCONT) + `AppDomain.ProcessExit`
-- [ ] 4.5 Tests/manual harness: raw mode entered; restore on normal exit, exception, and signal
+- [x] 4.1 Implement `RawModeSession` for POSIX (P/Invoke `termios`: clear ICANON/ECHO/ISIG/IEXTEN, IXON/ICRNL; VMIN=0/VTIME=1) with platform-specific struct layout
+- [x] 4.2 Implement `RawModeSession` for Windows (`SetConsoleMode`: +VIRTUAL_TERMINAL_INPUT, −LINE/ECHO/PROCESSED_INPUT; +VIRTUAL_TERMINAL_PROCESSING on output)
+- [x] 4.3 Capability detection: require a modern VT terminal; fail with a clear error otherwise
+- [x] 4.4 Guaranteed restore: `IDisposable` + `PosixSignalRegistration` (SIGINT/SIGTERM/SIGQUIT/SIGCONT) + `AppDomain.ProcessExit`
+- [x] 4.5 Tests/manual harness: raw mode entered; restore on normal exit, exception, and signal
 
 ## 5. VT input parser (terminal-input)
 

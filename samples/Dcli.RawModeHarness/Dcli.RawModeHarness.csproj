@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Dcli.RawModeHarness</AssemblyName>
+    <RootNamespace>Dcli.RawModeHarness</RootNamespace>
+
+    <!-- Not a NuGet package; not part of the library distribution. -->
+    <IsPackable>false</IsPackable>
+
+    <!-- CS1591: harness code does not need XML doc comments. -->
+    <!-- CA1303: harness is a developer tool; hardcoded strings are intentional and do not need localisation. -->
+    <NoWarn>CS1591;CA1303</NoWarn>
+
+    <!-- Required for the unsafe read(2) P/Invoke pointer loop that bypasses managed stream EOF misreporting. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Dcli\Dcli.csproj" />
+  </ItemGroup>
+
+</Project>

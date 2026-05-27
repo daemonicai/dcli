@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Dcli.Internal;
+using Dcli.Internal.FixedRegion;
 using Dcli.Internal.Input;
 using Dcli.Internal.Posix;
 using Dcli.Internal.RenderLoop;
@@ -25,7 +26,7 @@ namespace Dcli;
 /// <see cref="IRawModeSession.Restore"/>, so no double-restore can occur.
 /// </para>
 /// </remarks>
-public sealed class Terminal : IAsyncDisposable
+public sealed class Terminal : ITerminal
 {
     private readonly IRawModeSession _session;
     private readonly RestoreCoordinator _coordinator;
@@ -51,6 +52,10 @@ public sealed class Terminal : IAsyncDisposable
         _coordinator = coordinator;
         _inputReader = inputReader;
         _loop = loop;
+        Scrollback = new ScrollbackSurface(loop);
+        Input = new InputSurface(loop);
+        Status = new StatusSurface(loop);
+        Autocomplete = new AutocompleteSurface(loop);
     }
 
     // ── Internal surface (tests) ────────────────────────────────────────────
@@ -62,6 +67,30 @@ public sealed class Terminal : IAsyncDisposable
     internal LoopEngine Loop => _loop;
 
     // ── Public surface ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Scrollback content surface: append lines, live blocks, and collapsibles.
+    /// </summary>
+    /// <remarks>
+    /// Posts are fire-and-forget; all writes are applied on the render-loop thread.
+    /// </remarks>
+    public IScrollback Scrollback { get; }
+
+    /// <summary>
+    /// Input editor surface: programmatic <see cref="IInput.SetText"/> and
+    /// <see cref="IInput.Clear"/>. Does not emit <see cref="InputChanged"/>.
+    /// </summary>
+    public IInput Input { get; }
+
+    /// <summary>
+    /// Status bar surface: set the sacred status rows at the bottom of the fixed region.
+    /// </summary>
+    public IStatus Status { get; }
+
+    /// <summary>
+    /// Autocomplete overlay surface: show and hide the completion dropdown.
+    /// </summary>
+    public IAutocomplete Autocomplete { get; }
 
     /// <summary>
     /// The outbound terminal event stream.
@@ -77,6 +106,183 @@ public sealed class Terminal : IAsyncDisposable
     /// to the render loop thread (Decision 10: snapshot read).
     /// </summary>
     public (int Columns, int Rows) GetTerminalSize() => _loop.GetTerminalSize();
+
+    // ── Awaitable dialogs (§12) ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Opens a single-select list dialog and awaits the user's choice.
+    /// </summary>
+    /// <param name="req">The request describing the items and optional title.</param>
+    /// <param name="cancellationToken">
+    /// Cancels the dialog and returns <see cref="DialogOutcome.Cancelled"/>. If already
+    /// cancelled before the dialog opens, returns immediately with <see cref="DialogOutcome.Cancelled"/>.
+    /// </param>
+    /// <returns>
+    /// <see cref="DialogOutcome.Submitted"/> with the zero-based selected index, or
+    /// <see cref="DialogOutcome.Cancelled"/>. When the item list is empty and the user submits,
+    /// <see cref="DialogResult{T}.Value"/> is <c>-1</c>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="req"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">A dialog is already active.</exception>
+    public Task<DialogResult<int>> SelectAsync(
+        SelectRequest req,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(req);
+        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Title);
+        dialog.List.SetItems(req.Items);
+        return OpenModalAsync<int>(
+            dialog,
+            () => new DialogResult<int>(DialogOutcome.Submitted, dialog.List.SelectedIndex),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Opens a multi-select list dialog and awaits the user's selection.
+    /// </summary>
+    /// <param name="req">The request describing the items and optional title.</param>
+    /// <param name="cancellationToken">
+    /// Cancels the dialog and returns <see cref="DialogOutcome.Cancelled"/>.
+    /// </param>
+    /// <returns>
+    /// <see cref="DialogOutcome.Submitted"/> with the checked indices in ascending order, or
+    /// <see cref="DialogOutcome.Cancelled"/> with an empty array.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="req"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">A dialog is already active.</exception>
+    public Task<DialogResult<int[]>> MultiSelectAsync(
+        MultiSelectRequest req,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(req);
+        Dialog dialog = new(multiSelect: true, modal: true, typeToFilter: false, title: req.Title);
+        dialog.List.SetItems(req.Items);
+        return OpenModalAsync<int[]>(
+            dialog,
+            () => new DialogResult<int[]>(DialogOutcome.Submitted, [.. dialog.List.CheckedIndices]),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Opens a single-select choice dialog and awaits the user's choice.
+    /// Semantically equivalent to <see cref="SelectAsync"/> with an optional prompt row.
+    /// </summary>
+    /// <param name="req">The request describing the options and optional prompt.</param>
+    /// <param name="cancellationToken">
+    /// Cancels the dialog and returns <see cref="DialogOutcome.Cancelled"/>.
+    /// </param>
+    /// <returns>
+    /// <see cref="DialogOutcome.Submitted"/> with the zero-based selected index, or
+    /// <see cref="DialogOutcome.Cancelled"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="req"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">A dialog is already active.</exception>
+    public Task<DialogResult<int>> ChoiceAsync(
+        ChoiceRequest req,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(req);
+        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Prompt);
+        dialog.List.SetItems(req.Options);
+        return OpenModalAsync<int>(
+            dialog,
+            () => new DialogResult<int>(DialogOutcome.Submitted, dialog.List.SelectedIndex),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Opens a free-text input dialog and awaits the user's entry.
+    /// </summary>
+    /// <param name="req">The request describing the optional prompt, default text, and masking.</param>
+    /// <param name="cancellationToken">
+    /// Cancels the dialog and returns <see cref="DialogOutcome.Cancelled"/>. If already
+    /// cancelled before the dialog opens, returns immediately with <see cref="DialogOutcome.Cancelled"/>.
+    /// </param>
+    /// <returns>
+    /// <see cref="DialogOutcome.Submitted"/> with the entered text (possibly empty), or
+    /// <see cref="DialogOutcome.Cancelled"/> when the user presses Escape or the token fires.
+    /// When <see cref="InputRequest.IsSecret"/> is <see langword="true"/>, the rendered overlay
+    /// shows mask glyphs but <see cref="DialogResult{T}.Value"/> always carries the real text.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="req"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">A dialog is already active.</exception>
+    public Task<DialogResult<string>> InputAsync(
+        InputRequest req,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(req);
+        InputDialog dialog = new(req.Prompt, req.Default, req.IsSecret);
+        return OpenModalAsync<string>(
+            dialog,
+            () => new DialogResult<string>(DialogOutcome.Submitted, dialog.Text),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Core modal-open helper: creates a TCS, posts an <see cref="OpenDialogCommand"/>,
+    /// wires cancellation, and returns the awaitable task.
+    /// </summary>
+    /// <typeparam name="T">The result value type.</typeparam>
+    /// <param name="overlay">The prepared modal overlay.</param>
+    /// <param name="buildResult">
+    /// Parameterless factory called on the loop thread when the overlay is submitted.
+    /// The closure captures the overlay and reads its state (e.g. text, selection index).
+    /// Only called on <see cref="OverlayCloseKind.Submit"/>; Cancel produces a default result.
+    /// </param>
+    /// <param name="cancellationToken">External cancellation token.</param>
+    private Task<DialogResult<T>> OpenModalAsync<T>(
+        IModalOverlay overlay,
+        Func<DialogResult<T>> buildResult,
+        CancellationToken cancellationToken)
+    {
+        // Fast path: already cancelled — never open the dialog.
+        if (cancellationToken.IsCancellationRequested)
+            return Task.FromResult(new DialogResult<T>(DialogOutcome.Cancelled, default!));
+
+        TaskCompletionSource<DialogResult<T>> tcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // The registration handle: we need to dispose it once the task completes to avoid leaks.
+        // Use a holder so the lambda can capture and dispose it.
+        CancellationTokenRegistration[] registrationHolder = new CancellationTokenRegistration[1];
+
+        Action completion = () =>
+        {
+            // Running on the loop thread. Read overlay state and complete the TCS.
+            DialogResult<T> result = overlay.CloseRequest == OverlayCloseKind.Submit
+                ? buildResult()
+                : new DialogResult<T>(DialogOutcome.Cancelled, default!);
+            tcs.TrySetResult(result);
+            // Dispose the CT registration to prevent a stale cancel command from posting later.
+            registrationHolder[0].Dispose();
+        };
+
+        Action reject = () =>
+        {
+            // Running on the loop thread. Fault the TCS — caller gets InvalidOperationException.
+            tcs.TrySetException(new InvalidOperationException("A dialog is already active."));
+            registrationHolder[0].Dispose();
+        };
+
+        // Post a cancel command when the token fires. The command checks object identity so
+        // it is a no-op if the overlay has already been dismissed naturally.
+        if (cancellationToken.CanBeCanceled)
+        {
+            Action cancelCompletion = () =>
+            {
+                // Running on the loop thread (from CancelDialogCommand.Apply).
+                tcs.TrySetResult(new DialogResult<T>(DialogOutcome.Cancelled, default!));
+                registrationHolder[0].Dispose();
+            };
+
+            registrationHolder[0] = cancellationToken.Register(
+                () => _loop.Post(new CancelDialogCommand(overlay, cancelCompletion)),
+                useSynchronizationContext: false);
+        }
+
+        _loop.Post(new OpenDialogCommand(overlay, completion, reject));
+        return tcs.Task;
+    }
 
     // ── Factory ─────────────────────────────────────────────────────────────
 

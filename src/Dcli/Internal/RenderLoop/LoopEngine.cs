@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Threading.Channels;
+using Dcli.Internal.FixedRegion;
 using Dcli.Internal.Input;
 
 namespace Dcli.Internal.RenderLoop;
@@ -360,14 +361,61 @@ internal sealed class LoopEngine : IDisposable
                 {
                     consumed = overlay.HandleKey(ke);
                     if (overlay.IsDismissed)
-                        _model.ClearOverlay(); // §12 will complete the dialog's TCS here first
+                    {
+                        // Invoke the pending completion before clearing so the TCS is resolved
+                        // while the overlay state (CloseRequest and any selection fields) is still
+                        // readable. ClearOverlay() nulls both the overlay and the delegate.
+                        _model.PendingModalCompletion?.Invoke();
+                        _model.ClearOverlay();
+                    }
                 }
 
                 if (!consumed)
+                {
+                    // Capture the editor text before routing so we can detect changes.
+                    // Only relevant when no overlay consumed the key (overlay edits don't
+                    // drive InputChanged — they have their own semantics).
+                    TextBuffer editor = _model.FixedRegion.Editor;
+                    string textBefore = editor.Text;
+
                     consumed = RouteEditorKey(ke);
 
+                    // Emit InputChanged when the editor text changed due to user input.
+                    // This covers Insert, Backspace, Delete, and history recall (Up/Down),
+                    // but excludes pure caret movement (Left/Right/Home/End/MoveUp/MoveDown).
+                    // PasteEvent is not currently routed to the editor — wiring paste is out of
+                    // Chunk C scope; paste would need a separate InputChanged trigger when added.
+                    if (consumed && editor.Text != textBefore)
+                        _outbound.Writer.TryWrite(new InputChanged(editor.Text));
+                }
+
                 if (!consumed)
-                    _outbound.Writer.TryWrite(new KeyPressed(ke));
+                {
+                    // Plain Enter with no Ctrl/Alt modifier and no overlay: submit the line.
+                    // Behaviour:
+                    //   - Emits InputSubmitted(text) — always, even for an empty buffer.
+                    //   - Adds the text to history (skips empty entries).
+                    //   - Clears the editor (readline-style: the buffer is empty after submit).
+                    //   - Does NOT also emit KeyPressed(Enter) — submit is consumed here.
+                    // Modified Enter (Ctrl+Enter, Alt+Enter) falls through as KeyPressed
+                    // because RouteEditorKey already returns false for Ctrl/Alt modifiers.
+                    if (ke.Code.Kind == KeyCode.KeyCodeKind.Named &&
+                        ke.Code.NamedValue == NamedKey.Enter &&
+                        ke.Modifiers == Modifiers.None)
+                    {
+                        TextBuffer editor = _model.FixedRegion.Editor;
+                        string submittedText = editor.Text;
+                        _outbound.Writer.TryWrite(new InputSubmitted(submittedText));
+                        if (submittedText.Length > 0)
+                            editor.AddToHistory(submittedText);
+                        editor.Clear();
+                        // MarkDirty already called at the top of ApplyInputEvent.
+                    }
+                    else
+                    {
+                        _outbound.Writer.TryWrite(new KeyPressed(ke));
+                    }
+                }
                 break;
 
             case ResizeEvent re:

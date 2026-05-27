@@ -146,29 +146,50 @@ internal sealed class RenderModel
     internal IOverlay? ActiveOverlay { get; private set; }
 
     /// <summary>
-    /// Shows an autocomplete overlay. No-op when a <see cref="Dialog"/> is already active
-    /// (Dialog takes priority — opening autocomplete under a dialog would violate the
-    /// single-active-overlay invariant and the Dialog-suppresses-autocomplete rule).
+    /// Shows an autocomplete overlay. No-op when a modal overlay (<see cref="IModalOverlay"/>) is
+    /// already active (modal takes priority — opening autocomplete under a modal dialog would
+    /// violate the single-active-overlay invariant and the modal-suppresses-autocomplete rule).
     /// </summary>
     internal void ShowAutocomplete(Autocomplete autocomplete)
     {
-        if (ActiveOverlay is Dialog)
+        if (ActiveOverlay is IModalOverlay)
             return;
         ActiveOverlay = autocomplete;
     }
 
     /// <summary>
-    /// Shows a dialog overlay. Suppresses any active autocomplete (Dialog takes priority).
-    /// §12 will call this from <c>SelectAsync</c>.
+    /// Shows a modal overlay and registers its parameterless completion delegate.
+    /// Suppresses any active autocomplete (modal takes priority).
     /// </summary>
-    internal void ShowDialog(Dialog dialog) => ActiveOverlay = dialog;
+    /// <param name="overlay">The modal overlay to show.</param>
+    /// <param name="completion">
+    /// Called on the loop thread when the overlay is dismissed. The closure captures the overlay
+    /// reference and reads its state (<see cref="IModalOverlay.CloseRequest"/> and any other
+    /// overlay-specific fields) to complete the caller's <see cref="System.Threading.Tasks.TaskCompletionSource{T}"/>.
+    /// </param>
+    internal void ShowModal(IModalOverlay overlay, Action? completion = null)
+    {
+        ActiveOverlay = overlay;
+        PendingModalCompletion = completion;
+    }
 
     /// <summary>
-    /// Clears the active overlay. Called by the loop after <see cref="IOverlay.IsDismissed"/>
-    /// becomes <see langword="true"/> (autocomplete hidden, dialog Enter/Escape).
-    /// §12 will extend this to complete the dialog's TCS before clearing.
+    /// The loop-thread-owned completion delegate for the currently active modal overlay.
+    /// Set by <see cref="ShowModal"/> alongside the overlay; cleared by <see cref="ClearOverlay"/>.
+    /// Invoked by the loop's dismiss hook before clearing the overlay.
     /// </summary>
-    internal void ClearOverlay() => ActiveOverlay = null;
+    internal Action? PendingModalCompletion { get; private set; }
+
+    /// <summary>
+    /// Clears the active overlay and its pending completion delegate.
+    /// Called by the loop after <see cref="IOverlay.IsDismissed"/> becomes <see langword="true"/>
+    /// (autocomplete hidden, modal overlay Enter/Escape, or external token cancellation).
+    /// </summary>
+    internal void ClearOverlay()
+    {
+        ActiveOverlay = null;
+        PendingModalCompletion = null;
+    }
 
     // ── Dirtyness ─────────────────────────────────────────────────────────────
 

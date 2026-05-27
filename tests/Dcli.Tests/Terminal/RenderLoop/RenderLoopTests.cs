@@ -416,10 +416,10 @@ public sealed class RenderLoopTests
             using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
             await engine.SettleAsync(cts.Token);
 
-            // Both caused dirty state → one frame; the input event also emitted an outbound event.
+            // Both caused dirty state → one frame; Enter emits InputSubmitted (not KeyPressed).
             Assert.Equal(1, sink.PaintCount);
             Assert.True(engine.OutboundEvents.TryRead(out TerminalEvent? ev));
-            Assert.IsType<KeyPressed>(ev);
+            Assert.IsType<InputSubmitted>(ev);
         }
     }
 
@@ -472,7 +472,7 @@ public sealed class RenderLoopTests
         (LoopEngine engine, _, _) = CreateEngine();
         using (engine)
         {
-            // Use Enter — a fall-through key (§10 routes editing keys to the editor; Enter falls through).
+            // Plain Enter with no modifier: now emits InputSubmitted (§12) instead of KeyPressed.
             KeyEvent ke = new(KeyCode.Named(NamedKey.Enter), Modifiers.None);
             engine.InputWriter.TryWrite(ke);
 
@@ -480,8 +480,8 @@ public sealed class RenderLoopTests
             await engine.SettleAsync(cts.Token);
 
             Assert.True(engine.OutboundEvents.TryRead(out TerminalEvent? ev));
-            KeyPressed kp = Assert.IsType<KeyPressed>(ev);
-            Assert.Equal(ke, kp.Key);
+            InputSubmitted submitted = Assert.IsType<InputSubmitted>(ev);
+            Assert.Equal(string.Empty, submitted.Text); // buffer was empty
         }
     }
 

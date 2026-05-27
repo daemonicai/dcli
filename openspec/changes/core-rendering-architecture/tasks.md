@@ -83,13 +83,13 @@
 
 ## 12. Public API: dialogs, events, façade (render-loop + fixed-region)
 
-- [ ] 12.1 Implement `DialogResult<T>` / `DialogOutcome` and the awaitable dialog methods (`SelectAsync`, `MultiSelectAsync`, `InputAsync`, `ChoiceAsync`) via TCS-bundled open-dialog commands
-- [ ] 12.2 Implement dialog cancellation via `CancellationToken` (closes overlay → `Cancelled`) and reject/queue a second concurrent dialog
-- [ ] 12.3 Implement the `Scrollback`, `Input`, `Status`, `Autocomplete` façade surfaces over the inbound channel
-- [ ] 12.4 Implement the `Events` stream emission (`InputSubmitted`, `InputChanged`, `KeyPressed`, `Resized`)
-- [ ] 12.5 Tests: select submit/cancel; multi-select toggle; cancellation token; input-change → candidates round-trip
-- [ ] 12.6 Expose the façade as `ITerminal` (+ `IScrollback`/`IInput`/`IStatus`/`IAutocomplete`); make event/result types (`KeyEvent`/`PasteEvent`/`ResizeEvent`/`TerminalEvent.*`/`DialogResult<T>`/`DialogOutcome`) public and constructible; no static/singleton state on any consumer-facing path (tier A — `test-harness`)
-- [ ] 12.7 Tests: a hand-written fake `ITerminal` substitutes for the real façade; synthesized events/results drive consumer-style code; command-side calls (scrollback/status/dialog) are recorded and asserted
+- [x] 12.1 Implement `DialogResult<T>` / `DialogOutcome` and the awaitable dialog methods (`SelectAsync`, `MultiSelectAsync`, `InputAsync`, `ChoiceAsync`) via TCS-bundled open-dialog commands
+- [x] 12.2 Implement dialog cancellation via `CancellationToken` (closes overlay → `Cancelled`) and reject/queue a second concurrent dialog
+- [x] 12.3 Implement the `Scrollback`, `Input`, `Status`, `Autocomplete` façade surfaces over the inbound channel
+- [x] 12.4 Implement the `Events` stream emission (`InputSubmitted`, `InputChanged`, `KeyPressed`, `Resized`)
+- [x] 12.5 Tests: select submit/cancel; multi-select toggle; cancellation token; input-change → candidates round-trip
+- [x] 12.6 Expose the façade as `ITerminal` (+ `IScrollback`/`IInput`/`IStatus`/`IAutocomplete`); make event/result types (`KeyEvent`/`PasteEvent`/`ResizeEvent`/`TerminalEvent.*`/`DialogResult<T>`/`DialogOutcome`) public and constructible; no static/singleton state on any consumer-facing path (tier A — `test-harness`)
+- [x] 12.7 Tests: a hand-written fake `ITerminal` substitutes for the real façade; synthesized events/results drive consumer-style code; command-side calls (scrollback/status/dialog) are recorded and asserted
 
 ## 13. Resize & reflow (Open Question #2)
 

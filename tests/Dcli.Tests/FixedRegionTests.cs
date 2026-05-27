@@ -227,8 +227,14 @@ public sealed class FixedRegionTests
         using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await engine.SettleAsync(cts.Token);
 
-        // Printable keys are consumed — no KeyPressed events on the outbound channel.
-        Assert.Equal(0, engine.OutboundEvents.Count);
+        // Printable keys are consumed — no KeyPressed events. InputChanged is emitted for each
+        // edit that changes the buffer ('H' → "H", 'i' → "Hi" = 2 events).
+        Assert.Equal(2, engine.OutboundEvents.Count);
+        Assert.All(Enumerable.Range(0, 2), _ =>
+        {
+            Assert.True(engine.OutboundEvents.TryRead(out TerminalEvent? ev));
+            Assert.IsType<InputChanged>(ev);
+        });
 
         // The fixed region should reflect the typed text.
         Assert.NotNull(sink.LastModel);
@@ -253,8 +259,11 @@ public sealed class FixedRegionTests
         using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await engine.SettleAsync(cts.Token);
 
-        // Both editing keys consumed — outbound channel empty.
-        Assert.Equal(0, engine.OutboundEvents.Count);
+        // 'A' is consumed and emits InputChanged (text changed); Left moves the caret only and
+        // does not emit. Net result: exactly one InputChanged event on the outbound channel.
+        Assert.Equal(1, engine.OutboundEvents.Count);
+        Assert.True(engine.OutboundEvents.TryRead(out TerminalEvent? arrowEv));
+        Assert.IsType<InputChanged>(arrowEv);
     }
 
     [Fact]
@@ -271,10 +280,10 @@ public sealed class FixedRegionTests
         using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await engine.SettleAsync(cts.Token);
 
-        // Enter is not consumed by the editor — it emits a KeyPressed event.
+        // Enter with no modifier and no overlay: emits InputSubmitted (not KeyPressed).
         Assert.True(engine.OutboundEvents.TryRead(out TerminalEvent? ev));
-        KeyPressed kp = Assert.IsType<KeyPressed>(ev);
-        Assert.Equal(NamedKey.Enter, kp.Key.Code.NamedValue);
+        InputSubmitted submitted = Assert.IsType<InputSubmitted>(ev);
+        Assert.Equal(string.Empty, submitted.Text); // buffer was empty
     }
 
     [Fact]
@@ -425,8 +434,11 @@ public sealed class FixedRegionTests
         using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await engine.SettleAsync(cts.Token);
 
-        // Up is consumed (no KeyPressed on outbound channel).
-        Assert.Equal(0, engine.OutboundEvents.Count);
+        // Up is consumed. It changes the text (history recall), so InputChanged is emitted.
+        // No KeyPressed on the outbound channel.
+        Assert.Equal(1, engine.OutboundEvents.Count);
+        Assert.True(engine.OutboundEvents.TryRead(out TerminalEvent? upEv));
+        Assert.IsType<InputChanged>(upEv);
 
         // The fixed region should now reflect the recalled history entry.
         Assert.NotNull(sink.LastModel);

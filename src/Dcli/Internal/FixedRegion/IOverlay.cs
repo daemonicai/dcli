@@ -81,4 +81,28 @@ internal interface IOverlay
     /// <param name="width">Terminal width in columns (forwarded as-is to the list).</param>
     /// <returns>The rows to slot into the fixed region; empty when nothing to show.</returns>
     IReadOnlyList<Line> Render(int width);
+
+    /// <summary>
+    /// The overlay's own caret position within its rendered rows (zero-based row and column),
+    /// or <see langword="null"/> when the overlay does not own the hardware cursor.
+    /// When non-<see langword="null"/> and the overlay was rendered this frame, the composer
+    /// parks the hardware cursor here instead of at the main input editor.
+    /// </summary>
+    (int Row, int Col)? CaretInOverlay { get; }
+}
+
+// ── IModalOverlay ─────────────────────────────────────────────────────────────
+
+/// <summary>
+/// An <see cref="IOverlay"/> that has a deterministic dismissal signal: a
+/// <see cref="CloseRequest"/> that is non-<see langword="null"/> once the overlay is closed
+/// (Enter → Submit, Escape → Cancel). The loop's dismiss hook reads this to invoke the
+/// awaitable completion and clear the overlay.
+/// </summary>
+internal interface IModalOverlay : IOverlay
+{
+    /// <summary>
+    /// How the overlay was closed, or <see langword="null"/> while still open.
+    /// </summary>
+    OverlayCloseKind? CloseRequest { get; }
 }

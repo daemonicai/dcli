@@ -115,7 +115,7 @@ public sealed class OverlayRoutingTests
     {
         void ILoopCommand.Apply(RenderModel model)
         {
-            model.ShowDialog(dialog);
+            model.ShowModal(dialog);
             model.MarkDirty();
         }
     }
@@ -132,7 +132,7 @@ public sealed class OverlayRoutingTests
         model.ShowAutocomplete(ac);
         Assert.IsType<Autocomplete>(model.ActiveOverlay);
 
-        model.ShowDialog(dialog);
+        model.ShowModal(dialog);
         Assert.IsType<Dialog>(model.ActiveOverlay);
         Assert.Same(dialog, model.ActiveOverlay);
     }
@@ -144,7 +144,7 @@ public sealed class OverlayRoutingTests
         Dialog dialog = MakeDialog();
         Autocomplete ac = MakeAutocomplete();
 
-        model.ShowDialog(dialog);
+        model.ShowModal(dialog);
         model.ShowAutocomplete(ac); // must be ignored
 
         Assert.IsType<Dialog>(model.ActiveOverlay);
@@ -155,7 +155,7 @@ public sealed class OverlayRoutingTests
     public void ClearOverlayRemovesActiveOverlay()
     {
         RenderModel model = MakeModel();
-        model.ShowDialog(MakeDialog());
+        model.ShowModal(MakeDialog());
         Assert.NotNull(model.ActiveOverlay);
 
         model.ClearOverlay();
@@ -245,8 +245,11 @@ public sealed class OverlayRoutingTests
         using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await engine.SettleAsync(cts.Token);
 
-        // No KeyPressed on outbound (the editor consumed it).
-        Assert.Equal(0, engine.OutboundEvents.Count);
+        // No KeyPressed on outbound (the editor consumed it). However, 'z' changes the buffer
+        // so InputChanged is emitted. Exactly one outbound event.
+        Assert.Equal(1, engine.OutboundEvents.Count);
+        Assert.True(engine.OutboundEvents.TryRead(out TerminalEvent? printableEv));
+        Assert.IsType<InputChanged>(printableEv);
 
         // Verify the character is in the editor.
         Assert.NotNull(sink.LastModel);
@@ -384,7 +387,7 @@ public sealed class OverlayRoutingTests
 
         Dialog dialog = new(modal: true);
         dialog.List.SetItems([PlainLine("option A"), PlainLine("option B")]);
-        model.ShowDialog(dialog);
+        model.ShowModal(dialog);
 
         composer.Compose(model);
 

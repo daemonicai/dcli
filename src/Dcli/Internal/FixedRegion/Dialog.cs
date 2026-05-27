@@ -26,7 +26,7 @@ namespace Dcli.Internal.FixedRegion;
 /// </para>
 /// <para>Thread safety is the caller's responsibility; the render-loop thread owns this in normal use.</para>
 /// </remarks>
-internal sealed class Dialog : IOverlay
+internal sealed class Dialog : IModalOverlay
 {
     // ── Construction ──────────────────────────────────────────────────────────
 
@@ -47,10 +47,16 @@ internal sealed class Dialog : IOverlay
     /// Backspace trims it. When <see langword="false"/> (the default), those keys are handled
     /// by the modal fall-through rule or fall through to the input editor.
     /// </param>
-    internal Dialog(bool multiSelect = false, bool modal = true, bool typeToFilter = false)
+    /// <param name="title">
+    /// Optional leading row rendered above the list. When non-<see langword="null"/>, one row
+    /// of the <see cref="MaxRows"/> budget is reserved for it, and <c>List.MaxRows</c> is set to
+    /// at most <c>MaxRows - 1</c> so the total output never exceeds the budget.
+    /// </param>
+    internal Dialog(bool multiSelect = false, bool modal = true, bool typeToFilter = false, Line? title = null)
     {
         Modal = modal;
         TypeToFilter = typeToFilter;
+        Title = title;
         List = new ScrollableList(multiSelect);
     }
 
@@ -67,10 +73,21 @@ internal sealed class Dialog : IOverlay
     public bool HidesCursor => Modal;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The setter stores the raw budget and forwards to <see cref="ScrollableList.MaxRows"/>
+    /// (minus one when a <see cref="Title"/> is present, as a hint; <see cref="Render"/> always
+    /// truncates the combined output to at most <see cref="_maxRows"/> rows regardless).
+    /// </remarks>
     public int MaxRows
     {
-        get => List.MaxRows;
-        set => List.MaxRows = value;
+        get => _maxRows;
+        set
+        {
+            _maxRows = value;
+            // Give the list as much of the budget as possible. When Title is present, one row
+            // is consumed by it; the list gets the remainder (≥ 0, clamped to 1 by ScrollableList).
+            List.MaxRows = Title is null ? value : Math.Max(1, value - 1);
+        }
     }
 
     /// <inheritdoc/>
@@ -157,12 +174,38 @@ internal sealed class Dialog : IOverlay
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<Line> Render(int width) => List.Render(width);
+    /// <remarks>
+    /// When <see cref="Title"/> is set, it is prepended as the first row before the list rows.
+    /// The total row count never exceeds <see cref="MaxRows"/>: the title is emitted first and
+    /// list rows fill whatever budget remains (possibly zero when <see cref="MaxRows"/> is 1).
+    /// </remarks>
+    public IReadOnlyList<Line> Render(int width)
+    {
+        IReadOnlyList<Line> listRows = List.Render(width);
+        if (Title is null)
+            return listRows;
+
+        // Budget: title occupies row 0; list gets up to (MaxRows - 1) additional rows.
+        int listBudget = Math.Max(0, _maxRows - 1);
+        int listCount = Math.Min(listRows.Count, listBudget);
+        Line[] result = new Line[1 + listCount];
+        result[0] = Title;
+        for (int i = 0; i < listCount; i++)
+            result[i + 1] = listRows[i];
+        return result;
+    }
 
     // ── Public properties ─────────────────────────────────────────────────────
 
     /// <summary>The hosted interactive list; configure items before displaying the dialog.</summary>
     internal ScrollableList List { get; }
+
+    /// <summary>
+    /// Optional title row displayed above the list. Set via the constructor.
+    /// When non-<see langword="null"/>, <see cref="Render"/> prepends it and
+    /// <see cref="MaxRows"/> reserves one row for it.
+    /// </summary>
+    internal Line? Title { get; }
 
     /// <summary>Whether the dialog is modal (consumes all keys, hides the cursor).</summary>
     internal bool Modal { get; }
@@ -182,10 +225,17 @@ internal sealed class Dialog : IOverlay
     /// Set by Enter (<see cref="OverlayCloseKind.Submit"/>) or Escape (<see cref="OverlayCloseKind.Cancel"/>).
     /// Consumed by §12 to resolve the awaitable dialog result.
     /// </summary>
-    internal OverlayCloseKind? CloseRequest { get; private set; }
+    public OverlayCloseKind? CloseRequest { get; private set; }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The list dialog never owns the hardware cursor; it uses selection highlight instead.
+    /// </remarks>
+    public (int Row, int Col)? CaretInOverlay => null;
 
     // ── Private ───────────────────────────────────────────────────────────────
 
+    private int _maxRows = 10; // default matches ScrollableList default
     private readonly StringBuilder _filterText = new();
 
     /// <summary>

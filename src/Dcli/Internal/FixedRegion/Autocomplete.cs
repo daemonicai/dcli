@@ -71,6 +71,10 @@ internal sealed class Autocomplete : IOverlay
     public bool IsDismissed => !_visible;
 
     /// <inheritdoc/>
+    /// Autocomplete uses selection highlight; it does not own the hardware cursor.
+    public (int Row, int Col)? CaretInOverlay => null;
+
+    /// <inheritdoc/>
     /// <remarks>
     /// <list type="bullet">
     ///   <item><description><c>↑</c> — moves selection up; consumed.</description></item>

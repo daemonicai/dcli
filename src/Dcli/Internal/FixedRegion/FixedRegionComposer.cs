@@ -63,6 +63,12 @@ internal sealed class FixedRegionComposer
     internal TextBuffer Editor { get; }
 
     /// <summary>
+    /// The status line component. Exposed so façade commands can set
+    /// <see cref="StatusLine.Rows"/> on the loop thread via <c>model.FixedRegion.Status</c>.
+    /// </summary>
+    internal StatusLine Status => _status;
+
+    /// <summary>
     /// Computes the cap for the fixed region given the terminal height and the optional
     /// consumer-supplied <paramref name="appSet"/> value.
     /// </summary>
@@ -162,7 +168,11 @@ internal sealed class FixedRegionComposer
 
         model.FixedRegionRows = fixedRows;
 
-        // Cursor: hidden while a modal overlay is active; otherwise parks at the input caret.
+        // Cursor placement (priority order):
+        //   1. HidesCursor (modal list dialog) → hidden.
+        //   2. Overlay supplies CaretInOverlay AND overlay rows were actually rendered → cursor
+        //      at the overlay's caret (input dialog case).
+        //   3. Normal → cursor at the main editor caret.
         // EditorCaretLocal is relative to the START of the fixed region; the above-input overlay
         // rows are folded in here so the loop's existing CaretPosition finalisation is correct.
         if (overlay is not null && overlay.HidesCursor)
@@ -170,6 +180,18 @@ internal sealed class FixedRegionComposer
             model.EditorCaretLocal = null;
             model.CaretPosition = null;
             model.IsCursorVisible = false;
+        }
+        else if (overlay is not null &&
+                 overlayRows.Count > 0 &&
+                 overlay.CaretInOverlay is { } overlayCaret)
+        {
+            // The overlay owns the cursor (e.g. InputDialog). overlayStartRow is 0 for
+            // AboveInput overlays and inputRows.Count for BelowInput overlays.
+            int overlayStartRow = overlay.Placement == OverlayPlacement.AboveInput
+                ? 0
+                : inputRows.Count;
+            model.EditorCaretLocal = (overlayStartRow + overlayCaret.Row, overlayCaret.Col);
+            model.IsCursorVisible = true;
         }
         else
         {

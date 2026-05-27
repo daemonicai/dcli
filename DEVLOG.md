@@ -23,10 +23,10 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 ## How to resume
 
 - Branch: **`change/core-rendering-architecture`** (created from `main`). Stay on it.
-- Working tree is **clean** at §10; resume at §11.
+- Working tree is **clean** at §11; resume at §12.
 - Sanity check: `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate core-rendering-architecture --strict`
-  → expect **0 warnings, 442 tests green, clean format, valid**.
-- Resume point = first unticked `- [ ]` in `openspec/changes/core-rendering-architecture/tasks.md` = **§11.1** (ScrollableList).
+  → expect **0 warnings, 554 tests green, clean format, valid**.
+- Resume point = first unticked `- [ ]` in `openspec/changes/core-rendering-architecture/tasks.md` = **§12.1** (DialogResult + awaitable dialogs).
 - Check the memory files (see below) before briefing — several encode hard-won constraints for upcoming sections.
 
 ## Section status (1 commit per section)
@@ -43,7 +43,7 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 | 8 | Frame painting | `ff16233` | 310 | `VtFrameRenderer` (Chunk A: SGR + single-frame; Chunk B: cross-frame cursor accounting). Sync-output fence, never rewrites frozen content. Wired into production `Terminal` (UTF-8/no-BOM/flush-per-frame stdout). Diff reconciler **deferred** (seam only). |
 | 9 | Scrollback model | `652f851` | 350 | `ILineObject`/`TextBlock`/`LiveBlock`/`Collapsible`, commit horizon, overflow-commits-top, one-way collapsible, oversized reprint. Feeds `LiveWindowRows`/`NewlyCommittedRows`. |
 | 10 | Fixed region: input editor & status | `84cbb48` | 442 | `TextBuffer` (grapheme-cluster nav via `StringInfo`, caret↔visual wrap, history recall), `StatusLine`, `MaxHeight` budget, loop frame-composition. Editor consumes editing keys; Enter/Tab/Ctrl fall through. |
-| 11 | Fixed region: overlays (autocomplete & dialog) | — | — | **NEXT.** Plan: Chunk A = `ScrollableList` (11.1); Chunk B = `OverlayState` invariant + intercept-chain routing + Autocomplete + Dialog slot + cursor placement (11.2–11.5). |
+| 11 | Fixed region: overlays (autocomplete & dialog) | `bf35c99` | 554 | `ScrollableList` (reverse-video highlight, never the hardware cursor; viewport reconciled **on render** so it survives `MaxRows` changes between frames), `IOverlay` seam, `Autocomplete`/`Dialog` overlays, `OverlayState` invariant on the model (`ShowAutocomplete`/`ShowDialog`/`ClearOverlay`), intercept-chain routing (overlay→editor→emit), composer overlay-slot (dialog above / autocomplete below) + Decision-8 budget squeeze (status sacred → caret visible → overlay absorbs squeeze, **zero-cap guarded**) + cursor hide-while-modal. Built across 3 worker calls (A=ScrollableList, B-i=components, B-ii=integration). |
 | 12 | Public API: dialogs, events, façade | — | — | `ITerminal` + sub-surfaces, awaitable dialogs (`SelectAsync`/`MultiSelectAsync`/`InputAsync`/`ChoiceAsync` → `DialogResult<T>`), `Events` emission (`InputSubmitted`/`InputChanged`/`KeyPressed`/`Resized`), public `Scrollback`/`Input`/`Status`/`Autocomplete` façade + `ILiveBlock`/`ICollapsible` handles. Much of §9/§10/§11 was built as **internal model + commands** specifically so §12 wraps them. |
 | 13 | Resize & reflow | — | — | **Open Question #2** — will require a user confirmation like §8 did (SIGWINCH delivery + reflow/repaint; truecolor/sync-output/unicode-width detection + fallbacks). |
 | 14 | Cross-platform validation & packaging | — | — | **Human-in-the-loop:** 14.1 manual smoke on WT/macOS/Linux; 14.2 demo app; 14.3 finalize NuGet/README/XML docs + pre-release; 14.4 port a dmon `Dmon.Terminal` slice. |
@@ -74,6 +74,15 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 - **§7 loop faults are surfaced**, not silently swallowed (faults `LoopTerminated`, `DisposeAsync` rethrows, pending settles faulted).
 - **Render-frame cursor convention (§8):** the frame's final row has **no trailing `\n`**; cross-frame move-up uses the tracked **caret
   resting row** (not region height) so it never overshoots above the region into frozen content.
+- **§11 autocomplete apply-semantics (decided, flagged for §12):** accepting a candidate does a **whole-buffer replace** via `TextBuffer.SetText`
+  (caret to end) — the literal reading of spec "the candidate's insert text is applied to the input buffer" and what slash-command-style
+  completion needs. `AutocompleteCandidate = (InsertText, Display Line)`. §12 may refine to span-replace; documented in XML docs at the call site.
+- **§11 overlay budget (Decision 8 made concrete):** composer renders the input with `allot = budget (= cap − statusCount)` → `inputRows = min(natural, budget)`;
+  the overlay gets `overlayCap = clamp(budget − inputRows.Count, 0, 10)` (the `10` default becomes consumer-configurable in §12). **Zero-cap guard:**
+  when `overlayCap == 0` the overlay is **not rendered at all** — `ScrollableList.MaxRows` clamps to ≥1, so rendering it would leak one phantom row past the cap.
+- **§11 ↔ §12 seam:** `Dialog.CloseRequest` (`Submit`/`Cancel`) + the loop's `ClearOverlay()` on `IsDismissed` is where §12's TCS-bundled open-dialog
+  command will complete its `DialogResult` (the dialog object survives the clear so its selection/outcome are still readable). `RenderModel.ShowAutocomplete/ShowDialog`
+  are the §12 façade-command entry points (exercised today only by §11.5 tests).
 
 ## Human-in-the-loop verifications
 
@@ -103,8 +112,25 @@ These are recorded as memory files and should become their own future OpenSpec c
 
 ## Resume point
 
-**Section 11 — fixed-region overlays.** Start with **Chunk A: `ScrollableList`** (11.1) — a reusable bounded-viewport selection list
-(maxRows, selection, auto-scroll, optional multi-select via space; selected row is reverse-video styling, never the hardware cursor),
-tested standalone. Then **Chunk B**: `OverlayState = None | Dialog | Autocomplete` invariant, intercept-chain routing (active overlay first
-→ input → passives), Autocomplete (below input, consumer-supplied candidates, apply accepted insert-text), Dialog slot (above input,
-modal-by-default, hide cursor while modal), cursor placement, tests (11.5). The awaitable dialog API + events + public façade are **§12**.
+**Section 12 — public API: dialogs, events, façade.** This section **wraps** the internal model+commands built in §9/§10/§11; little new
+mechanics, mostly surface. Per design Decisions 11 & 12:
+- **12.1** `DialogResult<T>` / `DialogOutcome (Submitted|Back|Cancelled)` + awaitable `SelectAsync`/`MultiSelectAsync`/`InputAsync`/`ChoiceAsync`
+  via **TCS-bundled open-dialog commands** — the loop drives the modal `Dialog` overlay (§11) and completes the TCS on close
+  (hook point: the loop's `ClearOverlay()` on `Dialog.IsDismissed`; map `CloseRequest` Submit/Cancel → outcome; Back is a §12 concept).
+- **12.2** cancellation via `CancellationToken` (closes overlay → `Cancelled`); reject/queue a second concurrent dialog (the §11 invariant only
+  allows one overlay — decide reject-vs-queue here).
+- **12.3** `Scrollback`/`Input`/`Status`/`Autocomplete` façade surfaces posting fire-and-forget commands over the inbound channel
+  (`Autocomplete.Show` → `RenderModel.ShowAutocomplete`; `.Hide` → clear). 
+- **12.4** `Events` emission: `InputSubmitted`/`InputChanged`/`KeyPressed`/`Resized` (note `KeyPressed`/`Resized` already emitted by the loop; add
+  Submitted on Enter fall-through and Changed on buffer mutation).
+- **12.5** tests: select submit/cancel, multi-select toggle, cancellation token, input-change→candidates round-trip.
+- **12.6** expose `ITerminal` (+ `IScrollback`/`IInput`/`IStatus`/`IAutocomplete`); make `KeyEvent`/`PasteEvent`/`ResizeEvent`/`TerminalEvent.*`/
+  `DialogResult<T>`/`DialogOutcome` **public & constructible** (watch for internal-only ctors); no static/singleton state on consumer paths (tier A).
+- **12.7** tests: a hand-written fake `ITerminal` substitutes for the real façade; synthesized events/results drive consumer-style code;
+  command-side calls recorded & asserted.
+
+Suggested chunking: A = dialog result/outcome types + awaitable dialog methods + cancellation/queue (12.1–12.2); B = façade surfaces + events
+(12.3–12.4); C = `ITerminal` interface extraction + public type exposure + fakeable-façade tests (12.6–12.7); fold 12.5 tests into A/B.
+
+**Carry-over doc nit (not §11 scope):** `RenderModel.cs` XML docs (~lines 36–38, 72–76) still say `MaxFixedHeight` is "recorded but not yet
+enforced; §10 will apply…" — stale since §10 shipped and `FixedRegionComposer.ComputeCap` enforces it. Fold a correction into a §12/§13 doc pass.

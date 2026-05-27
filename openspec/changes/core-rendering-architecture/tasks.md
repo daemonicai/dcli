@@ -75,11 +75,11 @@
 
 ## 11. Fixed region: overlays — autocomplete & dialog (fixed-region)
 
-- [ ] 11.1 Implement the reusable `ScrollableList` (bounded viewport, selection, auto-scroll, optional multi-select via space)
-- [ ] 11.2 Implement the `OverlayState = None | Dialog | Autocomplete` invariant + intercept-chain routing (active overlay first)
-- [ ] 11.3 Implement Autocomplete (below input): show/hide, consumer-supplied candidates, apply accepted insert-text to the buffer
-- [ ] 11.4 Implement the Dialog slot (above input): modal-by-default with opt-in type-to-filter; hide hardware cursor while modal
-- [ ] 11.5 Tests: dialog suppresses autocomplete; nav keys consumed vs printable fall-through; modal captures all keys; cursor placement
+- [x] 11.1 Implement the reusable `ScrollableList` (bounded viewport, selection, auto-scroll, optional multi-select via space)
+- [x] 11.2 Implement the `OverlayState = None | Dialog | Autocomplete` invariant + intercept-chain routing (active overlay first)
+- [x] 11.3 Implement Autocomplete (below input): show/hide, consumer-supplied candidates, apply accepted insert-text to the buffer
+- [x] 11.4 Implement the Dialog slot (above input): modal-by-default with opt-in type-to-filter; hide hardware cursor while modal
+- [x] 11.5 Tests: dialog suppresses autocomplete; nav keys consumed vs printable fall-through; modal captures all keys; cursor placement
 
 ## 12. Public API: dialogs, events, façade (render-loop + fixed-region)
 

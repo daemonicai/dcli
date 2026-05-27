@@ -353,7 +353,20 @@ internal sealed class LoopEngine : IDisposable
         switch (ev)
         {
             case KeyEvent ke:
-                if (!RouteEditorKey(ke))
+                bool consumed = false;
+
+                // Intercept-chain: active overlay is the FRONT (first refusal).
+                if (_model.ActiveOverlay is { } overlay)
+                {
+                    consumed = overlay.HandleKey(ke);
+                    if (overlay.IsDismissed)
+                        _model.ClearOverlay(); // §12 will complete the dialog's TCS here first
+                }
+
+                if (!consumed)
+                    consumed = RouteEditorKey(ke);
+
+                if (!consumed)
                     _outbound.Writer.TryWrite(new KeyPressed(ke));
                 break;
 

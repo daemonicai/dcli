@@ -101,7 +101,8 @@ internal sealed class RenderModel
     /// <summary>
     /// Whether the hardware cursor should be visible at end of frame.
     /// <see langword="true"/> (default) = place cursor at <see cref="CaretPosition"/> and show it.
-    /// <see langword="false"/> = hide cursor (modal-dialog case). §11/§12 set this.
+    /// <see langword="false"/> = hide cursor (modal-dialog case). §11 drives this via
+    /// <see cref="ActiveOverlay"/>.<see cref="IOverlay.HidesCursor"/>.
     /// </summary>
     internal bool IsCursorVisible { get; set; } = true;
 
@@ -134,6 +135,40 @@ internal sealed class RenderModel
     /// <see cref="CaretPosition"/>.
     /// </summary>
     internal (int Row, int Col)? EditorCaretLocal { get; set; }
+
+    // ── Active overlay (§11) ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// The currently active overlay, or <see langword="null"/> when none is shown.
+    /// At most one overlay is active at a time (the OverlayState invariant).
+    /// <see cref="FixedRegionComposer.Compose"/> slots this into the fixed region each frame.
+    /// </summary>
+    internal IOverlay? ActiveOverlay { get; private set; }
+
+    /// <summary>
+    /// Shows an autocomplete overlay. No-op when a <see cref="Dialog"/> is already active
+    /// (Dialog takes priority — opening autocomplete under a dialog would violate the
+    /// single-active-overlay invariant and the Dialog-suppresses-autocomplete rule).
+    /// </summary>
+    internal void ShowAutocomplete(Autocomplete autocomplete)
+    {
+        if (ActiveOverlay is Dialog)
+            return;
+        ActiveOverlay = autocomplete;
+    }
+
+    /// <summary>
+    /// Shows a dialog overlay. Suppresses any active autocomplete (Dialog takes priority).
+    /// §12 will call this from <c>SelectAsync</c>.
+    /// </summary>
+    internal void ShowDialog(Dialog dialog) => ActiveOverlay = dialog;
+
+    /// <summary>
+    /// Clears the active overlay. Called by the loop after <see cref="IOverlay.IsDismissed"/>
+    /// becomes <see langword="true"/> (autocomplete hidden, dialog Enter/Escape).
+    /// §12 will extend this to complete the dialog's TCS before clearing.
+    /// </summary>
+    internal void ClearOverlay() => ActiveOverlay = null;
 
     // ── Dirtyness ─────────────────────────────────────────────────────────────
 

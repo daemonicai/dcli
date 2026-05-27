@@ -1,0 +1,84 @@
+namespace Dcli.Internal.FixedRegion;
+
+// ── OverlayPlacement ──────────────────────────────────────────────────────────
+
+/// <summary>
+/// Where in the fixed region an overlay is rendered relative to the input line.
+/// </summary>
+internal enum OverlayPlacement
+{
+    /// <summary>The overlay renders above the input line (e.g. a dialog).</summary>
+    AboveInput,
+
+    /// <summary>The overlay renders below the input line (e.g. autocomplete suggestions).</summary>
+    BelowInput,
+}
+
+// ── OverlayCloseKind ──────────────────────────────────────────────────────────
+
+/// <summary>
+/// How an overlay was closed; surfaced by <see cref="Dialog.CloseRequest"/> and consumed by §12
+/// to resolve the awaitable dialog result.
+/// </summary>
+internal enum OverlayCloseKind
+{
+    /// <summary>The user confirmed (Enter).</summary>
+    Submit,
+
+    /// <summary>The user cancelled (Escape).</summary>
+    Cancel,
+}
+
+// ── IOverlay ──────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Front of the key intercept chain; contributes rows to the fixed region.
+/// </summary>
+/// <remarks>
+/// The active overlay receives keys before the input editor. It either consumes a key
+/// (returns <see langword="true"/> from <see cref="HandleKey"/>) or passes it on
+/// (returns <see langword="false"/>). At most one overlay is active at a time
+/// (<c>OverlayState</c> invariant, enforced in B-ii).
+/// </remarks>
+internal interface IOverlay
+{
+    /// <summary>Where the overlay is slotted relative to the input line.</summary>
+    OverlayPlacement Placement { get; }
+
+    /// <summary>
+    /// When <see langword="true"/> the composer tells the painter to hide the hardware cursor.
+    /// Only <see langword="true"/> while a modal <see cref="Dialog"/> is active.
+    /// </summary>
+    bool HidesCursor { get; }
+
+    /// <summary>
+    /// Viewport row cap set by the composer from the height budget.
+    /// Forwarded directly to the hosted <see cref="ScrollableList.MaxRows"/>.
+    /// </summary>
+    int MaxRows { get; set; }
+
+    /// <summary>
+    /// <see langword="true"/> once the overlay should be removed from the model.
+    /// For <see cref="Autocomplete"/> this is <c>!IsVisible</c>; for <see cref="Dialog"/> this is
+    /// <c>CloseRequest is not null</c>.
+    /// </summary>
+    bool IsDismissed { get; }
+
+    /// <summary>
+    /// Attempts to handle a key press.
+    /// </summary>
+    /// <param name="key">The key event.</param>
+    /// <returns>
+    /// <see langword="true"/> if the overlay consumed the key and the event must not be forwarded;
+    /// <see langword="false"/> if the key falls through to the next handler in the chain.
+    /// </returns>
+    bool HandleKey(KeyEvent key);
+
+    /// <summary>
+    /// Renders the overlay rows at the given terminal width.
+    /// Delegates to the hosted <see cref="ScrollableList.Render"/>.
+    /// </summary>
+    /// <param name="width">Terminal width in columns (forwarded as-is to the list).</param>
+    /// <returns>The rows to slot into the fixed region; empty when nothing to show.</returns>
+    IReadOnlyList<Line> Render(int width);
+}

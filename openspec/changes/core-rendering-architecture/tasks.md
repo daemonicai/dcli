@@ -6,10 +6,10 @@
 
 ## 2. Styled text (styled-text)
 
-- [ ] 2.1 Implement `[Flags] Format` enum (None, Bold, Italic, Underline, Dim, Reverse, Strikethrough)
-- [ ] 2.2 Implement `Color` (named / 256-indexed / 24-bit truecolor) and `Style` (optional fg/bg + `Format`)
-- [ ] 2.3 Implement `Segment` and `Line` records and `LineBuilder` (append-order composition)
-- [ ] 2.4 Tests: segments retain styles, markup-like text is literal, `Format` combination, builder ordering
+- [x] 2.1 Implement `[Flags] Format` enum (None, Bold, Italic, Underline, Dim, Reverse, Strikethrough)
+- [x] 2.2 Implement `Color` (named / 256-indexed / 24-bit truecolor) and `Style` (optional fg/bg + `Format`)
+- [x] 2.3 Implement `Segment` and `Line` records and `LineBuilder` (append-order composition)
+- [x] 2.4 Tests: segments retain styles, markup-like text is literal, `Format` combination, builder ordering
 
 ## 3. Display width & wrapping (shared)
 

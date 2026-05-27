@@ -50,11 +50,11 @@
 
 ## 8. Frame painting (render-loop — Open Question #1)
 
-- [ ] 8.1 Implement `renderFrame()` cursor accounting for the bounded live window + fixed region (move-to-anchor, clear, repaint)
-- [ ] 8.2 Wrap each frame in a synchronized-output fence (`ESC[?2026h … l`); no-op safely where unsupported
-- [ ] 8.3 Park/hide the hardware cursor per fixed-region rules at end of frame
-- [ ] 8.4 (Deferred) per-line diff reconciler as a flicker optimization — leave a seam, do not implement in v1
-- [ ] 8.5 Tests: golden-frame output for representative live-window + fixed-region states (snapshot via the headless harness — §15)
+- [x] 8.1 Implement `renderFrame()` cursor accounting for the bounded live window + fixed region (move-to-anchor, clear, repaint)
+- [x] 8.2 Wrap each frame in a synchronized-output fence (`ESC[?2026h … l`); no-op safely where unsupported
+- [x] 8.3 Park/hide the hardware cursor per fixed-region rules at end of frame
+- [x] 8.4 (Deferred) per-line diff reconciler as a flicker optimization — leave a seam, do not implement in v1
+- [x] 8.5 Tests: golden-frame output for representative live-window + fixed-region states (snapshot via the headless harness — §15)
 
 ## 9. Scrollback model (inline-scrollback)
 

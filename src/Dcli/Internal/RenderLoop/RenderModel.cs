@@ -1,14 +1,20 @@
 namespace Dcli.Internal.RenderLoop;
 
 /// <summary>
-/// Minimal mutable UI state owned exclusively by the render loop thread.
+/// Mutable UI state owned exclusively by the render loop thread.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <strong>Thread discipline:</strong> this object must only ever be read or written on the
 /// render loop thread — the single dedicated thread running <see cref="LoopEngine"/>.
-/// No locks are needed because the single-writer loop is the only mutator. Sections 9 and 10
-/// will add scrollback and fixed-region state as fields here.
+/// No locks are needed because the single-writer loop is the only mutator.
+/// </para>
+/// <para>
+/// <strong>Paint-state fields</strong> (<see cref="LiveWindowRows"/>, <see cref="FixedRegionRows"/>,
+/// <see cref="CaretPosition"/>, <see cref="IsCursorVisible"/>, <see cref="NewlyCommittedRows"/>):
+/// populated by §9 (scrollback) and §10 (fixed region). §8's <see cref="VtFrameRenderer"/> reads
+/// them directly — the painter emits whatever the model holds. Tests set them directly to produce
+/// deterministic golden frames.
 /// </para>
 /// <para>
 /// <strong>Dirty flag:</strong> the loop sets <see cref="IsDirty"/> to <see langword="true"/>
@@ -65,6 +71,45 @@ internal sealed class RenderModel
     /// §10 will apply the full <c>clamp(appSet ?? 50%, 8, rows)</c> budget.
     /// </summary>
     internal int? MaxFixedHeight { get; }
+
+    // ── Paint-state (loop-thread-owned, no locks) ────────────────────────────
+    // Populated by §9 (scrollback) and §10 (fixed region).
+    // The painter reads them verbatim; §8 tests set them directly.
+
+    /// <summary>
+    /// Pre-wrapped visual rows for the live window, already fitted to <see cref="Columns"/>.
+    /// Each row is a list of styled segments. §9 fills this; painter emits them as-is.
+    /// </summary>
+    internal IReadOnlyList<Line> LiveWindowRows { get; set; } = [];
+
+    /// <summary>
+    /// Pre-composed rows for the fixed region (input bar, status line, overlays).
+    /// Each row is a list of styled segments. §10/§11 fill this; painter emits them as-is.
+    /// </summary>
+    internal IReadOnlyList<Line> FixedRegionRows { get; set; } = [];
+
+    /// <summary>
+    /// Desired hardware-cursor position within the frame (zero-based, relative to the first
+    /// row of the frame). <see langword="null"/> defers to <see cref="IsCursorVisible"/>.
+    /// §10 sets this to the input-editor caret.
+    /// </summary>
+    internal (int Row, int Col)? CaretPosition { get; set; }
+
+    /// <summary>
+    /// Whether the hardware cursor should be visible at end of frame.
+    /// <see langword="true"/> (default) = place cursor at <see cref="CaretPosition"/> and show it.
+    /// <see langword="false"/> = hide cursor (modal-dialog case). §11/§12 set this.
+    /// </summary>
+    internal bool IsCursorVisible { get; set; } = true;
+
+    /// <summary>
+    /// Rows that became committed (scrolled above the anchor) this frame.
+    /// Empty in Chunk A; Chunk B will populate and emit them above the re-paint region.
+    /// §9 appends to this list; the painter drains it then clears it each frame.
+    /// </summary>
+    internal IReadOnlyList<Line> NewlyCommittedRows { get; set; } = [];
+
+    // ── Dirtyness ─────────────────────────────────────────────────────────────
 
     /// <summary>Marks the model as dirty so the loop will produce a frame.</summary>
     internal void MarkDirty() => IsDirty = true;

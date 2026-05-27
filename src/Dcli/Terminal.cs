@@ -120,7 +120,15 @@ public sealed class Terminal : IAsyncDisposable
         RestoreCoordinator coordinator = RestoreCoordinator.Wire(session);
 
         IInputByteSource byteSource = CreatePlatformInputByteSource();
-        IOutputSink sink = new NoopOutputSink();
+
+        // UTF-8, no BOM, no auto-flush — one explicit Flush() per frame keeps each
+        // synchronized-output fenced frame written as a single kernel write.
+        StreamWriter stdoutWriter = new(
+            Console.OpenStandardOutput(),
+            new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+            bufferSize: 65536,
+            leaveOpen: false);
+        IOutputSink sink = new VtFrameRenderer(stdoutWriter);
 
         Terminal terminal = StartCore(
             session,

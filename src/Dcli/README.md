@@ -131,8 +131,15 @@ Drain `ITerminal.Events` (`ChannelReader<TerminalEvent>`) on a background task. 
 
 ## Testing
 
-`Dcli.Testing` — a headless harness that runs the full library without a real terminal —
-is shipping as a separate NuGet package in the next release.
+The companion `Dcli.Testing` package ships a headless harness — `HeadlessTerminal` — that runs
+the full render engine, input parser, and fixed-region composer against in-memory OS edges, so
+you can drive and assert on terminal UIs without a real tty. See the
+[testing guide](https://github.com/daemonicai/dcli/blob/main/docs/testing.md).
+
+## Documentation
+
+Full guides and a complete API reference live on GitHub:
+**https://github.com/daemonicai/dcli#documentation**
 
 ## License
 

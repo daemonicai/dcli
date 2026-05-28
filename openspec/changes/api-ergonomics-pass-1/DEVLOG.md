@@ -1,21 +1,19 @@
 # DEVLOG — `api-ergonomics-pass-1`
 
-> **Status: in-flight.** Maintained while applying the change per the OpenSpec apply
-> workflow (see the project's `CLAUDE.md`). Captures per-section narrative the spec
-> files don't carry: decisions under uncertainty, deviations, surfaced bugs, HITL
-> verifications. On archive this file moves with the change to
-> `openspec/changes/archive/YYYY-MM-DD-api-ergonomics-pass-1/DEVLOG.md` and the
-> status flips to **shipped** (see `/devlog freeze`).
+> **Status: shipped.** Archived `2026-05-28` to `openspec/changes/archive/2026-05-28-api-ergonomics-pass-1/`.
+> Final on-branch commit before archive: `f3ac49b` (§6 hash backfill) — see Section status for
+> per-section hashes. Branch: `change/api-ergonomics-pass-1`. Delta specs synced into
+> `openspec/specs/{styled-text,fixed-region}/spec.md` immediately before the archive move.
 
-## How to resume
+## Final state at archive
 
-- Branch: **`change/api-ergonomics-pass-1`** (created from `main`). Stay on it.
-- Working tree state: **CLEAN** (no section work has started; only OpenSpec artefacts + this DEVLOG are committed).
-- Sanity check command:
-  `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate api-ergonomics-pass-1 --strict`
-  → expect **0 warnings, 688 tests green** (baseline from `core-rendering-architecture`), clean format, valid.
-- Resume point: **§1 — `Line.FromText` factory** (first unticked task: `1.1`). See the Section status table for what's done so far.
-- Check the memory files listed at the bottom before briefing — several encode hard-won constraints that survive into this change (in particular: CA2007 / loop-thread discipline if any new dialog test touches the loop).
+- Branch: **`change/api-ergonomics-pass-1`** (created from `main`). Held all section commits.
+- Working tree at archive: clean post-sync; the archive move was its own commit.
+- Sanity check command (post-archive, against `main`-side specs):
+  `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes`
+  → 0 warnings, **714 tests green** (688 baseline + 26 new across §§1-4), format clean.
+- All six sections shipped. See Section status table for per-section commit hashes and tests-after counts.
+- Memory files referenced during the change: see "Memory files" section below — those constraints survive into future changes.
 
 ## Section status
 
@@ -68,4 +66,11 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **All six sections shipped.** Final commit hash for §6 will be added once the section commit lands. Tests: 714 green (688 baseline + 26 new across §§1-4). Gates clean. Artifacts: `dcli.0.2.0-rc.1.{nupkg,snupkg}` + `dcli.testing.0.2.0-rc.1.{nupkg,snupkg}`. Ready for `/opsx:archive` once the user confirms (per the project's `CLAUDE.md` §5 — do not archive automatically; the freeze stamp moves the DEVLOG into the archive directory with the rest of the change).
+> **Shipped — `2026-05-28`.** All six sections landed on `change/api-ergonomics-pass-1`; final
+> branch commit `f3ac49b`. Delta specs synced into the main `openspec/specs/{styled-text,fixed-region}/`
+> immediately before archive. NuGet artifacts produced: `dcli.0.2.0-rc.1.{nupkg,snupkg}` and
+> `dcli.testing.0.2.0-rc.1.{nupkg,snupkg}`. Follow-ups (multi-select Back, `Input.Prompt`/`ReadOnly`,
+> `Scrollback.AppendRule`, incremental `Collapsible.AppendLine`, `PasteEvent` editor routing,
+> VT-escape sanitisation of `Segment.Text`, and a likely ergonomics-pass-2 for
+> `Line.Bold(s)`/`Dim(s)`/`Fg(s,color)` shorthands) live as separate future OpenSpec changes —
+> see "Open follow-ups" above.

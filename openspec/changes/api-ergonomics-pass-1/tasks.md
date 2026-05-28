@@ -6,15 +6,15 @@
 
 ## 2. String-accepting consumer overloads
 
-- [ ] 2.1 `src/Dcli/IScrollback.cs` — add `void Append(string text)` on the interface
-- [ ] 2.2 `src/Dcli/ScrollbackSurface.cs` — implement `Append(string)` as `Append(Line.FromText(text))`
-- [ ] 2.3 `src/Dcli/InputRequest.cs` — add overload accepting `string? Prompt` alongside the existing `Line? Prompt` (preserve `Default`/`IsSecret`)
-- [ ] 2.4 `src/Dcli/SelectRequest.cs` — add overloads accepting `IReadOnlyList<string>` and `params string[]` items
-- [ ] 2.5 `src/Dcli/MultiSelectRequest.cs` — add overloads accepting `IReadOnlyList<string>` and `params string[]` items
-- [ ] 2.6 `src/Dcli/ChoiceRequest.cs` — add overloads accepting `IReadOnlyList<string>` and `params string[]` options
-- [ ] 2.7 `tests/Dcli.Tests/FacadeTests.cs` — round-trip tests for each string overload (string form produces the same model state as the explicit-`Line` form)
-- [ ] 2.8 `tests/Dcli.Tests/FakeTerminalTests.cs` — extend the tier-A fake with the new overloads (forward to the `Line` variant); assert the fake records them identically
-- [ ] 2.9 Compile-fail/lint check: confirm no implicit `string → Line` conversion is defined (no operator on `Line`); document in the XML doc on `Line.FromText` that this is intentional
+- [x] 2.1 `src/Dcli/IScrollback.cs` — add `void Append(string text)` on the interface
+- [x] 2.2 `src/Dcli/ScrollbackSurface.cs` — implement `Append(string)` as `Append(Line.FromText(text))`
+- [x] 2.3 `src/Dcli/InputRequest.cs` — add overload accepting `string? Prompt` alongside the existing `Line? Prompt` (preserve `Default`/`IsSecret`)
+- [x] 2.4 `src/Dcli/SelectRequest.cs` — add overloads accepting `IReadOnlyList<string>` and `params string[]` items
+- [x] 2.5 `src/Dcli/MultiSelectRequest.cs` — add overloads accepting `IReadOnlyList<string>` and `params string[]` items
+- [x] 2.6 `src/Dcli/ChoiceRequest.cs` — add overloads accepting `IReadOnlyList<string>` and `params string[]` options
+- [x] 2.7 `tests/Dcli.Tests/FacadeTests.cs` — round-trip tests for each string overload (string form produces the same model state as the explicit-`Line` form)
+- [x] 2.8 `tests/Dcli.Tests/FakeTerminalTests.cs` — extend the tier-A fake with the new overloads (forward to the `Line` variant); assert the fake records them identically
+- [x] 2.9 Compile-fail/lint check: confirm no implicit `string → Line` conversion is defined (no operator on `Line`); document in the XML doc on `Line.FromText` that this is intentional
 
 ## 3. `AllowBack` flag on `SelectRequest` / `ChoiceRequest`
 

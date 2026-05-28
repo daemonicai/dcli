@@ -599,4 +599,116 @@ public sealed class FacadeTests
             Assert.DoesNotContain(events, e => e is InputSubmitted);
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // §2 — String-overload round-trip tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ScrollbackAppendStringProducesSameLiveRowAsAppendLine()
+    {
+        // IScrollback.Append("hello") must produce the same visible row as
+        // IScrollback.Append(Line.FromText("hello")).
+        (DcliTerminal termLine, CapturingOutputSink sinkLine, VirtualClock clockLine, _) = CreateTerminal();
+        (DcliTerminal termString, CapturingOutputSink sinkString, VirtualClock clockString, _) = CreateTerminal();
+
+        await using (termLine)
+        await using (termString)
+        {
+            termLine.Scrollback.Append(Line.FromText("round-trip"));
+            await SettleAsync(termLine, clockLine);
+
+            termString.Scrollback.Append("round-trip");
+            await SettleAsync(termString, clockString);
+
+            Assert.NotNull(sinkLine.LastModel);
+            Assert.NotNull(sinkString.LastModel);
+
+            bool foundViaLine = sinkLine.LastModel.LiveWindowRows
+                .Any(row => row.Segments.Any(s => s.Text.Contains("round-trip", StringComparison.Ordinal)));
+            bool foundViaString = sinkString.LastModel.LiveWindowRows
+                .Any(row => row.Segments.Any(s => s.Text.Contains("round-trip", StringComparison.Ordinal)));
+
+            Assert.True(foundViaLine, "Append(Line) should produce a live row with text 'round-trip'.");
+            Assert.True(foundViaString, "Append(string) should produce a live row with text 'round-trip'.");
+        }
+    }
+
+    [Fact]
+    public void SelectRequestParamsStringAndIReadOnlyListStringAndLineListAreEqual()
+    {
+        // All three construction forms must produce SelectRequest.Items with the same segments.
+        SelectRequest viaParams = new("a", "b");
+        SelectRequest viaList = new(new List<string> { "a", "b" });
+        SelectRequest viaLineList = new([Line.FromText("a"), Line.FromText("b")]);
+
+        Assert.Equal(viaLineList.Items, viaParams.Items);
+        Assert.Equal(viaLineList.Items, viaList.Items);
+    }
+
+    [Fact]
+    public void MultiSelectRequestParamsStringAndIReadOnlyListStringAndLineListAreEqual()
+    {
+        MultiSelectRequest viaParams = new("a", "b");
+        MultiSelectRequest viaList = new(new List<string> { "a", "b" });
+        MultiSelectRequest viaLineList = new([Line.FromText("a"), Line.FromText("b")]);
+
+        Assert.Equal(viaLineList.Items, viaParams.Items);
+        Assert.Equal(viaLineList.Items, viaList.Items);
+    }
+
+    [Fact]
+    public void ChoiceRequestParamsStringAndIReadOnlyListStringAndLineListAreEqual()
+    {
+        ChoiceRequest viaParams = new("yes", "no");
+        ChoiceRequest viaList = new(new List<string> { "yes", "no" });
+        ChoiceRequest viaLineList = new([Line.FromText("yes"), Line.FromText("no")]);
+
+        Assert.Equal(viaLineList.Options, viaParams.Options);
+        Assert.Equal(viaLineList.Options, viaList.Options);
+    }
+
+    [Fact]
+    public void ChoiceRequestNonAsciiRoundTrip()
+    {
+        // Verify that the string→Line.FromText forwarding path preserves non-ASCII text intact.
+        ChoiceRequest viaParams = new("héllo🦊", "café");
+        ChoiceRequest viaLineList = new([Line.FromText("héllo🦊"), Line.FromText("café")]);
+
+        Assert.Equal(viaLineList.Options, viaParams.Options);
+    }
+
+    [Fact]
+    public void InputRequestStringPromptProducesSamePromptAsLineFromText()
+    {
+        InputRequest viaString = new InputRequest("hi");
+        InputRequest viaLine = new InputRequest(Line.FromText("hi"));
+
+        Assert.NotNull(viaString.Prompt);
+        Assert.NotNull(viaLine.Prompt);
+        Assert.Equal(viaLine.Prompt, viaString.Prompt);
+
+        // Defaults preserved.
+        Assert.Null(viaString.Default);
+        Assert.False(viaString.IsSecret);
+    }
+
+    [Fact]
+    public void InputRequestDefaultCtorRemainsUnambiguous()
+    {
+        // new InputRequest() must compile and produce null Prompt.
+        InputRequest req = new();
+        Assert.Null(req.Prompt);
+        Assert.Null(req.Default);
+        Assert.False(req.IsSecret);
+    }
+
+    [Fact]
+    public void InputRequestNullStringPromptProducesNullPrompt()
+    {
+        // new InputRequest((string?)null) must forward null → null Prompt.
+        InputRequest req = new InputRequest((string?)null);
+        Assert.Null(req.Prompt);
+    }
+
 }

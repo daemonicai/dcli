@@ -22,6 +22,13 @@ public interface IScrollback
     void Append(Line line);
 
     /// <summary>
+    /// Appends a plain-text line to the scrollback live window.
+    /// Shorthand equivalent to <c>Append(Line.FromText(text))</c>.
+    /// </summary>
+    /// <param name="text">The plain text to append as a single unstyled line.</param>
+    void Append(string text);
+
+    /// <summary>
     /// Begins a new live block in the scrollback, returning a handle for incremental mutation.
     /// </summary>
     /// <returns>A handle whose methods post fire-and-forget commands to the render loop.</returns>

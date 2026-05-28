@@ -23,7 +23,8 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 
 | § | Section | Commit | Tests after | Notes |
 |---|---------|--------|-------------|-------|
-| 1 | `Line.FromText` factory | _pending_ | 693 (688 + 5) | XML doc also states "no implicit `string → Line` conversion is defined" — covers the doc half of task 2.9 ahead of §2. |
+| 1 | `Line.FromText` factory | `3dd518c` | 693 (688 + 5) | XML doc also states "no implicit `string → Line` conversion is defined" — covers the doc half of task 2.9 ahead of §2. |
+| 2 | String-accepting consumer overloads | _pending_ | 702 (693 + 9) | Tasks.md target paths (`IScrollback.cs`, `*Request.cs` per record) didn't match real layout; actually edited `ITerminal.cs` (interface) and `DialogRequests.cs` (all four records together). `new InputRequest(null)` is ambiguous between the `Line?` primary and the new `string?` secondary; resolved at call sites via `new InputRequest()` (primary all-defaulted) or explicit `(string?)null` / `Line.FromText(...)`. Tests cover both. |
 
 ## Decisions & deviations
 
@@ -33,7 +34,9 @@ Narrative log of anything that wasn't a straight read-off-the-spec-and-implement
 - Implicit `string → Line` conversion is **rejected** (Decision 1) — if a consumer migration would have been much cleaner with the implicit, log the case so a future change can revisit.
 - Secret-default masking reuses the existing `_userEdited` flag (Decision 5) — if reviewer finds the flag is dirty (programmatic `SetText` mutates without flipping it), the resolution goes here.
 
-*(No decisions logged yet — change has not started.)*
+**§2 — `tasks.md` paths deviate from real layout.** Tasks 2.1, 2.3–2.6 named per-record files (`src/Dcli/IScrollback.cs`, `src/Dcli/InputRequest.cs`, `src/Dcli/SelectRequest.cs`, etc.) that don't exist. The actual layout consolidates: `IScrollback` lives in `src/Dcli/ITerminal.cs` next to the façade interface, and all four `*Request` records live in `src/Dcli/DialogRequests.cs`. Implemented in the real files; did not split them out (that would have been scope creep — Decision 6 is surface-only). No spec amendment needed; the file paths in `tasks.md` were ergonomic shorthand for "the file that contains this type".
+
+**§2 — `new InputRequest(null)` is ambiguous (expected).** With both `InputRequest(Line? Prompt = null, …)` and `InputRequest(string? prompt, …)` present, a bare `null` literal as the first argument cannot resolve. This is documented behaviour for C# overload resolution and matches the design's "explicit only" stance (Decision 1). Mitigation: the natural empty-input call `new InputRequest()` resolves unambiguously to the primary (all defaults); callers who want a null prompt explicitly use `new InputRequest((string?)null)` or `new InputRequest((Line?)null)`. Both forms covered by `FacadeTests` (`InputRequestDefaultCtorRemainsUnambiguous`, `InputRequestNullStringPromptProducesNullPrompt`).
 
 ## Human-in-the-loop verifications
 
@@ -58,4 +61,4 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **Currently at §2.1 — `IScrollback.Append(string text)` overload.** §1 shipped (`Line.FromText` factory + 5 tests; build 0 warnings, 693 tests green, format/validate clean). Next worker brief: implement §2 end-to-end — `IScrollback.Append(string)` (2.1–2.2), the `*Request` string overloads (2.3–2.6), `FacadeTests` round-trips (2.7), `FakeTerminalTests` tier-A symmetry (2.8), and confirm no implicit conversion via grep (2.9; the doc-half is already in `Line.FromText`'s XML).
+> **Currently at §3.1 — `AllowBack` flag on `SelectRequest`.** §2 shipped (string-accepting overloads across `IScrollback`/`*Request`s + tier-A fake symmetry + facade round-trips; 702 tests green, 0 warnings, format/validate clean, zero `implicit operator` hits in `src/`). Next worker brief: implement §3 end-to-end — add `bool AllowBack = false` to `SelectRequest`/`ChoiceRequest` (3.1–3.2), wire Backspace-at-empty in `Dialog.cs` (3.3–3.4), map `OverlayCloseKind.Back` → `DialogOutcome.Back` in the dismiss hook (3.5), tests in `DialogSelectionTests`/`ChoiceDialogTests` (3.6–3.7), and confirm `MultiSelectRequest` deliberately lacks `AllowBack` (3.8).

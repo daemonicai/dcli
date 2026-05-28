@@ -33,11 +33,11 @@
 
 ## 5. Validation & packaging
 
-- [ ] 5.1 `dotnet build -c Release` — 0 warnings.
-- [ ] 5.2 `dotnet test -c Release` — green (existing baseline + ~6–8 new).
-- [ ] 5.3 `dotnet format --verify-no-changes` — clean.
-- [ ] 5.4 `openspec validate multi-line-dialog-prompts --strict` — valid.
-- [ ] 5.5 Bump `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj` `Version` from `0.2.0-rc.1` → `0.2.0-rc.2` (additive minor revision, preview channel).
-- [ ] 5.6 `dotnet pack -c Release` produces `dcli.0.2.0-rc.2.{nupkg,snupkg}` + `dcli.testing.0.2.0-rc.2.{nupkg,snupkg}` cleanly.
-- [ ] 5.7 Update `openspec/changes/multi-line-dialog-prompts/DEVLOG.md` per the `devlog` skill conventions: a row in the Section status table for each section commit, deviations as they happen, resume-point bumped after each section.
-- [ ] 5.8 Coordinate with dmon (or notify the user) so the dmon Phase 2 resume recipe runs: drop the `ToolConfirmPrompt` scrollback workaround, restore lines into `ChoiceRequest.Prompt`, update `ToolConfirmPromptTests`, run dmon gates, commit dmon Phase 2.
+- [x] 5.1 `dotnet build -c Release` — 0 warnings.
+- [x] 5.2 `dotnet test -c Release` — green (existing baseline + ~6–8 new). **735 passed / 0 failed (baseline 714 + 21 new).**
+- [x] 5.3 `dotnet format --verify-no-changes` — clean.
+- [x] 5.4 `openspec validate multi-line-dialog-prompts --strict` — valid.
+- [x] 5.5 Bump `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj` `Version` from `0.2.0-rc.1` → `0.2.0-rc.2` (additive minor revision, preview channel).
+- [x] 5.6 `dotnet pack -c Release` produces `dcli.0.2.0-rc.2.{nupkg,snupkg}` + `dcli.testing.0.2.0-rc.2.{nupkg,snupkg}` cleanly.
+- [x] 5.7 Update `openspec/changes/multi-line-dialog-prompts/DEVLOG.md` per the `devlog` skill conventions: a row in the Section status table for each section commit, deviations as they happen, resume-point bumped after each section.
+- [ ] 5.8 Coordinate with dmon (or notify the user) so the dmon Phase 2 resume recipe runs: drop the `ToolConfirmPrompt` scrollback workaround, restore lines into `ChoiceRequest.Prompt`, update `ToolConfirmPromptTests`, run dmon gates, commit dmon Phase 2. **(Hand-off to user — recorded in DEVLOG Open follow-ups; ticked on user confirmation that dmon Phase 2 has resumed.)**

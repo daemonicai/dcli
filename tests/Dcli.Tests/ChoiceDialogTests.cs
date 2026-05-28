@@ -1,5 +1,6 @@
 using Dcli.Internal.FixedRegion;
 using Dcli.Internal.RenderLoop;
+using Dcli.Testing;
 using Xunit;
 
 namespace Dcli.Tests;
@@ -238,5 +239,65 @@ public sealed class ChoiceDialogTests
             Assert.Equal(DialogOutcome.Submitted, result.Outcome);
         }
         finally { engine.Dispose(); }
+    }
+
+    // ── §3.3 — Multi-line Prompt on ChoiceRequest renders all lines above options ─
+
+    // Spec scenario: "Multi-line preamble renders all lines above the widget"
+
+    /// <summary>
+    /// §3.3 — A <see cref="ChoiceRequest"/> with a 3-line prompt renders all three preamble lines
+    /// above the option rows in order.
+    /// </summary>
+    [Fact]
+    public async Task ChoiceRequestMultiLinePromptRendersAllLinesAboveOptions()
+    {
+        await using HeadlessTerminal harness = await HeadlessTerminal.StartAsync(
+            new HeadlessTerminalOptions { InitialColumns = 40, InitialRows = 12 });
+
+        IReadOnlyList<Line> prompt = new Line[]
+        {
+            PlainLine("Confirm the action"),
+            PlainLine("This cannot be undone"),
+            PlainLine("Select an option:"),
+        };
+        ChoiceRequest req = new([PlainLine("yes"), PlainLine("no"), PlainLine("cancel")],
+            Prompt: prompt);
+
+        Task<DialogResult<int>> dialogTask = harness.Terminal.ChoiceAsync(req);
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        FrameSnapshot snap = harness.Snapshot;
+        Assert.Equal(OverlayKind.Dialog, snap.Overlay.Kind);
+
+        int idxLine1 = FindRowIndexContaining(snap.FixedRegionRows, "Confirm the action");
+        int idxLine2 = FindRowIndexContaining(snap.FixedRegionRows, "This cannot be undone");
+        int idxLine3 = FindRowIndexContaining(snap.FixedRegionRows, "Select an option:");
+        int idxItem = FindRowIndexContaining(snap.FixedRegionRows, "yes");
+
+        Assert.True(idxLine1 >= 0, "Prompt line 1 'Confirm the action' not found");
+        Assert.True(idxLine2 >= 0, "Prompt line 2 'This cannot be undone' not found");
+        Assert.True(idxLine3 >= 0, "Prompt line 3 'Select an option:' not found");
+        Assert.True(idxItem >= 0, "Option 'yes' not found in FixedRegionRows");
+        Assert.True(idxLine1 < idxLine2, $"Prompt lines out of order: {idxLine1},{idxLine2}");
+        Assert.True(idxLine2 < idxLine3, $"Prompt lines out of order: {idxLine2},{idxLine3}");
+        Assert.True(idxLine3 < idxItem,
+            $"Prompt lines must appear before options; got rows: {idxLine1},{idxLine2},{idxLine3},{idxItem}");
+
+        harness.SendKey(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await dialogTask;
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
+
+    private static int FindRowIndexContaining(IReadOnlyList<Line> rows, string needle)
+    {
+        for (int i = 0; i < rows.Count; i++)
+        {
+            if (rows[i].Segments.Any(s => s.Text.Contains(needle, StringComparison.Ordinal)))
+                return i;
+        }
+        return -1;
     }
 }

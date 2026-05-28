@@ -1,6 +1,7 @@
 using System.Text;
 using Dcli.Internal.FixedRegion;
 using Dcli.Internal.RenderLoop;
+using Dcli.Testing;
 using Xunit;
 
 namespace Dcli.Tests;
@@ -116,7 +117,7 @@ public sealed class DialogSelectionTests
     private static Task<DialogResult<int>> PostSelectDialog(
         LoopEngine engine,
         List<Line> items,
-        Line? title = null,
+        IReadOnlyList<Line>? title = null,
         CancellationToken ct = default)
     {
         Dialog dialog = new(multiSelect: false, modal: true, title: title);
@@ -367,7 +368,7 @@ public sealed class DialogSelectionTests
     public void DialogWithTitleMaxRowsReservesOneRowForTitle()
     {
         Line title = PlainLine("Choose:");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("A", "B", "C"));
 
         // Set MaxRows = 4. With a title, List.MaxRows = 3 → 3 list rows fit.
@@ -386,7 +387,7 @@ public sealed class DialogSelectionTests
     public void DialogWithTitleRenderPrependsTitleRow()
     {
         Line title = PlainLine("My Title");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("X", "Y"));
         dialog.MaxRows = 10; // no truncation
 
@@ -403,7 +404,7 @@ public sealed class DialogSelectionTests
     public void DialogWithTitleMaxRowsNeverExceedsBudget()
     {
         Line title = PlainLine("Title");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("1", "2", "3", "4", "5"));
         dialog.MaxRows = 3; // budget: title(1) + list(max 2)
 
@@ -567,7 +568,7 @@ public sealed class DialogSelectionTests
     {
         // At MaxRows=1 the title consumes the entire budget; zero list rows must appear.
         Line title = PlainLine("Title");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("A", "B", "C"));
         dialog.MaxRows = 1;
 
@@ -583,7 +584,7 @@ public sealed class DialogSelectionTests
     {
         // At MaxRows=2: title(1) + list(1) = 2 rows total.
         Line title = PlainLine("Title");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("A", "B", "C"));
         dialog.MaxRows = 2;
 
@@ -714,5 +715,152 @@ public sealed class DialogSelectionTests
     {
         // AllowBack is intentionally absent from MultiSelectRequest (design decision §3.8).
         Assert.Null(typeof(MultiSelectRequest).GetProperty("AllowBack"));
+    }
+
+    // ── §3.1 — Multi-line Title on SelectRequest renders all lines above items ─
+
+    // Spec scenario: "Multi-line preamble renders all lines above the widget"
+
+    /// <summary>
+    /// §3.1 — A <see cref="SelectRequest"/> with a 3-line title renders all three preamble lines
+    /// above the list items in order.
+    /// </summary>
+    [Fact]
+    public async Task SelectRequestMultiLineTitleRendersAllLinesAboveItems()
+    {
+        await using HeadlessTerminal harness = await HeadlessTerminal.StartAsync(
+            new HeadlessTerminalOptions { InitialColumns = 40, InitialRows = 12 });
+
+        IReadOnlyList<Line> title = new Line[]
+        {
+            PlainLine("Pick one"),
+            PlainLine("Three options below"),
+            PlainLine("Press Enter to confirm"),
+        };
+        SelectRequest req = new([PlainLine("a"), PlainLine("b"), PlainLine("c")], Title: title);
+
+        Task<DialogResult<int>> dialogTask = harness.Terminal.SelectAsync(req);
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        FrameSnapshot snap = harness.Snapshot;
+        Assert.Equal(OverlayKind.Dialog, snap.Overlay.Kind);
+
+        int idxLine1 = FindRowIndexContaining(snap.FixedRegionRows, "Pick one");
+        int idxLine2 = FindRowIndexContaining(snap.FixedRegionRows, "Three options below");
+        int idxLine3 = FindRowIndexContaining(snap.FixedRegionRows, "Press Enter to confirm");
+        int idxItem = FindRowIndexContaining(snap.FixedRegionRows, "a");
+
+        Assert.True(idxLine1 >= 0, "Title line 1 'Pick one' not found in FixedRegionRows");
+        Assert.True(idxLine2 >= 0, "Title line 2 'Three options below' not found");
+        Assert.True(idxLine3 >= 0, "Title line 3 'Press Enter to confirm' not found");
+        Assert.True(idxItem >= 0, "List item 'a' not found in FixedRegionRows");
+        Assert.True(idxLine1 < idxLine2, $"Title lines out of order: {idxLine1},{idxLine2}");
+        Assert.True(idxLine2 < idxLine3, $"Title lines out of order: {idxLine2},{idxLine3}");
+        Assert.True(idxLine3 < idxItem,
+            $"Title lines must appear before items; got rows: {idxLine1},{idxLine2},{idxLine3},{idxItem}");
+
+        harness.SendKey(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await dialogTask;
+    }
+
+    // ── §3.2 — Multi-line Title on MultiSelectRequest renders all lines above items ─
+
+    /// <summary>
+    /// §3.2 — A <see cref="MultiSelectRequest"/> with a 3-line title renders all three preamble
+    /// lines above the list items in order.
+    /// </summary>
+    [Fact]
+    public async Task MultiSelectRequestMultiLineTitleRendersAllLinesAboveItems()
+    {
+        await using HeadlessTerminal harness = await HeadlessTerminal.StartAsync(
+            new HeadlessTerminalOptions { InitialColumns = 40, InitialRows = 12 });
+
+        IReadOnlyList<Line> title = new Line[]
+        {
+            PlainLine("Multi-select header"),
+            PlainLine("Space to toggle"),
+            PlainLine("Enter to confirm"),
+        };
+        MultiSelectRequest req = new([PlainLine("alpha"), PlainLine("beta"), PlainLine("gamma")],
+            Title: title);
+
+        Task<DialogResult<int[]>> dialogTask = harness.Terminal.MultiSelectAsync(req);
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        FrameSnapshot snap = harness.Snapshot;
+        Assert.Equal(OverlayKind.Dialog, snap.Overlay.Kind);
+
+        int idxLine1 = FindRowIndexContaining(snap.FixedRegionRows, "Multi-select header");
+        int idxLine2 = FindRowIndexContaining(snap.FixedRegionRows, "Space to toggle");
+        int idxLine3 = FindRowIndexContaining(snap.FixedRegionRows, "Enter to confirm");
+        int idxItem = FindRowIndexContaining(snap.FixedRegionRows, "alpha");
+
+        Assert.True(idxLine1 >= 0, "Title line 1 'Multi-select header' not found");
+        Assert.True(idxLine2 >= 0, "Title line 2 'Space to toggle' not found");
+        Assert.True(idxLine3 >= 0, "Title line 3 'Enter to confirm' not found");
+        Assert.True(idxItem >= 0, "List item 'alpha' not found");
+        Assert.True(idxLine1 < idxLine2, $"Title lines out of order: {idxLine1},{idxLine2}");
+        Assert.True(idxLine2 < idxLine3, $"Title lines out of order: {idxLine2},{idxLine3}");
+        Assert.True(idxLine3 < idxItem,
+            $"Title lines must appear before items; got rows: {idxLine1},{idxLine2},{idxLine3},{idxItem}");
+
+        harness.SendKey(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await dialogTask;
+    }
+
+    // ── §3.7 — Oversized preamble truncates and keeps widget visible ──────────
+
+    // Spec scenario: "Multi-line preamble truncates when over budget"
+
+    /// <summary>
+    /// §3.7 — A preamble taller than the overlay budget truncates, and the dialog overlay
+    /// remains active (widget visible). Caret-in-frame is NOT asserted (see §2 reviewer flag).
+    /// </summary>
+    [Fact]
+    public async Task SelectRequestOversizedPreambleTruncatesAndKeepsDialogVisible()
+    {
+        // 10-row terminal: fixed-region budget is limited; a 30-line preamble should be truncated.
+        await using HeadlessTerminal harness = await HeadlessTerminal.StartAsync(
+            new HeadlessTerminalOptions { InitialColumns = 40, InitialRows = 10 });
+
+        IReadOnlyList<Line> bigTitle = Enumerable.Range(1, 30)
+            .Select(i => PlainLine($"preamble line {i}"))
+            .ToList();
+
+        SelectRequest req = new([PlainLine("opt1"), PlainLine("opt2")], Title: bigTitle);
+
+        Task<DialogResult<int>> dialogTask = harness.Terminal.SelectAsync(req);
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        FrameSnapshot snap = harness.Snapshot;
+
+        // The overlay must still be active (widget remains usable).
+        Assert.Equal(OverlayKind.Dialog, snap.Overlay.Kind);
+
+        // The fixed-region row count must not exceed the terminal height.
+        Assert.True(snap.FixedRegionRows.Count <= harness.Snapshot.Size.Rows,
+            $"FixedRegionRows ({snap.FixedRegionRows.Count}) exceeded terminal rows ({snap.Size.Rows})");
+
+        // The overlay visible row count must be positive (at least one row rendered).
+        Assert.True(snap.Overlay.VisibleRowCount > 0,
+            "Overlay must render at least one row even with an oversized preamble");
+
+        harness.SendKey(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await dialogTask;
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
+
+    private static int FindRowIndexContaining(IReadOnlyList<Line> rows, string needle)
+    {
+        for (int i = 0; i < rows.Count; i++)
+        {
+            if (rows[i].Segments.Any(s => s.Text.Contains(needle, StringComparison.Ordinal)))
+                return i;
+        }
+        return -1;
     }
 }

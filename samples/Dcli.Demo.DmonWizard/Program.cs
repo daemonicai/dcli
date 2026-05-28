@@ -2,8 +2,8 @@
 // Exercises the multi-step wizard flow (provider-select → model-select → API-key → confirm)
 // against dcli's SelectAsync / MultiSelectAsync / InputAsync / ChoiceAsync / Scrollback.Append.
 //
-// To run interactively, replace `cts.Token` with `CancellationToken.None` in the engine.RunAsync call.
 // Run: dotnet run --project samples/Dcli.Demo.DmonWizard
+// Interactive mode (no auto-cancel): set DCLI_DEMO_DMONWIZARD_INTERACTIVE=1.
 
 using Dcli;
 using Dcli.Demo.DmonWizard.Engine;
@@ -42,8 +42,13 @@ IReadOnlyList<IProviderFactory> factories =
 WizardEngine engine = new(t, factories);
 
 // Auto-cancel after 10s so the binary self-exits without input in CI / demo mode.
-// To run interactively, replace `cts.Token` with `CancellationToken.None`.
-using CancellationTokenSource cts = new(TimeSpan.FromSeconds(10));
+// Set DCLI_DEMO_DMONWIZARD_INTERACTIVE=1 to disable the timeout and walk the wizard by hand.
+bool interactive = string.Equals(
+    Environment.GetEnvironmentVariable("DCLI_DEMO_DMONWIZARD_INTERACTIVE"),
+    "1", StringComparison.Ordinal);
+using CancellationTokenSource cts = interactive
+    ? new CancellationTokenSource()
+    : new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
 WizardResult? result;
 try

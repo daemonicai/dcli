@@ -39,10 +39,10 @@ internal sealed class InputDialog : IModalOverlay
     /// <summary>
     /// Initialises a new <see cref="InputDialog"/>.
     /// </summary>
-    /// <param name="prompt">Optional prompt row rendered above the text field.</param>
+    /// <param name="prompt">Optional preamble lines rendered above the text field.</param>
     /// <param name="default">Optional pre-filled text; the caret starts at its end.</param>
     /// <param name="isSecret">When <see langword="true"/>, rendered characters are masked.</param>
-    internal InputDialog(Line? prompt, string? @default, bool isSecret)
+    internal InputDialog(IReadOnlyList<Line>? prompt, string? @default, bool isSecret)
     {
         Prompt = prompt;
         _isSecret = isSecret;
@@ -173,22 +173,22 @@ internal sealed class InputDialog : IModalOverlay
 
     /// <inheritdoc/>
     /// <remarks>
-    /// When <see cref="Prompt"/> is non-<see langword="null"/>, it is prepended as the first row.
-    /// When <see cref="IsSecret"/> is <see langword="true"/>, each Rune in the visible buffer rows
-    /// is replaced by one mask glyph per display column occupied by that Rune, so
-    /// <see cref="CaretInOverlay"/> needs no offset correction.
+    /// When <see cref="Prompt"/> is non-<see langword="null"/> and non-empty, its lines are
+    /// prepended above the text field rows. When <see cref="IsSecret"/> is <see langword="true"/>,
+    /// each Rune in the visible buffer rows is replaced by one mask glyph per display column
+    /// occupied by that Rune, so <see cref="CaretInOverlay"/> needs no offset correction.
     /// </remarks>
     public IReadOnlyList<Line> Render(int width)
     {
         _lastWidth = width;
 
-        int promptRows = Prompt is not null ? 1 : 0;
+        int promptRows = Prompt?.Count ?? 0;
         int bufferAllotment = Math.Max(1, _maxRows - promptRows);
 
         RenderResult r = _buffer.Render(width, allottedHeight: bufferAllotment);
         IReadOnlyList<Line> bufferRows = _isSecret ? MaskRows(r.VisibleRows) : r.VisibleRows;
 
-        // Caret within the assembled rows: offset by prompt row if present.
+        // Caret within the assembled rows: offset by prompt row count.
         _lastCaret = (r.CaretPosition.Row + promptRows, r.CaretPosition.Col);
 
         // Assemble and truncate to MaxRows.
@@ -196,8 +196,8 @@ internal sealed class InputDialog : IModalOverlay
         Line[] result = new Line[Math.Min(totalCount, _maxRows)];
         int idx = 0;
 
-        if (Prompt is not null && idx < result.Length)
-            result[idx++] = Prompt;
+        for (int i = 0; i < promptRows && idx < result.Length; i++)
+            result[idx++] = Prompt![i];
 
         for (int i = 0; i < bufferRows.Count && idx < result.Length; i++)
             result[idx++] = bufferRows[i];
@@ -222,11 +222,11 @@ internal sealed class InputDialog : IModalOverlay
     // ── Internal surface ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Optional prompt row displayed above the input field. Set via the constructor.
-    /// When non-<see langword="null"/>, <see cref="Render"/> prepends it and reserves one row
-    /// of the <see cref="MaxRows"/> budget for it.
+    /// Optional preamble lines displayed above the input field. Set via the constructor.
+    /// When non-<see langword="null"/> and non-empty, <see cref="Render"/> prepends all lines
+    /// and reserves a row for each of them in the <see cref="MaxRows"/> budget.
     /// </summary>
-    internal Line? Prompt { get; }
+    internal IReadOnlyList<Line>? Prompt { get; }
 
     /// <summary>Whether the input is secret (masked in the rendered rows).</summary>
     internal bool IsSecret => _isSecret;

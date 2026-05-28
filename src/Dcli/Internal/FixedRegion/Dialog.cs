@@ -48,16 +48,16 @@ internal sealed class Dialog : IModalOverlay
     /// by the modal fall-through rule or fall through to the input editor.
     /// </param>
     /// <param name="title">
-    /// Optional leading row rendered above the list. When non-<see langword="null"/>, one row
-    /// of the <see cref="MaxRows"/> budget is reserved for it, and <c>List.MaxRows</c> is set to
-    /// at most <c>MaxRows - 1</c> so the total output never exceeds the budget.
+    /// Optional preamble lines rendered above the list. When non-<see langword="null"/> and
+    /// non-empty, each line consumes one row of the <see cref="MaxRows"/> budget, and
+    /// <c>List.MaxRows</c> is reduced accordingly so the total output never exceeds the budget.
     /// </param>
     /// <param name="allowBack">
     /// When <see langword="true"/>, Backspace closes the dialog with
     /// <see cref="OverlayCloseKind.Back"/> provided the user has not yet moved the selection
     /// cursor and the filter text is empty. Defaults to <see langword="false"/>.
     /// </param>
-    internal Dialog(bool multiSelect = false, bool modal = true, bool typeToFilter = false, Line? title = null, bool allowBack = false)
+    internal Dialog(bool multiSelect = false, bool modal = true, bool typeToFilter = false, IReadOnlyList<Line>? title = null, bool allowBack = false)
     {
         Modal = modal;
         TypeToFilter = typeToFilter;
@@ -81,8 +81,8 @@ internal sealed class Dialog : IModalOverlay
     /// <inheritdoc/>
     /// <remarks>
     /// The setter stores the raw budget and forwards to <see cref="ScrollableList.MaxRows"/>
-    /// (minus one when a <see cref="Title"/> is present, as a hint; <see cref="Render"/> always
-    /// truncates the combined output to at most <see cref="_maxRows"/> rows regardless).
+    /// (minus the preamble line count when <see cref="Title"/> is non-empty; <see cref="Render"/>
+    /// always truncates the combined output to at most <see cref="_maxRows"/> rows regardless).
     /// </remarks>
     public int MaxRows
     {
@@ -90,9 +90,9 @@ internal sealed class Dialog : IModalOverlay
         set
         {
             _maxRows = value;
-            // Give the list as much of the budget as possible. When Title is present, one row
-            // is consumed by it; the list gets the remainder (≥ 0, clamped to 1 by ScrollableList).
-            List.MaxRows = Title is null ? value : Math.Max(1, value - 1);
+            int titleRows = Title?.Count ?? 0;
+            // Give the list as much of the budget as possible after reserving preamble rows.
+            List.MaxRows = Math.Max(1, value - titleRows);
         }
     }
 
@@ -197,23 +197,25 @@ internal sealed class Dialog : IModalOverlay
 
     /// <inheritdoc/>
     /// <remarks>
-    /// When <see cref="Title"/> is set, it is prepended as the first row before the list rows.
-    /// The total row count never exceeds <see cref="MaxRows"/>: the title is emitted first and
-    /// list rows fill whatever budget remains (possibly zero when <see cref="MaxRows"/> is 1).
+    /// When <see cref="Title"/> is non-null and non-empty, its lines are prepended above the list
+    /// rows. The total row count never exceeds <see cref="MaxRows"/>: preamble lines are emitted
+    /// first (truncated to budget if taller than the budget), then list rows fill whatever remains.
     /// </remarks>
     public IReadOnlyList<Line> Render(int width)
     {
         IReadOnlyList<Line> listRows = List.Render(width);
-        if (Title is null)
+        int titleCount = Title?.Count ?? 0;
+        if (titleCount == 0)
             return listRows;
 
-        // Budget: title occupies row 0; list gets up to (MaxRows - 1) additional rows.
-        int listBudget = Math.Max(0, _maxRows - 1);
+        int titleBudget = Math.Min(titleCount, _maxRows);
+        int listBudget = Math.Max(0, _maxRows - titleBudget);
         int listCount = Math.Min(listRows.Count, listBudget);
-        Line[] result = new Line[1 + listCount];
-        result[0] = Title;
+        Line[] result = new Line[titleBudget + listCount];
+        for (int i = 0; i < titleBudget; i++)
+            result[i] = Title![i];
         for (int i = 0; i < listCount; i++)
-            result[i + 1] = listRows[i];
+            result[titleBudget + i] = listRows[i];
         return result;
     }
 
@@ -223,11 +225,11 @@ internal sealed class Dialog : IModalOverlay
     internal ScrollableList List { get; }
 
     /// <summary>
-    /// Optional title row displayed above the list. Set via the constructor.
-    /// When non-<see langword="null"/>, <see cref="Render"/> prepends it and
-    /// <see cref="MaxRows"/> reserves one row for it.
+    /// Optional preamble lines displayed above the list. Set via the constructor.
+    /// When non-<see langword="null"/> and non-empty, <see cref="Render"/> prepends all lines
+    /// and <see cref="MaxRows"/> reserves a row for each of them.
     /// </summary>
-    internal Line? Title { get; }
+    internal IReadOnlyList<Line>? Title { get; }
 
     /// <summary>Whether the dialog is modal (consumes all keys, hides the cursor).</summary>
     internal bool Modal { get; }

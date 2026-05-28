@@ -213,6 +213,7 @@ await Task.Delay(TimeSpan.FromMilliseconds(200));
 {
     using CancellationTokenSource cts = new(TimeSpan.FromMilliseconds(1500));
 
+    // Multi-line Prompt demo: bold question + dim hint on a second line.
     DialogResult<int> confirm = await t.ChoiceAsync(
         new ChoiceRequest(
             Options:
@@ -220,7 +221,11 @@ await Task.Delay(TimeSpan.FromMilliseconds(200));
                 new LineBuilder().Fg("Yes", Color.Named(Color.AnsiColor.Green)).Build(),
                 new LineBuilder().Fg("No", Color.Named(Color.AnsiColor.Red)).Build(),
             ],
-            Prompt: new LineBuilder().Bold("Run the tour again?").Build()),
+            Prompt:
+            [
+                new LineBuilder().Bold("Run the tour again?").Build(),
+                new LineBuilder().Dim("Arrow keys to navigate; Enter to confirm.").Build(),
+            ]),
         cts.Token);
 
     string choiceText = confirm.Outcome == DialogOutcome.Submitted

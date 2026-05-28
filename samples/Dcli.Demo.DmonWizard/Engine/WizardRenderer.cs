@@ -26,20 +26,24 @@ internal static class WizardRenderer
         ITerminal terminal, ChooseOneStep step, CancellationToken ct)
     {
         List<Line> items = step.Options
-            .Select(o => new LineBuilder().Text(o.Label).Build())
+            .Select(o => Line.FromText(o.Label))
             .ToList();
 
+        // AllowBack: true — Backspace at the top of the list produces DialogOutcome.Back,
+        // routing the user to the previous wizard step.
         DialogResult<int> result = await terminal.SelectAsync(
             new SelectRequest(
                 Items: items,
-                Title: new LineBuilder().Bold(step.Prompt).Build()),
+                Title: new LineBuilder().Bold(step.Prompt).Build(),
+                AllowBack: true),
             ct).ConfigureAwait(false);
+
+        if (result.Outcome == DialogOutcome.Back)
+            return WizardStepOutcome.Back;
 
         if (result.Outcome == DialogOutcome.Cancelled)
             return WizardStepOutcome.Cancel;
 
-        // API ergonomics gap: DialogOutcome.Back is never produced by v1 dialogs.
-        // Esc maps to Cancelled, not Back. We treat Cancelled as Cancel here.
         step.SelectedIndex = result.Value;
         return WizardStepOutcome.Answered;
     }
@@ -50,7 +54,7 @@ internal static class WizardRenderer
         // Ergonomics WIN: dcli MultiSelectAsync supports real multi-select.
         // Dmon fell back to single-pick because Spectre.Console couldn't multi-select cleanly.
         List<Line> items = step.Options
-            .Select(o => new LineBuilder().Text(o.Label).Build())
+            .Select(o => Line.FromText(o.Label))
             .ToList();
 
         DialogResult<int[]> result = await terminal.MultiSelectAsync(

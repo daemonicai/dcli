@@ -37,9 +37,9 @@
 
 ## 5. Demo updates
 
-- [ ] 5.1 `samples/Dcli.Demo.DmonWizard/Engine/WizardRenderer.cs` — replace the ~12 `new LineBuilder().Text(s).Build()` sites with `Line.FromText(s)` to validate the ergonomics end-to-end
-- [ ] 5.2 Where possible in `samples/Dcli.Demo/`, switch label-only `Line`s to `Line.FromText` or the string overloads
-- [ ] 5.3 Add a `AllowBack=true` use case to a wizard step in `Dcli.Demo.DmonWizard` so the new affordance has a live demonstration
+- [x] 5.1 `samples/Dcli.Demo.DmonWizard/Engine/WizardRenderer.cs` — replace the ~12 `new LineBuilder().Text(s).Build()` sites with `Line.FromText(s)` to validate the ergonomics end-to-end
+- [x] 5.2 Where possible in `samples/Dcli.Demo/`, switch label-only `Line`s to `Line.FromText` or the string overloads
+- [x] 5.3 Add a `AllowBack=true` use case to a wizard step in `Dcli.Demo.DmonWizard` so the new affordance has a live demonstration
 
 ## 6. Validation & packaging
 

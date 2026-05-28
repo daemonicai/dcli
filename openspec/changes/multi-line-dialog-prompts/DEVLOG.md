@@ -33,18 +33,20 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 - **§1 reviewer flag for §3 (NOT blocking §1).** Spec scenario "Single-string preamble constructor still works" shows `new ChoiceRequest(options, prompt: "Permission:")`. There's no `(IReadOnlyList<Line> Options, string? Prompt, bool AllowBack)` ctor — the only candidate for that exact call shape is `(IReadOnlyList<Line> options, params string[] prompt)` via named-arg expanded-form binding. §3.5's round-trip test will exercise the literal scenario and reveal whether the compiler binds it. If it doesn't bind, §3 must either add a `(IRO<Line>, string?, bool)` overload or weaken the scenario wording.
 - **§2 reviewer flag for §3 (NOT blocking §2).** `InputDialog.Render` reports `_lastCaret.Row = r.CaretPosition.Row + promptRows` even when `promptRows > _maxRows` (over-budget preamble). In that path prompt fills all rows in `result`, buffer rows are dropped, and the reported caret is off-screen. Same shape as `Dialog.cs` over-budget truncation, ratified by spec scenario "Multi-line preamble truncates when over budget" ("widget remains usable"). §3.7's truncation regression test should target preamble + widget visibility, not caret-in-frame.
 - **§2 tasks.md deviation.** Task 2.2 references `src/Dcli/Internal/FixedRegion/ChoiceDialog.cs`; no such file exists. `ChoiceRequest` is rendered by `Dialog.cs` (see `Terminal.cs:195`). 2.2 folded into 2.1; tasks.md marked accordingly.
+- **§4 follow-up — `DCLI_DEMO_DMONWIZARD_INTERACTIVE` env var.** The DmonWizard sample had a pre-existing 10-second `CancellationTokenSource` auto-cancel that prevented interactive HITL verification of §4.1 (the wizard self-cancelled before any keyboard input was possible). Added a small env-var toggle: when `DCLI_DEMO_DMONWIZARD_INTERACTIVE=1` the cancellation source has no timeout; otherwise the 10s CI default is preserved. Sample-only change; no production-code impact.
 
 ## Human-in-the-loop verifications
 
 - **§4.1 — Sample wizard step with multi-line preamble.**
-  - Command: `dotnet run --project samples/Dcli.Demo.DmonWizard`.
+  - Command (interactive mode): `DCLI_DEMO_DMONWIZARD_INTERACTIVE=1 dotnet run --project samples/Dcli.Demo.DmonWizard`. The env var disables the 10-second CI safety timeout so the wizard waits for keyboard input.
   - Walk the wizard: pick a provider (Anthropic or OpenAI), then a model. Step 3 is the API key entry.
   - Expected at the API-key step (three rows above the input caret):
     - **Line 1 (bold):** "Anthropic API key" or "OpenAI API key" (matches `step.Prompt`)
     - **Line 2 (dim):** "Used only for this session. Not persisted to disk."
     - **Line 3 (dim):** "Press Esc to cancel; Enter to confirm."
   - Type something + Enter and the wizard advances to the next step (validates submission still works through the widened renderer).
-  - Status: **pending — awaiting user confirmation before ticking 4.1.**
+  - Sub-issue noted during first verification (2026-05-28): the demo's pre-existing 10s `CancellationTokenSource` timeout self-cancelled the wizard before keyboard input was possible. Pre-existing behaviour (not a §4 regression), but it blocked the interactive verification. Resolved by adding `DCLI_DEMO_DMONWIZARD_INTERACTIVE=1` env-var toggle; default CI behaviour (10s auto-cancel) preserved.
+  - Status: **pending — awaiting user confirmation with the env-var toggle before ticking 4.1.**
 
 ## Open follow-ups / known gaps (after this change lands — NOT in scope here)
 

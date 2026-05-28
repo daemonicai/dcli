@@ -5,9 +5,9 @@ namespace Dcli;
 /// </summary>
 /// <param name="InsertText">
 /// The text applied to the input buffer when this candidate is accepted.
-/// Applied via <c>TextBuffer.SetText</c>, which replaces the entire buffer and places the
-/// caret at the end (whole-buffer replace). A span-replace refinement — so only the typed
-/// prefix is replaced rather than the full buffer — is a documented gap for a later §12 pass.
+/// Applied via whole-buffer replace: the entire input buffer is replaced with this value and
+/// the caret is moved to the end. Span-replace (replacing only the typed prefix) is not
+/// supported in this release.
 /// </param>
 /// <param name="Display">
 /// The styled row rendered in the dropdown list. This is the consumer's presentation of

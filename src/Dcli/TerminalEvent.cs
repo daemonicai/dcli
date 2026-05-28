@@ -7,7 +7,7 @@ namespace Dcli;
 /// </summary>
 /// <remarks>
 /// All subtypes are publicly constructible so consumer tests can synthesize events
-/// without a real terminal (Decision 12 — tier A testability).
+/// without a real terminal.
 /// </remarks>
 public abstract record TerminalEvent;
 

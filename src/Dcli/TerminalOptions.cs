@@ -11,9 +11,8 @@ public sealed class TerminalOptions
     /// </summary>
     /// <remarks>
     /// The fixed region includes the caret line, status bar, and any overlay (dialog /
-    /// autocomplete). The value is accepted here and recorded on the render model, but the
-    /// fixed-region MaxHeight budget (<c>clamp(appSet ?? 50%, 8, rows)</c>) is not yet
-    /// applied — that enforcement is §10's responsibility.
+    /// autocomplete). When <see langword="null"/>, the render loop applies an internal default
+    /// based on the terminal height (clamped to a minimum of 8 rows).
     /// </remarks>
     public int? MaxFixedHeight { get; init; }
 

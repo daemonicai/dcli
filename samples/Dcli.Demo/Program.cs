@@ -1,0 +1,254 @@
+// dcli Demo — full-surface smoke driver.
+// Run: dotnet run --project samples/Dcli.Demo
+// The tour is self-driving. Each wizard dialog auto-cancels after a short timeout so
+// the binary finishes without keyboard input.
+
+using Dcli;
+
+// ── Start ───────────────────────────────────────────────────────────────────
+
+await using Terminal t = await Terminal.StartAsync(new TerminalOptions
+{
+    MaxFixedHeight = 12,
+    MinFrameIntervalMs = 16,
+});
+
+// ── Phase 1: Banner (~2s) ────────────────────────────────────────────────────
+
+t.Status.SetRows(new LineBuilder()
+    .Bold("dcli demo")
+    .Text(" -- full surface tour")
+    .Build());
+
+t.Scrollback.Append(new LineBuilder()
+    .Bold("dcli ")
+    .Italic("inline terminal rendering library")
+    .Text(" -- smoke tour")
+    .Build());
+
+t.Scrollback.Append(new LineBuilder()
+    .Fg("  Styled output flows into the real terminal scrollback.", Color.Named(Color.AnsiColor.Cyan))
+    .Build());
+
+t.Scrollback.Append(new LineBuilder()
+    .Text("  A small interactive region is pinned at the bottom.")
+    .Build());
+
+t.Scrollback.Append(new LineBuilder()
+    .Dim("  Content above the commit horizon is frozen and terminal-owned.")
+    .Build());
+
+await Task.Delay(TimeSpan.FromMilliseconds(800));
+
+// ── Phase 2: Streaming live block (~3s) ──────────────────────────────────────
+
+t.Status.SetRows(new LineBuilder().Dim("Phase 2/6 -- streaming live block").Build());
+t.Scrollback.Append(new LineBuilder().Bold("--- Streaming live block ---").Build());
+
+ILiveBlock live = t.Scrollback.BeginLive();
+
+string[] streamTokens =
+[
+    "The ", "model ", "is ", "thinking", "...\n",
+    "Generating ", "a ", "structured ", "response", "...\n",
+    "Done.",
+];
+
+foreach (string token in streamTokens)
+{
+    live.AppendText(token);
+    await Task.Delay(TimeSpan.FromMilliseconds(180));
+}
+
+// Demonstrate SetContent: replace the accumulated buffer wholesale.
+await Task.Delay(TimeSpan.FromMilliseconds(300));
+live.SetContent(
+[
+    new LineBuilder().Bold("Response (final): ").Text("Hello from dcli!").Build(),
+    new LineBuilder().Dim("  (SetContent replaced the streamed buffer)").Build(),
+]);
+
+await Task.Delay(TimeSpan.FromMilliseconds(400));
+live.Commit();
+
+t.Scrollback.Append(new LineBuilder().Dim("  Live block committed.").Build());
+await Task.Delay(TimeSpan.FromMilliseconds(300));
+
+// ── Phase 3: Collapsible "thinking" block (~2s) ───────────────────────────────
+
+t.Status.SetRows(new LineBuilder().Dim("Phase 3/6 -- collapsible block").Build());
+t.Scrollback.Append(new LineBuilder().Bold("--- Collapsible block ---").Build());
+
+// Build 24 hidden lines so the expand is visually obvious.
+List<Line> hiddenLines = [];
+for (int i = 1; i <= 24; i++)
+{
+    hiddenLines.Add(new LineBuilder()
+        .Dim($"  thinking line {i,2}: reasoning about token {i * 7}...")
+        .Build());
+}
+
+ICollapsible collapsed = t.Scrollback.BeginCollapsible(
+    summary: new LineBuilder().Dim("> thinking (24 lines hidden)").Build(),
+    hiddenLines: hiddenLines);
+
+await Task.Delay(TimeSpan.FromMilliseconds(1000));
+
+collapsed.Expand();
+
+t.Scrollback.Append(new LineBuilder()
+    .Text("  Subsequent content lands below the expanded block.")
+    .Build());
+
+await Task.Delay(TimeSpan.FromMilliseconds(500));
+
+// ── Phase 4: Autocomplete overlay (~3s) ─────────────────────────────────────
+
+t.Status.SetRows(new LineBuilder()
+    .Text("Phase 4/6 -- autocomplete: type ")
+    .Bold("/")
+    .Text(" and you would see suggestions; Esc to dismiss")
+    .Build());
+
+t.Scrollback.Append(new LineBuilder().Bold("--- Autocomplete overlay ---").Build());
+
+AutocompleteCandidate[] candidates =
+[
+    new AutocompleteCandidate(
+        "/help",
+        new LineBuilder().Bold("/help").Dim("  -- show available commands").Build()),
+    new AutocompleteCandidate(
+        "/quit",
+        new LineBuilder().Bold("/quit").Dim("  -- exit the session").Build()),
+    new AutocompleteCandidate(
+        "/clear",
+        new LineBuilder().Bold("/clear").Dim("  -- clear scrollback").Build()),
+];
+
+t.Autocomplete.Show(candidates);
+await Task.Delay(TimeSpan.FromMilliseconds(1500));
+t.Autocomplete.Hide();
+
+t.Scrollback.Append(new LineBuilder().Dim("  Autocomplete dismissed.").Build());
+await Task.Delay(TimeSpan.FromMilliseconds(300));
+
+// ── Phase 5: Wizard chain (Select → Input → MultiSelect → Choice) ────────────
+// Dialogs require keyboard input to submit. The demo auto-cancels each via a
+// CancellationTokenSource timeout so the tour is fully self-driving.
+
+t.Status.SetRows(new LineBuilder().Dim("Phase 5/6 -- wizard chain (auto-cancels after 1.5s each)").Build());
+t.Scrollback.Append(new LineBuilder().Bold("--- Wizard chain ---").Build());
+
+// 5a: Select
+{
+    using CancellationTokenSource cts = new(TimeSpan.FromMilliseconds(1500));
+
+    DialogResult<int> lang = await t.SelectAsync(
+        new SelectRequest(
+            Items:
+            [
+                new LineBuilder().Fg("C#", Color.Named(Color.AnsiColor.Cyan)).Build(),
+                new LineBuilder().Fg("Go", Color.Named(Color.AnsiColor.Yellow)).Build(),
+                new LineBuilder().Fg("Rust", Color.Named(Color.AnsiColor.Red)).Build(),
+            ],
+            Title: new LineBuilder().Bold("Pick your favourite language").Build()),
+        cts.Token);
+
+    string langText = lang.Outcome == DialogOutcome.Submitted
+        ? $"index {lang.Value}"
+        : "Cancelled";
+    t.Scrollback.Append(new LineBuilder()
+        .Text("Select result: ")
+        .Bold(langText)
+        .Build());
+}
+
+await Task.Delay(TimeSpan.FromMilliseconds(200));
+
+// 5b: Input
+{
+    using CancellationTokenSource cts = new(TimeSpan.FromMilliseconds(1500));
+
+    DialogResult<string> name = await t.InputAsync(
+        new InputRequest(
+            Prompt: new LineBuilder().Bold("What's your name?").Build(),
+            Default: "ada"),
+        cts.Token);
+
+    string nameText = name.Outcome == DialogOutcome.Submitted
+        ? name.Value
+        : "Cancelled";
+    t.Scrollback.Append(new LineBuilder()
+        .Text("Input result: ")
+        .Bold(nameText)
+        .Build());
+}
+
+await Task.Delay(TimeSpan.FromMilliseconds(200));
+
+// 5c: MultiSelect
+{
+    using CancellationTokenSource cts = new(TimeSpan.FromMilliseconds(1500));
+
+    DialogResult<int[]> features = await t.MultiSelectAsync(
+        new MultiSelectRequest(
+            Items:
+            [
+                new LineBuilder().Text("Inline scrollback rendering").Build(),
+                new LineBuilder().Text("Collapsible blocks").Build(),
+                new LineBuilder().Text("Autocomplete overlay").Build(),
+                new LineBuilder().Text("Dialog wizard chain").Build(),
+            ],
+            Title: new LineBuilder().Bold("Which features interest you?").Build()),
+        cts.Token);
+
+    string featText = features.Outcome == DialogOutcome.Submitted
+        ? $"[{string.Join(", ", features.Value)}]"
+        : "Cancelled";
+    t.Scrollback.Append(new LineBuilder()
+        .Text("MultiSelect result: ")
+        .Bold(featText)
+        .Build());
+}
+
+await Task.Delay(TimeSpan.FromMilliseconds(200));
+
+// 5d: Choice
+{
+    using CancellationTokenSource cts = new(TimeSpan.FromMilliseconds(1500));
+
+    DialogResult<int> confirm = await t.ChoiceAsync(
+        new ChoiceRequest(
+            Options:
+            [
+                new LineBuilder().Fg("Yes", Color.Named(Color.AnsiColor.Green)).Build(),
+                new LineBuilder().Fg("No", Color.Named(Color.AnsiColor.Red)).Build(),
+            ],
+            Prompt: new LineBuilder().Bold("Run the tour again?").Build()),
+        cts.Token);
+
+    string choiceText = confirm.Outcome == DialogOutcome.Submitted
+        ? (confirm.Value == 0 ? "Yes" : "No")
+        : "Cancelled";
+    t.Scrollback.Append(new LineBuilder()
+        .Text("Choice result: ")
+        .Bold(choiceText)
+        .Build());
+}
+
+await Task.Delay(TimeSpan.FromMilliseconds(300));
+
+// ── Phase 6: Finale (~3s) ────────────────────────────────────────────────────
+
+t.Status.SetRows(new LineBuilder()
+    .Fg("DONE - Tour complete - press Ctrl+C to exit, or wait 3s.", Color.Named(Color.AnsiColor.Green))
+    .Build());
+
+t.Scrollback.Append(new LineBuilder().Bold("--- Tour complete ---").Build());
+t.Scrollback.Append(new LineBuilder()
+    .Fg("All dcli public surfaces exercised successfully.", Color.Named(Color.AnsiColor.BrightGreen))
+    .Build());
+
+await Task.Delay(TimeSpan.FromSeconds(3));
+
+// await using disposes the terminal, restoring raw mode on exit.

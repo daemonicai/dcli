@@ -18,4 +18,21 @@ internal interface IOutputSink
     /// </summary>
     /// <param name="model">The current render model snapshot (read-only for the sink).</param>
     void Paint(RenderModel model);
+
+    /// <summary>
+    /// Emits the minimal ANSI restore sequence and flushes the output destination.
+    /// Called from the render-loop <c>finally</c> block on every exit path so that cursor
+    /// visibility, synchronized-output mode, and SGR state are cleaned up before the
+    /// terminal session is released.
+    /// </summary>
+    /// <remarks>
+    /// The sequence emitted is:
+    /// <list type="bullet">
+    ///   <item><c>ESC[?2026l</c> — synchronized-output OFF (in case the process died mid-frame)</item>
+    ///   <item><c>ESC[?25h</c> — cursor visible (undoes any <c>ESC[?25l</c> from dialog / parking)</item>
+    ///   <item><c>ESC[0m</c> — SGR reset (clear any lingering colour/style attributes)</item>
+    /// </list>
+    /// Implementations must be idempotent — the method may be called more than once.
+    /// </remarks>
+    void EmitRestoreSequence();
 }

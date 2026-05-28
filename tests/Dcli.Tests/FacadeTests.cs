@@ -27,6 +27,8 @@ public sealed class FacadeTests
         {
             _lastModel = model;
         }
+
+        public void EmitRestoreSequence() { }
     }
 
     private sealed class ImmediateTimeoutByteSource : IInputByteSource

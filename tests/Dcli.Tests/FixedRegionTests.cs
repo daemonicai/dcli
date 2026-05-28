@@ -529,6 +529,8 @@ public sealed class FixedRegionTests
         {
             LastModel = model;
         }
+
+        public void EmitRestoreSequence() { }
     }
 
     private sealed class VirtualClock : IClock

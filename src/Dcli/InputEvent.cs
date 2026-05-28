@@ -50,7 +50,7 @@ public sealed record PasteEvent(string Text) : InputEvent;
 /// <para>
 /// This event is <em>not</em> synthesised from bytes by <c>VtInputParser</c>.
 /// It originates from <c>SIGWINCH</c> (POSIX) or a <c>WINDOW_BUFFER_SIZE_EVENT</c>
-/// (Windows) and is injected into the event stream by the §13 signal handler.
+/// (Windows) and is injected into the event stream by the platform resize watcher.
 /// </para>
 /// </summary>
 /// <param name="Columns">New terminal width in columns.</param>

@@ -100,10 +100,10 @@
 
 ## 14. Cross-platform validation & packaging
 
-- [ ] 14.1 Manual/smoke validation on Windows Terminal, macOS, and Linux (xterm-class) terminals
-- [ ] 14.2 Build a sample/demo app exercising streaming, collapsible thinking, autocomplete, and a wizard-style dialog sequence
-- [ ] 14.3 Finalize NuGet package (README, XML docs on the public surface) and publish a pre-release
-- [ ] 14.4 Port a vertical slice of dmon's `Dmon.Terminal` onto dcli to validate the API ergonomics end-to-end (using the headless harness from §15 for its tests)
+- [x] 14.1 Manual/smoke validation on macOS (xterm-class). Windows Terminal and Linux smoke are **deferred to a follow-up change** — the implementer has no access to those OSes; cross-platform `dotnet build`/`dotnet test` continues to run in CI on all three. The follow-up should reuse 14.2's demo as the smoke driver.
+- [x] 14.2 Build a sample/demo app exercising streaming, collapsible thinking, autocomplete, and a wizard-style dialog sequence
+- [x] 14.3 Finalize NuGet package (README, XML docs on the public surface) and **produce** a pre-release build (`dotnet pack`) — actual `nuget.org` publication is out of scope until the deferred 14.1 Win/Linux smoke clears
+- [x] 14.4 Port a vertical slice of dmon's `Dmon.Terminal` (the `WizardEngine` + `WizardRenderer` flow, source at `dmon-core/src/Dmon.Terminal/`) onto dcli to validate the API ergonomics end-to-end (the §15 headless-harness tests for this slice land alongside §15, not here)
 
 ## 15. Headless test harness — `Dcli.Testing` (test-harness)
 

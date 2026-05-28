@@ -118,6 +118,8 @@ public sealed class RenderLoopTests
             }
             Interlocked.Increment(ref _paintCount);
         }
+
+        public void EmitRestoreSequence() { }
     }
 
     /// <summary>Fixed terminal dimensions for tests.</summary>

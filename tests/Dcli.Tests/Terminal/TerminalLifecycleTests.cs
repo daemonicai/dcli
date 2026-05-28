@@ -40,6 +40,8 @@ public sealed class TerminalLifecycleTests
         {
             Interlocked.Increment(ref _paintCount);
         }
+
+        public void EmitRestoreSequence() { }
     }
 
     /// <summary>
@@ -50,6 +52,8 @@ public sealed class TerminalLifecycleTests
     {
         public void Paint(RenderModel model) =>
             throw new InvalidOperationException("Simulated loop-thread exception.");
+
+        public void EmitRestoreSequence() { }
     }
 
     /// <summary>Fixed terminal dimensions.</summary>
@@ -439,6 +443,121 @@ public sealed class TerminalLifecycleTests
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // ANSI restore sequence emitted on disposal (cursor-hidden bug fix)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// DisposeAsync must cause the loop's finally block to emit the ANSI restore sequence
+    /// (ESC[?2026l ESC[?25h ESC[0m) before releasing the terminal session.
+    /// This ensures cursor visibility is restored even when a dialog had hidden the cursor.
+    /// </summary>
+    [Fact]
+    public async Task DisposeAsyncEmitsAnsiRestoreSequenceBeforeTermiosRestore()
+    {
+        // Use a VtFrameRenderer backed by a StringWriter so we can inspect raw output.
+        StringWriter writer = new();
+        VtFrameRenderer renderer = new(writer);
+
+        // Build the session manually so we can attach the ordering probe before wiring.
+        // `using` satisfies CA2000; DisposeAsync also calls Restore() which is idempotent.
+        using RecordingRawModeSession session = new();
+        // Snapshot the writer's char count at the moment Restore() is first called so we
+        // can assert the ANSI bytes were already in the buffer (i.e., emitted before termios restore).
+        session.GetOutputLength = () => writer.GetStringBuilder().Length;
+
+        using RestoreCoordinator coordinator = RestoreCoordinator.Wire(session);
+        using NoopResizeWatcher resizeWatcher = new();
+        DcliTerminal term = DcliTerminal.StartCore(
+            session, coordinator, resizeWatcher,
+            new ImmediateTimeoutByteSource(), new TestSystemClock(),
+            renderer, new FixedSizeSource(),
+            minFrameInterval: TimeSpan.FromMilliseconds(16));
+
+        await term.DisposeAsync();
+
+        string output = writer.ToString();
+        const string restoreSuffix = "\x1b[?2026l\x1b[?25h\x1b[0m";
+
+        // The restore sequence must be present in the output.
+        Assert.Contains("\x1b[?2026l", output, StringComparison.Ordinal);
+        Assert.Contains("\x1b[?25h", output, StringComparison.Ordinal);
+        Assert.Contains("\x1b[0m", output, StringComparison.Ordinal);
+
+        // Termios restore must also have been called.
+        Assert.True(session.RestoreCallCount >= 1,
+            "Expected Restore called at least once alongside the ANSI restore.");
+
+        // Ordering: the ANSI bytes must have been in the buffer when Restore() was called.
+        // OutputLengthAtRestore captures the writer length at the moment of the first Restore()
+        // call. The restore suffix must fall within that prefix — not appended after.
+        long lengthAtRestore = session.OutputLengthAtRestore;
+        Assert.True(lengthAtRestore >= restoreSuffix.Length,
+            $"OutputLengthAtRestore ({lengthAtRestore}) is smaller than the restore suffix — ANSI bytes were not emitted before termios restore.");
+        string prefixAtRestore = output[..(int)lengthAtRestore];
+        Assert.EndsWith(restoreSuffix, prefixAtRestore, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The restore sequence must appear at the end of the output (after any frame content),
+    /// confirming it is the last thing emitted before the terminal session is released.
+    /// </summary>
+    [Fact]
+    public async Task AnsiRestoreSequenceAppearsAtEndOfOutput()
+    {
+        StringWriter writer = new();
+        VtFrameRenderer renderer = new(writer);
+
+        (DcliTerminal term, _) = CreateTerminal(sink: renderer);
+
+        await term.DisposeAsync();
+
+        string output = writer.ToString();
+        const string restoreSuffix = "\x1b[?2026l\x1b[?25h\x1b[0m";
+
+        Assert.EndsWith(restoreSuffix, output, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// SimulateTerminateSignal must invoke the halt action wired by Terminal.StartCore (which
+    /// calls loop.Dispose, causing the loop's finally to emit the ANSI restore sequence on the
+    /// loop thread) and then call session.Restore via the coordinator.
+    /// </summary>
+    [Fact]
+    public async Task SimulateTerminateSignalHaltsLoopAndEmitsAnsiRestoreSequence()
+    {
+        StringWriter writer = new();
+        VtFrameRenderer renderer = new(writer);
+
+        (DcliTerminal term, RecordingRawModeSession session) = CreateTerminal(sink: renderer);
+
+        // Exercise the actual signal path: SimulateTerminateSignal → coordinator invokes
+        // the halt action (loop.Dispose) → loop.Dispose joins the thread → loop's finally
+        // emits the ANSI restore → then coordinator calls session.Restore.
+        // This is distinct from DisposeAsync(), which skips the halt action and goes directly
+        // to coordinator.Dispose(). Only this path verifies the SetHaltAction wiring.
+        term.Coordinator.SimulateTerminateSignal();
+
+        // Give the loop thread up to 2 s to join (Dispose already joined it synchronously,
+        // but LoopTerminated is the async observable handle).
+        await term.Loop.LoopTerminated.WaitAsync(TimeSpan.FromSeconds(2));
+
+        string output = writer.ToString();
+        const string restoreSuffix = "\x1b[?2026l\x1b[?25h\x1b[0m";
+
+        // The ANSI restore sequence must appear in the output (emitted by the loop finally).
+        Assert.EndsWith(restoreSuffix, output, StringComparison.Ordinal);
+
+        // Session restore must also have been called (by the coordinator after halt).
+        Assert.True(session.RestoreCallCount >= 1,
+            $"Expected RestoreCallCount ≥ 1 after SimulateTerminateSignal; got {session.RestoreCallCount}.");
+
+        // Suppress the DisposeAsync fault that may surface if the loop was already stopped.
+#pragma warning disable CA1031 // intentional: suppress any residual cleanup exception
+        try { await term.DisposeAsync(); } catch (Exception) { }
+#pragma warning restore CA1031
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Nit 1 helper sink: blocks paint until signalled, then throws
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -459,5 +578,7 @@ public sealed class TerminalLifecycleTests
             _gate.Wait();       // block until the test releases us
             throw new InvalidOperationException("Simulated loop-thread exception.");
         }
+
+        public void EmitRestoreSequence() { }
     }
 }

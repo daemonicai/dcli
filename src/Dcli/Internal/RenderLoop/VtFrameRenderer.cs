@@ -51,6 +51,9 @@ internal sealed class VtFrameRenderer : IOutputSink
     private const string _cursorHide = "\x1b[?25l";   // DECTCEM hide
     private const string _cursorShow = "\x1b[?25h";   // DECTCEM show
 
+    // Restore sequence emitted on every shutdown path.
+    private const string _restoreSequence = "\x1b[?2026l\x1b[?25h\x1b[0m";
+
     private readonly TextWriter _writer;
     private readonly SgrTranslator _sgr;
     private readonly StringBuilder _buf = new(capacity: 4096);
@@ -154,6 +157,13 @@ internal sealed class VtFrameRenderer : IOutputSink
             ? model.CaretPosition.Value.Row
             : (totalRows - 1);
         _isFirstFrame = false;
+    }
+
+    /// <inheritdoc/>
+    public void EmitRestoreSequence()
+    {
+        _writer.Write(_restoreSequence);
+        _writer.Flush();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

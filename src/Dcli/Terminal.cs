@@ -69,6 +69,13 @@ public sealed class Terminal : ITerminal
     /// </summary>
     internal LoopEngine Loop => _loop;
 
+    /// <summary>
+    /// The restore coordinator. Exposed for tests that need to simulate signal-driven exit
+    /// (e.g. to verify the full Option C wiring: signal → halt loop → ANSI restore → termios).
+    /// Not part of the public API.
+    /// </summary>
+    internal RestoreCoordinator Coordinator => _coordinator;
+
     // ── Public surface ──────────────────────────────────────────────────────
 
     /// <summary>
@@ -389,6 +396,11 @@ public sealed class Terminal : ITerminal
         // same CAS-idempotent Restore.
         LoopEngine loop = new(sizeSource, clock, sink, minFrameInterval,
             restoreOnExit: session.Restore, maxFixedHeight: maxFixedHeight);
+
+        // Wire the loop halt into the coordinator so that signal-driven restore halts the
+        // loop first (causing its finally to emit the ANSI restore on the single-writer thread)
+        // before the coordinator calls the idempotent session restore.
+        coordinator.SetHaltAction(loop.Dispose);
 
         // Wire resize watcher → loop's inbound channel (SIGWINCH callback posts ResizeEvent).
         // Capture InputWriter once to avoid capturing the whole loop in the closure.

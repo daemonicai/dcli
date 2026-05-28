@@ -28,9 +28,26 @@ internal sealed class RestoreCoordinator : IDisposable
     private readonly List<IDisposable> _registrations = [];
     private int _disposed;
 
+    // Wired after loop creation (SetHaltAction). When set, signal-driven restore halts the
+    // loop first — so the loop's finally emits the ANSI restore on the single-writer thread —
+    // before falling back to the idempotent session restore below.
+    private volatile Action? _haltLoop;
+
     private RestoreCoordinator(IRawModeSession session)
     {
         _session = session;
+    }
+
+    /// <summary>
+    /// Wires the loop-halt action called on every terminate-signal path so the loop thread
+    /// emits the ANSI restore sequence before the termios restore occurs.
+    /// Must be called once, after the loop is created, before any signal can fire.
+    /// The supplied action must be idempotent.
+    /// </summary>
+    internal void SetHaltAction(Action haltLoop)
+    {
+        ArgumentNullException.ThrowIfNull(haltLoop);
+        _haltLoop = haltLoop;
     }
 
     /// <summary>
@@ -93,10 +110,22 @@ internal sealed class RestoreCoordinator : IDisposable
     // Tests call them directly; the OS callbacks above delegate to them.
 
     /// <summary>
-    /// Restores the terminal — the action taken on SIGINT/SIGTERM/SIGQUIT.
+    /// Halts the loop (so its <c>finally</c> emits the ANSI restore on the single-writer thread)
+    /// then restores the terminal session — the action taken on SIGINT/SIGTERM/SIGQUIT.
     /// Exposed for unit-testing the handler logic without a real OS signal.
     /// </summary>
-    internal void SimulateTerminateSignal() => _session.Restore();
+    internal void SimulateTerminateSignal()
+    {
+        // Halting the loop causes its finally block to run EmitRestoreSequence() on the
+        // loop thread (the single stdout writer), preserving the single-writer discipline.
+        // _haltLoop is null only in tests that construct RestoreCoordinator directly without
+        // wiring a loop — those tests exercise termios restore only, which is sufficient.
+        _haltLoop?.Invoke();
+
+        // Idempotent fallback: covers the case where _haltLoop was not wired (bare tests)
+        // and ensures termios is restored even if the loop halt races with another exit path.
+        _session.Restore();
+    }
 
     /// <summary>
     /// Re-applies raw mode — the action taken on SIGCONT.

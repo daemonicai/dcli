@@ -45,6 +45,8 @@ public sealed class ResizeReflowTests
         internal RenderModel? LastModel => _lastModel;
 
         public void Paint(RenderModel model) => _lastModel = model;
+
+        public void EmitRestoreSequence() { }
     }
 
     /// <summary>Byte source that immediately times out — no data.</summary>

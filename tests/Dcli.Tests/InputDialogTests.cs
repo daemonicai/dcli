@@ -23,6 +23,7 @@ public sealed class InputDialogTests
     {
         internal RenderModel? LastModel { get; private set; }
         public void Paint(RenderModel model) { LastModel = model; }
+        public void EmitRestoreSequence() { }
     }
 
     private sealed class VirtualClock : IClock

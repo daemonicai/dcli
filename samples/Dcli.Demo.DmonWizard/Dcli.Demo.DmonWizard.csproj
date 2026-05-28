@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Dcli.Demo.DmonWizard</AssemblyName>
+    <RootNamespace>Dcli.Demo.DmonWizard</RootNamespace>
+
+    <!-- Not a NuGet package. -->
+    <IsPackable>false</IsPackable>
+
+    <!-- CS1591: demo code does not need XML doc comments. -->
+    <!-- CA1303: demo is a smoke driver; hardcoded strings are intentional. -->
+    <NoWarn>CS1591;CA1303</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Dcli\Dcli.csproj" />
+  </ItemGroup>
+
+</Project>

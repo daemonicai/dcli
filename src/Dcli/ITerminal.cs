@@ -116,8 +116,7 @@ public interface IAutocomplete
 /// The concrete implementation is <see cref="Terminal"/>; obtain one via
 /// <see cref="Terminal.StartAsync(TerminalOptions, CancellationToken)"/>. Consumer code should
 /// depend only on this interface so that tests can substitute a hand-written fake without
-/// a real terminal, raw-mode session, or static state to reset (Decision 12 — tier A
-/// testability).
+/// a real terminal, raw-mode session, or static state to reset.
 /// </para>
 /// <para>
 /// <strong>No static singletons:</strong> all state is per-instance. A test that creates a fake

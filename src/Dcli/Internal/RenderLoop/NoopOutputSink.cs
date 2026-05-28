@@ -15,4 +15,10 @@ internal sealed class NoopOutputSink : IOutputSink
     {
         // §8 replaces this with real VT frame painting.
     }
+
+    /// <inheritdoc/>
+    public void EmitRestoreSequence()
+    {
+        // No-op: this sink writes nothing to stdout.
+    }
 }

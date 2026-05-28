@@ -212,6 +212,8 @@ internal sealed class LoopEngine : IDisposable
         // Complete the channel so WaitToReadAsync unblocks immediately; the clock wait is
         // cancelled via the loop token, so both waits in BlockUntilMessageOrDeadline exit.
         _inbound.Writer.TryComplete();
+        // If the loop wedges beyond this window, ANSI restore is best-effort skipped; the
+        // signal handler's own _session.Restore() call still guarantees termios restore.
         _thread.Join(timeout: TimeSpan.FromSeconds(2));
         _cts.Dispose();
     }
@@ -295,10 +297,25 @@ internal sealed class LoopEngine : IDisposable
 #pragma warning restore CA1031
         finally
         {
+            // Emit the ANSI restore sequence before releasing the terminal session.
+            // This runs on the loop thread — the single writer — so there is no stdout
+            // interleaving risk. Order: sync-output OFF → cursor visible → SGR reset → flush.
+            // Must happen before termios restore (via _restoreOnExit) so the bytes reach
+            // the terminal while it is still in its current mode.
+            // A broken-pipe or disposed-stdout fault must NOT skip the termios restore below —
+            // ANSI emission is best-effort; termios restore is the load-bearing guarantee.
+            try { _sink.EmitRestoreSequence(); }
+            catch (Exception ansiFault) when (ansiFault is IOException or ObjectDisposedException) { }
+
             // Restore the terminal regardless of how the loop exits (normal stop, exception,
             // or external cancellation). The action is idempotent — Dispose, signals, and
             // ProcessExit all converge on the same CAS-guarded IRawModeSession.Restore.
-            _restoreOnExit?.Invoke();
+            // Catch broadly: at shutdown, a swallowed exception here is preferable to crashing
+            // into a still-raw terminal.
+#pragma warning disable CA1031 // shutdown finally: broad catch intentional; see comment above
+            try { _restoreOnExit?.Invoke(); }
+            catch (Exception) { }
+#pragma warning restore CA1031
 
             // Signal loop-thread exit. Fault if the loop crashed; succeed on clean shutdown.
             // RunContinuationsAsynchronously ensures awaiters do not resume on the loop thread.

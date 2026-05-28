@@ -297,4 +297,47 @@ public sealed class TerminalDriverTests
         ((IDisposable)fake).Dispose();
         Assert.Equal(1, fake.RestoreCallCount);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SetHaltAction wiring: SimulateTerminateSignal must invoke the halt action
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// When a halt action is registered via SetHaltAction, SimulateTerminateSignal must invoke
+    /// it before calling session.Restore. This is the unit-level contract for the wiring that
+    /// Terminal.StartCore establishes: coordinator.SetHaltAction(loop.Dispose).
+    /// </summary>
+    [Fact]
+    public void SimulateTerminateSignalInvokesSetHaltActionThenRestores()
+    {
+        using RecordingRawModeSession fake = new();
+        using RestoreCoordinator coord = RestoreCoordinator.Wire(fake);
+
+        int haltCallCount = 0;
+        coord.SetHaltAction(() => Interlocked.Increment(ref haltCallCount));
+
+        coord.SimulateTerminateSignal();
+
+        // The halt action must have been invoked.
+        Assert.Equal(1, Volatile.Read(ref haltCallCount));
+        // Session restore must also have been called.
+        Assert.Equal(1, fake.RestoreCallCount);
+    }
+
+    /// <summary>
+    /// Removing SetHaltAction wiring (by never calling SetHaltAction) means the halt action is
+    /// not invoked — but session.Restore still is. This is the regression baseline: if Terminal
+    /// never calls coordinator.SetHaltAction(loop.Dispose), the loop does not stop on signal.
+    /// </summary>
+    [Fact]
+    public void SimulateTerminateSignalWithNoHaltActionStillRestoresSession()
+    {
+        using RecordingRawModeSession fake = new();
+        using RestoreCoordinator coord = RestoreCoordinator.Wire(fake);
+
+        // No SetHaltAction call — mimics the broken wiring scenario.
+        coord.SimulateTerminateSignal();
+
+        Assert.Equal(1, fake.RestoreCallCount);
+    }
 }

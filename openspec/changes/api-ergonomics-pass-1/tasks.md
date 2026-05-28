@@ -29,11 +29,11 @@
 
 ## 4. Secret-default masking in `InputDialog`
 
-- [ ] 4.1 `src/Dcli/Internal/FixedRegion/InputDialog.cs` — when `IsSecret && !_userEdited && Default is non-empty`, render the buffer as `'•'` repeated by `DisplayWidth.Measure(Default)` instead of the raw default
-- [ ] 4.2 Ensure the existing edit-detection (used for `InputChanged` emission) is the source of truth for `_userEdited`; do not introduce a second flag
-- [ ] 4.3 `Submit` returns the real string (assert this — should be unchanged)
-- [ ] 4.4 Tests in `tests/Dcli.Tests/InputDialogTests.cs`: secret + default + no edits → masked render; secret + default + Submit → real string; secret + default + one edit then revert → still masked? (decide via the existing `_userEdited` semantics; document in the test)
-- [ ] 4.5 Non-secret + default test: paint shows clear-text default (regression guard)
+- [x] 4.1 `src/Dcli/Internal/FixedRegion/InputDialog.cs` — when `IsSecret && !_userEdited && Default is non-empty`, render the buffer as `'•'` repeated by `DisplayWidth.Measure(Default)` instead of the raw default
+- [x] 4.2 Ensure the existing edit-detection (used for `InputChanged` emission) is the source of truth for `_userEdited`; do not introduce a second flag
+- [x] 4.3 `Submit` returns the real string (assert this — should be unchanged)
+- [x] 4.4 Tests in `tests/Dcli.Tests/InputDialogTests.cs`: secret + default + no edits → masked render; secret + default + Submit → real string; secret + default + one edit then revert → still masked? (decide via the existing `_userEdited` semantics; document in the test)
+- [x] 4.5 Non-secret + default test: paint shows clear-text default (regression guard)
 
 ## 5. Demo updates
 

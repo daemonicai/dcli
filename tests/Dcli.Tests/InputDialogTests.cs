@@ -551,4 +551,93 @@ public sealed class InputDialogTests
         Assert.True(dialog.IsDismissed);
         Assert.Equal(OverlayCloseKind.Cancel, dialog.CloseRequest);
     }
+
+    // ── §4 Secret-default masking ─────────────────────────────────────────────
+
+    // Repro test: was the "seeded default leaks clear-text" bug real?
+    // Expected: PASS — the existing MaskRows path already masks unconditionally when
+    // _isSecret=true, so the seeded default never leaks on first paint. The spec/design
+    // comment about this being a bug is inaccurate for the current codebase.
+    [Fact]
+    public void SecretDefaultIsMaskedOnFirstPaintRegressionGuard()
+    {
+        InputDialog dlg = new(prompt: null, @default: "secret123", isSecret: true);
+        IReadOnlyList<Line> rows = dlg.Render(width: 40);
+        string allText = string.Concat(rows.SelectMany(l => l.Segments).Select(s => s.Text));
+        Assert.DoesNotContain("secret123", allText, StringComparison.Ordinal);
+        Assert.Contains("•", allText, StringComparison.Ordinal);
+    }
+
+    // Spec scenario: "Secret default is masked before first edit"
+    // IsSecret=true, Default="hunter2", no edits → render shows bullets, not "hunter2".
+    [Fact]
+    public void SecretDefaultMaskedBeforeFirstEdit()
+    {
+        InputDialog dlg = new(prompt: null, @default: "hunter2", isSecret: true);
+        IReadOnlyList<Line> rows = dlg.Render(width: 40);
+        string allText = string.Concat(rows.SelectMany(l => l.Segments).Select(s => s.Text));
+        Assert.DoesNotContain("hunter2", allText, StringComparison.Ordinal);
+        Assert.Contains("•", allText, StringComparison.Ordinal);
+        // 7 ASCII chars → 7 bullets.
+        int bulletCount = allText.Count(c => c == '•');
+        Assert.Equal(7, bulletCount);
+    }
+
+    // Spec scenario: "Secret default reveals real text on submit"
+    // Text property returns the unmasked buffer content regardless of _isSecret.
+    [Fact]
+    public void SecretDefaultTextPropertyReturnsRealDefault()
+    {
+        InputDialog dlg = new(prompt: null, @default: "hunter2", isSecret: true);
+        Assert.Equal("hunter2", dlg.Text);
+    }
+
+    // Spec scenario: "Secret + default + one edit (and possibly revert)"
+    // _userEdited is sticky: once set it stays true even if the buffer content reverts to
+    // equal the original default. Masking still applies (the _isSecret path runs regardless),
+    // but the bullet count reflects the CURRENT buffer width, not the original default's width.
+    [Fact]
+    public void SecretDefaultOneEditThenRevertUserEditedIsSticky()
+    {
+        InputDialog dlg = new(prompt: null, @default: "abc", isSecret: true);
+
+        // Step 1: render before any edit — 3 bullets for "abc".
+        IReadOnlyList<Line> rows1 = dlg.Render(width: 40);
+        string text1 = string.Concat(rows1.SelectMany(l => l.Segments).Select(s => s.Text));
+        Assert.DoesNotContain("abc", text1, StringComparison.Ordinal);
+        int bullets1 = text1.Count(c => c == '•');
+        Assert.Equal(3, bullets1);
+        Assert.False(dlg.UserEdited);
+
+        // Step 2: insert 'x' → buffer is "abcx", _userEdited=true.
+        dlg.HandleKey(new KeyEvent(KeyCode.FromRune(new Rune('x')), Modifiers.None));
+        IReadOnlyList<Line> rows2 = dlg.Render(width: 40);
+        string text2 = string.Concat(rows2.SelectMany(l => l.Segments).Select(s => s.Text));
+        Assert.DoesNotContain("abcx", text2, StringComparison.Ordinal);
+        int bullets2 = text2.Count(c => c == '•');
+        Assert.Equal(4, bullets2); // "abcx" = 4 display columns
+        Assert.True(dlg.UserEdited);
+
+        // Step 3: Backspace twice → buffer becomes "ab", _userEdited stays true (sticky).
+        dlg.HandleKey(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+        dlg.HandleKey(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+        IReadOnlyList<Line> rows3 = dlg.Render(width: 40);
+        string text3 = string.Concat(rows3.SelectMany(l => l.Segments).Select(s => s.Text));
+        Assert.DoesNotContain("ab", text3, StringComparison.Ordinal);
+        int bullets3 = text3.Count(c => c == '•');
+        Assert.Equal(2, bullets3); // "ab" = 2 display columns
+        // _userEdited remains true even though buffer width is now less than the original default.
+        Assert.True(dlg.UserEdited);
+    }
+
+    // Spec scenario: "Non-secret default renders as plain text" (regression guard, §4.5)
+    [Fact]
+    public void NonSecretDefaultRendersAsPlainText()
+    {
+        InputDialog dlg = new(prompt: null, @default: "hello", isSecret: false);
+        IReadOnlyList<Line> rows = dlg.Render(width: 40);
+        string allText = string.Concat(rows.SelectMany(l => l.Segments).Select(s => s.Text));
+        Assert.Contains("hello", allText, StringComparison.Ordinal);
+        Assert.DoesNotContain("•", allText, StringComparison.Ordinal);
+    }
 }

@@ -22,7 +22,7 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 
 | § | Section | Commit | Tests after | Notes |
 |---|---------|--------|-------------|-------|
-| 1 | Widen the request records | _pending_ | 714 passed / 0 failed (baseline) | Primary record ctor preamble field widened to `IReadOnlyList<Line>?` on all four request types. Convenience ctors per Decision 3 added: single-`Line` (PascalCase `Title`/`Prompt`/`AllowBack` so named-arg call sites bind to the secondary), `params Line[]`, `IReadOnlyList<string>?`, single-`string`, `params string[]`. `InputRequest` `params` overloads drop `Default`/`IsSecret` (`params` must be last — documented in XML). 1.7 explicit-only contract noted on every new multi-line ctor. |
+| 1 | Widen the request records | `8b97189` | 714 passed / 0 failed (baseline) | Primary record ctor preamble field widened to `IReadOnlyList<Line>?` on all four request types. Convenience ctors per Decision 3 added: single-`Line` (PascalCase `Title`/`Prompt`/`AllowBack` so named-arg call sites bind to the secondary), `params Line[]`, `IReadOnlyList<string>?`, single-`string`, `params string[]`. `InputRequest` `params` overloads drop `Default`/`IsSecret` (`params` must be last — documented in XML). 1.7 explicit-only contract noted on every new multi-line ctor. |
 
 ## Decisions & deviations
 

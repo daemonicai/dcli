@@ -81,9 +81,18 @@ internal static class WizardRenderer
                 .Build());
         }
 
+        IReadOnlyList<Line> prompt = step.Secret
+            ? (IReadOnlyList<Line>)
+            [
+                new LineBuilder().Bold(step.Prompt).Build(),
+                new LineBuilder().Dim("Used only for this session. Not persisted to disk.").Build(),
+                new LineBuilder().Dim("Press Esc to cancel; Enter to confirm.").Build(),
+            ]
+            : [new LineBuilder().Bold(step.Prompt).Build()];
+
         DialogResult<string> result = await terminal.InputAsync(
             new InputRequest(
-                Prompt: new LineBuilder().Bold(step.Prompt).Build(),
+                Prompt: prompt,
                 Default: step.Default,
                 IsSecret: step.Secret),
             ct).ConfigureAwait(false);

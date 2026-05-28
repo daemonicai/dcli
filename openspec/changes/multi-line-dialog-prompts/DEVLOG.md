@@ -25,6 +25,7 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 | 1 | Widen the request records | `8b97189` | 714 passed / 0 failed (baseline) | Primary record ctor preamble field widened to `IReadOnlyList<Line>?` on all four request types. Convenience ctors per Decision 3 added: single-`Line` (PascalCase `Title`/`Prompt`/`AllowBack` so named-arg call sites bind to the secondary), `params Line[]`, `IReadOnlyList<string>?`, single-`string`, `params string[]`. `InputRequest` `params` overloads drop `Default`/`IsSecret` (`params` must be last — documented in XML). 1.7 explicit-only contract noted on every new multi-line ctor. |
 | 2 | Renderer: iterate the preamble | `159e18c` | 714 passed / 0 failed | `Dialog.cs` + `InputDialog.cs` internal ctors widened to `IReadOnlyList<Line>?`. `Render` truncates preamble to `Math.Min(count, _maxRows)` then list/buffer gets the remainder. `Terminal.cs` four `§1 bridge:` sites reverted to pass `req.Title` / `req.Prompt` directly; bridge comments deleted. §2.2 `ChoiceDialog.cs` does not exist — `ChoiceRequest` rendered by `Dialog.cs`, covered by 2.1 (tasks.md updated). Test-file edits in `DialogSelectionTests.cs` (5 sites + helper) and `InputDialogTests.cs` (3 sites + helper) are signature-fallout only — no net-new tests (reviewer-confirmed). |
 | 3 | Tests | `106b20a` | 735 passed / 0 failed (+21 new) | 21 new tests across 5 files (one new file). Per request type: one multi-line preamble test via `HeadlessTerminal`/`FrameSnapshot` asserting ordered rows above the widget. New `DialogRequestsTests.cs` carries 15 round-trip + null-preamble property tests. Two §3.7 truncation tests (Select + Input) assert overlay-still-active + row-count-bounded WITHOUT caret-in-frame coupling (§2 reviewer flag respected). §1 reviewer flag resolved via **Option A**: added `(IReadOnlyList<Line>, string?, bool)` ctor overloads on `SelectRequest`/`MultiSelectRequest`/`ChoiceRequest` so the spec's literal `new ChoiceRequest(options, prompt: "Permission:")` shape compiles; `InputRequest` already had the equivalent. 3.2 placed in `DialogSelectionTests.cs` (no dedicated MultiSelect file); 3.5 placed in new `DialogRequestsTests.cs`. |
+| 4 | Sample updates | _pending_ | 735 passed / 0 failed | 4.1: `WizardRenderer.RenderTextInputAsync` gates a 3-line preamble on `step.Secret == true`: `Bold(step.Prompt)` + `Dim("Used only for this session. Not persisted to disk.")` + `Dim("Press Esc to cancel; Enter to confirm.")`. Non-secret inputs unchanged. 4.2: `Program.cs` Phase 5d "Run the tour again?" choice gets a 2-line prompt (bold + dim navigation hint); existing auto-cancel `cts` timeout still drives the demo unattended. **4.1 HITL verification pending** — sample uses `dotnet run --project samples/Dcli.Demo.DmonWizard`; user must walk to the API-key step and confirm three preamble rows render above the input caret (bold prompt + two dim lines). |
 
 ## Decisions & deviations
 
@@ -36,9 +37,14 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 ## Human-in-the-loop verifications
 
 - **§4.1 — Sample wizard step with multi-line preamble.**
-  - Command: `dotnet run --project samples/Dcli.Demo.DmonWizard` and walk to the auth-config step.
-  - Expected: the multi-line preamble renders above the input field; submission still works.
-  - Status: **pending**.
+  - Command: `dotnet run --project samples/Dcli.Demo.DmonWizard`.
+  - Walk the wizard: pick a provider (Anthropic or OpenAI), then a model. Step 3 is the API key entry.
+  - Expected at the API-key step (three rows above the input caret):
+    - **Line 1 (bold):** "Anthropic API key" or "OpenAI API key" (matches `step.Prompt`)
+    - **Line 2 (dim):** "Used only for this session. Not persisted to disk."
+    - **Line 3 (dim):** "Press Esc to cancel; Enter to confirm."
+  - Type something + Enter and the wizard advances to the next step (validates submission still works through the widened renderer).
+  - Status: **pending — awaiting user confirmation before ticking 4.1.**
 
 ## Open follow-ups / known gaps (after this change lands — NOT in scope here)
 

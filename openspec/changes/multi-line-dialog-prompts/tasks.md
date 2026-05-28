@@ -28,8 +28,8 @@
 
 ## 4. Sample updates
 
-- [ ] 4.1 `samples/Dcli.Demo.DmonWizard/Engine/WizardRenderer.cs` — pick at least one step (e.g. the auth-config text input) and add a 2–3-line `Prompt` preamble describing what the user is providing and why. Validates the API end-to-end through a real consumer flow.
-- [ ] 4.2 (Optional) `samples/Dcli.Demo/` — add a multi-line choice-dialog demonstration if a clean spot exists.
+- [ ] 4.1 `samples/Dcli.Demo.DmonWizard/Engine/WizardRenderer.cs` — pick at least one step (e.g. the auth-config text input) and add a 2–3-line `Prompt` preamble describing what the user is providing and why. Validates the API end-to-end through a real consumer flow. **(Code landed; awaiting HITL verification — see DEVLOG.md.)**
+- [x] 4.2 (Optional) `samples/Dcli.Demo/` — add a multi-line choice-dialog demonstration if a clean spot exists. **(Added two-line "Run the tour again?" prompt in Phase 5d of `Program.cs`.)**
 
 ## 5. Validation & packaging
 

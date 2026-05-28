@@ -45,7 +45,7 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 | 10 | Fixed region: input editor & status | `84cbb48` | 442 | `TextBuffer` (grapheme-cluster nav via `StringInfo`, caret↔visual wrap, history recall), `StatusLine`, `MaxHeight` budget, loop frame-composition. Editor consumes editing keys; Enter/Tab/Ctrl fall through. |
 | 11 | Fixed region: overlays (autocomplete & dialog) | `bf35c99` | 554 | `ScrollableList` (reverse-video highlight, never the hardware cursor; viewport reconciled **on render** so it survives `MaxRows` changes between frames), `IOverlay` seam, `Autocomplete`/`Dialog` overlays, `OverlayState` invariant on the model (`ShowAutocomplete`/`ShowDialog`/`ClearOverlay`), intercept-chain routing (overlay→editor→emit), composer overlay-slot (dialog above / autocomplete below) + Decision-8 budget squeeze (status sacred → caret visible → overlay absorbs squeeze, **zero-cap guarded**) + cursor hide-while-modal. Built across 3 worker calls (A=ScrollableList, B-i=components, B-ii=integration). |
 | 12 | Public API: dialogs, events, façade | `394c9ba` | 615 | `ITerminal` + sub-surfaces, awaitable dialogs (`SelectAsync`/`MultiSelectAsync`/`InputAsync`/`ChoiceAsync` → `DialogResult<T>`), `Events` emission (`InputSubmitted`/`InputChanged`/`KeyPressed`/`Resized`), public `Scrollback`/`Input`/`Status`/`Autocomplete` façade + `ILiveBlock`/`ICollapsible` handles. Much of §9/§10/§11 was built as **internal model + commands** specifically so §12 wraps them. |
-| 13 | Resize & reflow | — | — | **Open Question #2** — will require a user confirmation like §8 did (SIGWINCH delivery + reflow/repaint; truecolor/sync-output/unicode-width detection + fallbacks). |
+| 13 | Resize & reflow | _(in progress: Chunk A committed; Chunk B = 13.3 + 13.4 pending)_ | 620 after A | **Open Question #2** — Chunk A (13.1 + 13.2 + manual harness): committed. Chunk B (13.3 capability detection + 13.4 fallback tests): pending. |
 | 14 | Cross-platform validation & packaging | — | — | **Human-in-the-loop:** 14.1 manual smoke on WT/macOS/Linux; 14.2 demo app; 14.3 finalize NuGet/README/XML docs + pre-release; 14.4 port a dmon `Dmon.Terminal` slice. |
 | 15 | Headless test harness (`Dcli.Testing`) | — | — | Generalize the in-memory edges (raw-mode no-op, scripted input, in-memory sink, virtual clock) into the public `Dcli.Testing` package: `HeadlessTerminal`, `SettleAsync`, frame `Snapshot`; retarget §5.6/§7.6/§8.5 tests onto it. The substrate already exists internally from §4/§6/§7/§8. |
 
@@ -89,8 +89,14 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 - **Done — §4.5:** user ran `samples/Dcli.RawModeHarness` on macOS and confirmed all 4 checks (raw-mode entry/echo-off + restore on
   normal exit, on exception, on `kill -TERM`). The first run surfaced a real bug (managed `ReadByte` treats the `VMIN=0/VTIME=1` timeout
   0-read as EOF) which was fixed before confirmation.
-- **Pending:** §13 (Open Question #2 — expect a confirmation like §8). §14.1 (manual cross-platform smoke), §14.2 (demo app), §14.3
-  (NuGet pre-release publish — outward-facing, will confirm before publishing). Windows runtime paths are stubbed and deferred to §14.1.
+- **Done — §13 CHECK 5 (Chunk A):** user ran the harness on macOS and confirmed `[CHECK 5] Initial size: …` plus per-resize
+  `[CHECK 5] Resized to: …` lines. The first run surfaced a real latent §7 bug (AArch64 Darwin variadic ABI: `ioctl(int, unsigned long, ...)`
+  cannot be marshalled by `LibraryImport` as a fixed-arity call on Apple Silicon — args 3+ must travel on the stack, not in registers).
+  Replaced the hand-rolled `ioctl` P/Invoke with `Console.WindowWidth`/`Console.WindowHeight` (the .NET runtime's `libSystem.Native` shim
+  is non-variadic). Side benefit: `WindowsTerminalSizeSource` is no longer a hardcoded 80×24 stub.
+- **Pending:** §13 Chunk B (capability detection — 13.3/13.4, no real-terminal verification expected). §14.1 (manual cross-platform smoke),
+  §14.2 (demo app), §14.3 (NuGet pre-release publish — outward-facing, will confirm before publishing). Windows runtime paths are stubbed
+  and deferred to §14.1.
 
 ## Open follow-ups / known gaps (after this change lands — NOT in scope here)
 
@@ -112,7 +118,33 @@ These are recorded as memory files and should become their own future OpenSpec c
 
 ## Resume point
 
-> **NEXT: §13 — Resize & reflow.** §12 is COMPLETE and committed (`394c9ba`); the §12 detail below is kept as history. §13 is **Open Question #2** and will need a user confirmation like §8 (SIGWINCH delivery + reflow/repaint; truecolor / synchronized-output / unicode-width detection + fallbacks). See the §13 row in the Section status table.
+> **NEXT: §13 Chunk B — capability detection (13.3) + capability-fallback tests (13.4).** §13 Chunk A (13.1 resize delivery + 13.2 reflow + manual harness CHECK 5) is committed; the §12 detail below is history. Chunk B does truecolor / synchronized-output / unicode-width detection (`TerminalCapabilities` + `TerminalCapabilityDetector.DetectCapabilities`) and truecolor → 256-indexed downgrade in `SgrTranslator` (user resolution: 256-indexed nearest-match). All-internal; no manual verification expected.
+
+### §13 chunk progress
+
+- **Chunk A — DONE (committed).** New `IResizeWatcher` edge interface (parallel to `ITerminalSizeSource`/`IInputByteSource`/`IClock`/`IOutputSink`).
+  `PosixResizeWatcher` uses `PosixSignalRegistration(SIGWINCH)` → queries `ITerminalSizeSource` → posts `ResizeEvent` via `loop.InputWriter` (the
+  signal-handler thread does only the `TryWrite` on the unbounded inbound channel; loop-thread discipline preserved). `WindowsResizeWatcher` is a
+  compile-only no-op stub deferred to §14.1, consistent with the §6.1 Windows input stub. Threaded through `Terminal.StartAsync`/`StartCore`;
+  `DisposeAsync` disposes the watcher BEFORE the loop. Reflow happens automatically through the existing apply→paint cycle (`ApplyInputEvent`
+  marks dirty; `FixedRegionComposer.Compose` and `ScrollbackModel.PrePaint` re-read `model.Columns`/`model.Rows` per paint). 5 new reflow tests
+  (`ResizeReflowTests.cs`) drive a `FakeResizeWatcher` to assert: width reflows the live window, cap recomputes on row change, frozen rows are
+  not re-emitted, `Resized` outbound is emitted, volatile snapshot updates. Manual harness gained a CHECK 5 — `samples/Dcli.RawModeHarness/Program.cs`
+  prints the initial size on raw-mode entry and on every SIGWINCH. **620 tests green.**
+  - **Latent §7 P/Invoke bug surfaced & fixed (audit done):** the §13 manual harness was the first real-machine invocation of `PosixTerminalSizeSource.GetSize()`
+    on the user's Apple Silicon (tests stub the seam, §4.5 didn't touch it). The hand-rolled `ioctl_winsize` P/Invoke AV'd on AArch64 Darwin because
+    `ioctl(2)` is C-variadic and Darwin's AAPCS64 puts variadic args on the **stack**, but `LibraryImport` generates a fixed-arity call (`x2` for arg3).
+    On Linux x86_64 SysV the bug is invisible (variadic and fixed args share registers). Fix: dropped the manual ioctl P/Invoke and routed through
+    `Console.WindowWidth`/`Console.WindowHeight` (the .NET runtime's `libSystem.Native` shim is non-variadic). Also audited every `[LibraryImport("libc"...)]`
+    in `src/Dcli/Internal/Posix/` — `read`/`tcgetattr`/`tcsetattr` are all correct. Side benefit: `WindowsTerminalSizeSource` got promoted from a hardcoded
+    `(80, 24)` stub to the same real implementation.
+  - **Process note (carry-over reminder):** the fix-and-audit worker call also silently implemented most of Chunk B (capability types, SGR downgrade,
+    detection wiring, ~250 lines + 34 tests) without being briefed. Reverted; Chunk B is being redone via a proper brief. The diff was caught only by
+    checking `git status` against the worker's claimed file list — keep doing the trust-but-verify check on every worker report.
+- **Chunk B — pending.** `TerminalCapabilities` record + `TerminalCapabilityDetector.DetectCapabilities(CapabilityInputs?)`. Truecolor: detect via
+  `COLORTERM=truecolor|24bit`; when absent, `SgrTranslator` downgrades `Color.ColorKind.Rgb` to the nearest 256-indexed (xterm cube + grey ramp,
+  squared-Euclidean nearest). Synchronized-output: small `TERM_PROGRAM`/`TERM` allow-list; record only (we already emit the fence harmlessly).
+  Unicode-width: record an East-Asian flag from `LANG`/`LC_ALL`; behaviour unchanged in v1. Capability test matrix (13.4). All internal, no public surface.
 
 **Section 12 — public API: dialogs, events, façade.** This section **wrapped** the internal model+commands built in §9/§10/§11; little new
 mechanics, mostly surface. Per design Decisions 11 & 12:

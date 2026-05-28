@@ -108,15 +108,20 @@ public sealed class FacadeTests
         CapturingOutputSink sink = new();
         VirtualClock clock = new(TimeSpan.Zero);
 
+        // NoopResizeWatcher is a no-op disposable; ownership transfers to term on success.
+        using NoopResizeWatcher resizeWatcher = new();
         DcliTerminal term = DcliTerminal.StartCore(
             session,
             coordinator,
+            resizeWatcher,
             new ImmediateTimeoutByteSource(),
             clock,
             sink,
             new FixedSizeSource(),
             minFrameInterval: TimeSpan.Zero);
 
+        // coordinator and resizeWatcher transferred to term; DisposeAsync disposes them.
+        // The `using` also calls Dispose() on scope exit, but NoopResizeWatcher.Dispose() is idempotent.
         return (term, sink, clock, session);
     }
 

@@ -30,6 +30,7 @@ public sealed class Terminal : ITerminal
 {
     private readonly IRawModeSession _session;
     private readonly RestoreCoordinator _coordinator;
+    private readonly IResizeWatcher _resizeWatcher;
     private readonly InputReader _inputReader;
     private readonly LoopEngine _loop;
 
@@ -45,11 +46,13 @@ public sealed class Terminal : ITerminal
     private Terminal(
         IRawModeSession session,
         RestoreCoordinator coordinator,
+        IResizeWatcher resizeWatcher,
         InputReader inputReader,
         LoopEngine loop)
     {
         _session = session;
         _coordinator = coordinator;
+        _resizeWatcher = resizeWatcher;
         _inputReader = inputReader;
         _loop = loop;
         Scrollback = new ScrollbackSurface(loop);
@@ -327,6 +330,8 @@ public sealed class Terminal : ITerminal
 
         IInputByteSource byteSource = CreatePlatformInputByteSource();
 
+        IResizeWatcher resizeWatcher = CreatePlatformResizeWatcher(sizeSource);
+
         // UTF-8, no BOM, no auto-flush — one explicit Flush() per frame keeps each
         // synchronized-output fenced frame written as a single kernel write.
         StreamWriter stdoutWriter = new(
@@ -339,6 +344,7 @@ public sealed class Terminal : ITerminal
         Terminal terminal = StartCore(
             session,
             coordinator,
+            resizeWatcher,
             byteSource,
             new SystemClock(),
             sink,
@@ -357,6 +363,7 @@ public sealed class Terminal : ITerminal
     internal static Terminal StartCore(
         IRawModeSession session,
         RestoreCoordinator coordinator,
+        IResizeWatcher resizeWatcher,
         IInputByteSource byteSource,
         IClock clock,
         IOutputSink sink,
@@ -366,6 +373,7 @@ public sealed class Terminal : ITerminal
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(coordinator);
+        ArgumentNullException.ThrowIfNull(resizeWatcher);
         ArgumentNullException.ThrowIfNull(byteSource);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(sink);
@@ -378,10 +386,15 @@ public sealed class Terminal : ITerminal
         LoopEngine loop = new(sizeSource, clock, sink, minFrameInterval,
             restoreOnExit: session.Restore, maxFixedHeight: maxFixedHeight);
 
+        // Wire resize watcher → loop's inbound channel (SIGWINCH callback posts ResizeEvent).
+        // Capture InputWriter once to avoid capturing the whole loop in the closure.
+        ChannelWriter<InputEvent> inputWriter = loop.InputWriter;
+        resizeWatcher.Start((cols, rows) => inputWriter.TryWrite(new ResizeEvent(cols, rows)));
+
         // Wire input reader → loop's inbound channel.
         InputReader inputReader = new(byteSource, loop.InputWriter);
 
-        return new Terminal(session, coordinator, inputReader, loop);
+        return new Terminal(session, coordinator, resizeWatcher, inputReader, loop);
     }
 
     // ── Dispose ─────────────────────────────────────────────────────────────
@@ -403,6 +416,9 @@ public sealed class Terminal : ITerminal
                 return ValueTask.FromException(fault);
             return ValueTask.CompletedTask;
         }
+
+        // Stop the resize watcher first so it stops posting once the loop is shutting down.
+        _resizeWatcher.Dispose();
 
         // Stop the loop first (cancels CTS, completes channel) then stop the reader.
         // Both Dispose() calls block for a short join timeout.
@@ -445,6 +461,19 @@ public sealed class Terminal : ITerminal
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
+    private static IResizeWatcher CreatePlatformResizeWatcher(ITerminalSizeSource sizeSource)
+    {
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+            return new PosixResizeWatcher(sizeSource);
+
+        if (OperatingSystem.IsWindows())
+            return new WindowsResizeWatcher();
+
+        // Unknown platform; §4 will have thrown before this, but satisfy the compiler.
+        return new NoopResizeWatcher();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static IInputByteSource CreatePlatformInputByteSource()
     {
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
@@ -463,4 +492,5 @@ public sealed class Terminal : ITerminal
     {
         public (int Columns, int Rows) GetSize() => (80, 24);
     }
+
 }

@@ -95,16 +95,20 @@ public sealed class TerminalLifecycleTests
         RecordingRawModeSession session = new();
         RestoreCoordinator coordinator = RestoreCoordinator.Wire(session);
 
+        // NoopResizeWatcher is a no-op disposable; ownership transfers to term on success.
+        using NoopResizeWatcher resizeWatcher = new();
         DcliTerminal term = DcliTerminal.StartCore(
             session,
             coordinator,
+            resizeWatcher,
             new ImmediateTimeoutByteSource(),
             new TestSystemClock(),
             sink ?? new CapturingOutputSink(),
             new FixedSizeSource(),
             minFrameInterval ?? TimeSpan.FromMilliseconds(16));
 
-        // coordinator is transferred to term; term.DisposeAsync disposes it.
+        // coordinator and resizeWatcher transferred to term; DisposeAsync disposes them.
+        // The `using` above also calls Dispose() on scope exit, but NoopResizeWatcher.Dispose() is idempotent.
         return (term, session);
     }
 

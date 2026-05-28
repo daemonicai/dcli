@@ -93,8 +93,8 @@
 
 ## 13. Resize & reflow (Open Question #2)
 
-- [ ] 13.1 Wire resize delivery: `PosixSignalRegistration(SIGWINCH)` on POSIX; buffer-size event / polling on Windows → inbound `ResizeEvent`
-- [ ] 13.2 On resize, recompute width and reflow + repaint the live window and fixed region (frozen scrollback left to the terminal)
+- [x] 13.1 Wire resize delivery: `PosixSignalRegistration(SIGWINCH)` on POSIX; buffer-size event / polling on Windows → inbound `ResizeEvent`
+- [x] 13.2 On resize, recompute width and reflow + repaint the live window and fixed region (frozen scrollback left to the terminal)
 - [ ] 13.3 Detect truecolor / synchronized-output / unicode-width support; record fallbacks
 - [ ] 13.4 Tests: live window reflows on width change; cap recomputes; no rewrite of frozen content
 

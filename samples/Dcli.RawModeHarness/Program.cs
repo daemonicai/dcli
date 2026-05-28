@@ -1,12 +1,13 @@
 // Dcli.RawModeHarness — manual verification of §4 (raw-mode session and guaranteed restore).
 //
 // Run this in a real terminal (macOS/Linux). It is NOT an automated test — it exists so a human
-// can confirm the four behaviours that cannot be unit-tested without a real tty:
+// can confirm the behaviours that cannot be unit-tested without a real tty:
 //
 //   CHECK 1 — Entry:           after starting, local echo is OFF and input is byte-wise.
 //   CHECK 2 — Normal exit:     pressing 'q' exits; the shell is back to normal (echo on, cooked).
 //   CHECK 3 — Exception exit:  pressing 'x' throws; the shell is still restored.
 //   CHECK 4 — Signal restore:  sending SIGTERM/SIGINT restores the terminal.
+//   CHECK 5 — Resize delivery: resizing the terminal window prints the new dimensions.
 //
 // Windows: the Windows path compiles but runtime verification of raw-mode entry is deferred to
 // §14.1 cross-platform validation (the Windows CI runner has no interactive console). The harness
@@ -20,7 +21,7 @@ using Dcli.Internal.Posix;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-Console.WriteLine("=== Dcli.RawModeHarness --- Section 4 manual check ===");
+Console.WriteLine("=== Dcli.RawModeHarness --- Section 4/13 manual check ===");
 Console.WriteLine();
 Console.WriteLine("This harness puts the terminal in raw mode and lets you verify:");
 Console.WriteLine("  CHECK 1  Echo is OFF: type a few chars -- they should NOT appear.");
@@ -32,6 +33,7 @@ Console.WriteLine("  CHECK 3  Press 'x' -> simulated exception. Shell should sti
 Console.WriteLine("  CHECK 4  In another terminal, run:");
 Console.WriteLine($"             kill -TERM {Environment.ProcessId}");
 Console.WriteLine("           Then verify the original shell is back to normal.");
+Console.WriteLine("  CHECK 5  Resize the terminal window -- new dimensions should appear below.");
 Console.WriteLine();
 Console.WriteLine("Press ENTER to enter raw mode...");
 Console.ReadLine();
@@ -61,7 +63,7 @@ bool running = true;
 
 if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
 {
-    RunPosixLoop();
+    RunPosixSession();
 }
 else
 {
@@ -69,6 +71,25 @@ else
 }
 
 Console.Write("\r\n[DONE] Harness exited normally. Shell should be back to cooked mode.\r\n");
+
+// ── POSIX session: resize watcher + read loop ───────────────────────────────
+
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macos")]
+void RunPosixSession()
+{
+    PosixTerminalSizeSource sizeSource = new();
+    (int initCols, int initRows) = sizeSource.GetSize();
+    Console.Write($"\r\n[CHECK 5] Initial size: {initCols}x{initRows}. Resize the window to see new dimensions.\r\n");
+
+    using PosixResizeWatcher resizeWatcher = new(sizeSource);
+    resizeWatcher.Start((c, r) =>
+    {
+        Console.Write($"\r\n[CHECK 5] Resized to: {c}x{r}\r\n");
+    });
+
+    RunPosixLoop();
+}
 
 [SupportedOSPlatform("linux")]
 [SupportedOSPlatform("macos")]

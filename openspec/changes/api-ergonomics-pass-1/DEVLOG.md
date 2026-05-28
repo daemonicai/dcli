@@ -23,7 +23,7 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 
 | § | Section | Commit | Tests after | Notes |
 |---|---------|--------|-------------|-------|
-| — | (pending — §1 is next) | — | — | — |
+| 1 | `Line.FromText` factory | _pending_ | 693 (688 + 5) | XML doc also states "no implicit `string → Line` conversion is defined" — covers the doc half of task 2.9 ahead of §2. |
 
 ## Decisions & deviations
 
@@ -58,4 +58,4 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **Currently at §1.1 — Add `public static Line FromText(string text, Style? style = null)` to `src/Dcli/Line.cs`.** Working tree is clean. Next worker brief: implement §1 (`Line.FromText` factory) end-to-end, including XML docs (1.2) and tests (1.3). Single small section; expect one worker call, one reviewer audit, one commit.
+> **Currently at §2.1 — `IScrollback.Append(string text)` overload.** §1 shipped (`Line.FromText` factory + 5 tests; build 0 warnings, 693 tests green, format/validate clean). Next worker brief: implement §2 end-to-end — `IScrollback.Append(string)` (2.1–2.2), the `*Request` string overloads (2.3–2.6), `FacadeTests` round-trips (2.7), `FakeTerminalTests` tier-A symmetry (2.8), and confirm no implicit conversion via grep (2.9; the doc-half is already in `Line.FromText`'s XML).

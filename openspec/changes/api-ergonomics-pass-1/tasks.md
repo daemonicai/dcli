@@ -1,8 +1,8 @@
 ## 1. `Line.FromText` factory
 
-- [ ] 1.1 Add `public static Line FromText(string text, Style? style = null)` to `src/Dcli/Line.cs`; returns a `Line` with a single `Segment(text, style ?? default)`
-- [ ] 1.2 XML docs on `FromText` describing it as the canonical short form for label-only `Line`s
-- [ ] 1.3 Tests in `tests/Dcli.Tests/StyledTextTests.cs`: default style; explicit style; empty string; multi-rune string
+- [x] 1.1 Add `public static Line FromText(string text, Style? style = null)` to `src/Dcli/Line.cs`; returns a `Line` with a single `Segment(text, style ?? default)`
+- [x] 1.2 XML docs on `FromText` describing it as the canonical short form for label-only `Line`s
+- [x] 1.3 Tests in `tests/Dcli.Tests/StyledTextTests.cs`: default style; explicit style; empty string; multi-rune string
 
 ## 2. String-accepting consumer overloads
 

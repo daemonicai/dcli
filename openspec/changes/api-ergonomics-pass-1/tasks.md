@@ -43,11 +43,11 @@
 
 ## 6. Validation & packaging
 
-- [ ] 6.1 `dotnet build -c Release` — 0 warnings
-- [ ] 6.2 `dotnet test -c Release` — green (688 baseline + ~12 new)
-- [ ] 6.3 `dotnet format --verify-no-changes` — clean
-- [ ] 6.4 `openspec validate api-ergonomics-pass-1 --strict` — valid
-- [ ] 6.5 Bump `Dcli.csproj` and `Dcli.Testing.csproj` `Version` from `0.1.0-rc.1` → `0.2.0-rc.1` (additive minor)
-- [ ] 6.6 `dotnet pack -c Release` produces `dcli.0.2.0-rc.1.{nupkg,snupkg}` + `dcli.testing.0.2.0-rc.1.{nupkg,snupkg}` cleanly
-- [ ] 6.7 Update the repo `CLAUDE.md`'s "Where to look for historical context on a shipped change" subsection to match the canonical wording recommended by the personal `devlog` skill at `~/.claude/skills/devlog/SKILL.md` (covers BOTH the in-flight DEVLOG inside the change directory AND the archived DEVLOG — the wording shipped in PR #2 only covered the archived case)
-- [ ] 6.8 Update `openspec/changes/api-ergonomics-pass-1/DEVLOG.md` per the `devlog` skill conventions: a row in the Section status table for each section commit, deviations as they happen, resume-point bumped after each section
+- [x] 6.1 `dotnet build -c Release` — 0 warnings
+- [x] 6.2 `dotnet test -c Release` — green (688 baseline + ~12 new)
+- [x] 6.3 `dotnet format --verify-no-changes` — clean
+- [x] 6.4 `openspec validate api-ergonomics-pass-1 --strict` — valid
+- [x] 6.5 Bump `Dcli.csproj` and `Dcli.Testing.csproj` `Version` from `0.1.0-rc.1` → `0.2.0-rc.1` (additive minor)
+- [x] 6.6 `dotnet pack -c Release` produces `dcli.0.2.0-rc.1.{nupkg,snupkg}` + `dcli.testing.0.2.0-rc.1.{nupkg,snupkg}` cleanly
+- [x] 6.7 Update the repo `CLAUDE.md`'s "Where to look for historical context on a shipped change" subsection to match the canonical wording recommended by the personal `devlog` skill at `~/.claude/skills/devlog/SKILL.md` (covers BOTH the in-flight DEVLOG inside the change directory AND the archived DEVLOG — the wording shipped in PR #2 only covered the archived case)
+- [x] 6.8 Update `openspec/changes/api-ergonomics-pass-1/DEVLOG.md` per the `devlog` skill conventions: a row in the Section status table for each section commit, deviations as they happen, resume-point bumped after each section

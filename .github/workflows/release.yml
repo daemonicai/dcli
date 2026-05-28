@@ -1,0 +1,105 @@
+name: Release
+
+# Packs and publishes the `dcli` and `dcli.testing` NuGet packages.
+#
+# Two ways to release:
+#   1. Push a version tag, e.g.  git tag v0.2.0-rc.3 && git push origin v0.2.0-rc.3
+#      → the version is taken from the tag (the leading "v" is stripped) and published.
+#   2. Run manually (Actions → Release → Run workflow), optionally overriding the version
+#      and/or ticking "dry run" to pack without publishing.
+#
+# Requires a NUGET_API_KEY secret. This repo uses the organization-level secret
+# configured in the daemonicai org settings (ensure this repo is in its access list).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g. 0.2.0-rc.3). Blank = use the version in the .csproj files."
+        required: false
+        type: string
+      dry_run:
+        description: "Pack only; do not push to NuGet."
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Pack & Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          if [ -n "$VERSION" ]; then
+            echo "version_arg=-p:Version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "Publishing version: $VERSION"
+          else
+            echo "version_arg=" >> "$GITHUB_OUTPUT"
+            echo "Using version from .csproj files"
+          fi
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore ${{ steps.version.outputs.version_arg }}
+
+      - name: Test
+        run: dotnet test -c Release --no-build --verbosity normal
+
+      - name: Pack
+        run: |
+          dotnet pack src/Dcli/Dcli.csproj \
+            -c Release --no-build -o artifacts ${{ steps.version.outputs.version_arg }}
+          dotnet pack src/Dcli.Testing/Dcli.Testing.csproj \
+            -c Release --no-build -o artifacts ${{ steps.version.outputs.version_arg }}
+
+      - name: List packages
+        run: ls -l artifacts
+
+      - name: Upload packages artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/*
+          if-no-files-found: error
+
+      - name: Push to NuGet
+        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY secret is not set."
+            exit 1
+          fi
+          # Pushes the .nupkg files; matching .snupkg symbol packages are uploaded automatically.
+          dotnet nuget push "artifacts/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

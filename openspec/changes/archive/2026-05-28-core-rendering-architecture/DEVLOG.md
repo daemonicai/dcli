@@ -1,12 +1,16 @@
-# DEVLOG — applying the `core-rendering-architecture` change
+# DEVLOG — `core-rendering-architecture` (SHIPPED)
 
-This log lets a fresh session resume the OpenSpec change **`core-rendering-architecture`** without losing history.
-It is **not** part of the change's deliverables (it's a working note); don't tick tasks for it.
+> **Status: shipped.** All 15 sections committed, change archived `2026-05-28`, merged to `main` in PR #1.
+> This file is the **historical narrative** kept alongside the archived change. The spec deltas live in
+> the sibling `proposal.md` / `design.md` / `specs/**/*.md` / `tasks.md` files; this DEVLOG captures
+> decisions, deviations, surfaced bugs, and human-in-the-loop verifications that the spec files don't
+> carry. Future sessions wanting context on *how* this change was applied (not just *what* it specified)
+> should read this file.
 
-## What this is
+## What this was
 
-We are applying the single active OpenSpec change `openspec/changes/core-rendering-architecture/` by following the
-**authoritative OpenSpec Apply Workflow in `CLAUDE.md`**. That workflow is, per section:
+A working note for applying the OpenSpec change **`core-rendering-architecture`** by following the
+**authoritative OpenSpec Apply Workflow in `CLAUDE.md`**. That workflow was, per section:
 
 1. Orchestrator (main thread) **never writes feature code** — it briefs the `worker` agent, audits with the `reviewer`
    agent, runs gates, ticks boxes, commits.
@@ -20,14 +24,15 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 > Note: `SendMessage` is **not available** in this environment, so each worker/reviewer round in a fix loop spawns a
 > **fresh** agent that re-reads the on-disk (uncommitted) state. Brief them with file paths + the prior findings.
 
-## How to resume
+## Final state (at archive)
 
-- Branch: **`change/core-rendering-architecture`** (created from `main`). Stay on it.
-- Working tree is **CLEAN**: §15 is fully committed (`a649d4b`, 688 tests). **The change is COMPLETE — all 15 sections done, 72/72 tasks ticked.**
-- Sanity check: `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate core-rendering-architecture --strict`
-  → expect **0 warnings, 688 tests green, clean format, valid**.
-- **Next action:** propose `/opsx:archive` to the user (per CLAUDE.md, do NOT archive automatically — wait for confirmation).
-- Check the memory files (see below) before briefing — several encode hard-won constraints that will survive into the next change.
+- Branch: `change/core-rendering-architecture` was merged into `main` via PR #1 (`354400f`).
+- §15 final commit: `a649d4b` (688 tests green).
+- All 15 sections committed, 72/72 tasks ticked, `openspec validate --specs --strict` passes.
+- Six main specs seeded at `openspec/specs/{fixed-region,inline-scrollback,render-loop,styled-text,terminal-input,test-harness}/spec.md` from the deltas.
+- See the memory files (linked at the bottom) for cross-change constraints that survive into follow-up work.
+
+The sections below are preserved verbatim from the live working note — they document **how** the change was applied, not **what** it specified.
 
 ## Section status (1 commit per section)
 
@@ -136,9 +141,9 @@ These are recorded as memory files and should become their own future OpenSpec c
 - `vt-escape-sanitization-gap` — see above.
 - `scrollback-oversized-reprint-ordering` — see above.
 
-## Resume point
+## Resume point (frozen)
 
-> **CHANGE COMPLETE.** All 15 sections committed (latest `a649d4b`, 688 tests green). 72/72 tasks ticked, `openspec validate core-rendering-architecture --strict` passes. Next step: propose `/opsx:archive` to the user. The orchestrator must wait for the user's explicit go-ahead before archiving (per CLAUDE.md §5).
+> **CHANGE SHIPPED.** All 15 sections committed (latest `a649d4b`, 688 tests green). 72/72 tasks ticked. Archived `2026-05-28` (`66c6f79`). Merged to `main` via PR #1 (`354400f`). Six main specs seeded from the deltas. No further work on this change — follow-ups (`api-ergonomics-pass-1`, `dmon-migration`, etc.) are separate OpenSpec changes.
 
 ### §15 chunk progress (COMPLETE — committed `a649d4b`)
 

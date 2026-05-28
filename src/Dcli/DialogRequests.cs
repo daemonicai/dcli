@@ -94,6 +94,19 @@ public sealed record SelectRequest(IReadOnlyList<Line> Items, IReadOnlyList<Line
     public SelectRequest(params string[] items)
         : this((IReadOnlyList<string>)items, (Line?)null) { }
 
+    /// <summary>
+    /// Single-string convenience over <see cref="IReadOnlyList{Line}"/> items — equivalent to
+    /// a one-element preamble list with default style.
+    /// </summary>
+    /// <param name="items">The list items to display.</param>
+    /// <param name="title">Optional plain-text title string; <see langword="null"/> means no preamble.</param>
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, Backspace at position zero (before any movement) closes
+    /// the dialog with <see cref="DialogOutcome.Back"/>. Defaults to <see langword="false"/>.
+    /// </param>
+    public SelectRequest(IReadOnlyList<Line> items, string? title, bool allowBack = false)
+        : this(items, title is null ? null : (IReadOnlyList<Line>)[Line.FromText(title)], allowBack) { }
+
     private static List<Line> ConvertItems(IReadOnlyList<string> items)
     {
         ArgumentNullException.ThrowIfNull(items);
@@ -183,6 +196,15 @@ public sealed record MultiSelectRequest(IReadOnlyList<Line> Items, IReadOnlyList
     /// <param name="items">The plain-text items to display.</param>
     public MultiSelectRequest(params string[] items)
         : this((IReadOnlyList<string>)items, (Line?)null) { }
+
+    /// <summary>
+    /// Single-string convenience over <see cref="IReadOnlyList{Line}"/> items — equivalent to
+    /// a one-element preamble list with default style.
+    /// </summary>
+    /// <param name="items">The list items to display.</param>
+    /// <param name="title">Optional plain-text title string; <see langword="null"/> means no preamble.</param>
+    public MultiSelectRequest(IReadOnlyList<Line> items, string? title)
+        : this(items, title is null ? null : (IReadOnlyList<Line>)[Line.FromText(title)]) { }
 
     private static List<Line> ConvertItems(IReadOnlyList<string> items)
     {
@@ -292,6 +314,19 @@ public sealed record ChoiceRequest(IReadOnlyList<Line> Options, IReadOnlyList<Li
     /// <param name="options">The plain-text options to display.</param>
     public ChoiceRequest(params string[] options)
         : this((IReadOnlyList<string>)options, (Line?)null) { }
+
+    /// <summary>
+    /// Single-string convenience over <see cref="IReadOnlyList{Line}"/> options — equivalent to
+    /// a one-element preamble list with default style.
+    /// </summary>
+    /// <param name="options">The choice options to display.</param>
+    /// <param name="prompt">Optional plain-text prompt string; <see langword="null"/> means no preamble.</param>
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, Backspace at position zero (before any movement) closes
+    /// the dialog with <see cref="DialogOutcome.Back"/>. Defaults to <see langword="false"/>.
+    /// </param>
+    public ChoiceRequest(IReadOnlyList<Line> options, string? prompt, bool allowBack = false)
+        : this(options, prompt is null ? null : (IReadOnlyList<Line>)[Line.FromText(prompt)], allowBack) { }
 
     private static List<Line> ConvertOptions(IReadOnlyList<string> options)
     {

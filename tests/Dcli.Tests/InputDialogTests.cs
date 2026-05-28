@@ -1,6 +1,7 @@
 using System.Text;
 using Dcli.Internal.FixedRegion;
 using Dcli.Internal.RenderLoop;
+using Dcli.Testing;
 using Xunit;
 
 namespace Dcli.Tests;
@@ -639,5 +640,102 @@ public sealed class InputDialogTests
         string allText = string.Concat(rows.SelectMany(l => l.Segments).Select(s => s.Text));
         Assert.Contains("hello", allText, StringComparison.Ordinal);
         Assert.DoesNotContain("•", allText, StringComparison.Ordinal);
+    }
+
+    // ── §3.4 — Multi-line Prompt on InputRequest renders all lines above input field ─
+
+    // Spec scenario: "Multi-line preamble renders all lines above the widget"
+
+    /// <summary>
+    /// §3.4 — An <see cref="InputRequest"/> with a 3-line prompt renders all three preamble lines
+    /// above the input field (the last FixedRegionRow for the overlay).
+    /// </summary>
+    [Fact]
+    public async Task InputRequestMultiLinePromptRendersAllLinesAboveInputField()
+    {
+        await using HeadlessTerminal harness = await HeadlessTerminal.StartAsync(
+            new HeadlessTerminalOptions { InitialColumns = 40, InitialRows = 12 });
+
+        InputRequest req = new(
+            (IReadOnlyList<Line>)[
+                new Line([new Segment("Enter your name")]),
+                new Line([new Segment("Max 20 chars")]),
+                new Line([new Segment("Press Enter to submit")]),
+            ]);
+
+        Task<DialogResult<string>> dialogTask = harness.Terminal.InputAsync(req);
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        FrameSnapshot snap = harness.Snapshot;
+        Assert.Equal(OverlayKind.Input, snap.Overlay.Kind);
+
+        int idxLine1 = FindRowIndexContaining(snap.FixedRegionRows, "Enter your name");
+        int idxLine2 = FindRowIndexContaining(snap.FixedRegionRows, "Max 20 chars");
+        int idxLine3 = FindRowIndexContaining(snap.FixedRegionRows, "Press Enter to submit");
+
+        Assert.True(idxLine1 >= 0, "Prompt line 1 'Enter your name' not found in FixedRegionRows");
+        Assert.True(idxLine2 >= 0, "Prompt line 2 'Max 20 chars' not found");
+        Assert.True(idxLine3 >= 0, "Prompt line 3 'Press Enter to submit' not found");
+        Assert.True(idxLine1 < idxLine2, $"Prompt lines out of order: {idxLine1},{idxLine2}");
+        Assert.True(idxLine2 < idxLine3, $"Prompt lines out of order: {idxLine2},{idxLine3}");
+
+        // The input field row is after the last prompt line (the overlay has rows beyond preamble).
+        Assert.True(snap.Overlay.VisibleRowCount > 3,
+            $"Expected more than 3 visible overlay rows (3 prompt + at least 1 input); got {snap.Overlay.VisibleRowCount}");
+
+        harness.SendKey(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await dialogTask;
+    }
+
+    // ── §3.7 — Oversized preamble on InputRequest truncates and keeps widget visible ─
+
+    /// <summary>
+    /// §3.7 (input variant) — A preamble taller than the overlay budget truncates, and the input
+    /// overlay remains active (widget remains usable). Caret-in-frame is NOT asserted.
+    /// </summary>
+    [Fact]
+    public async Task InputRequestOversizedPreambleTruncatesAndKeepsWidgetVisible()
+    {
+        await using HeadlessTerminal harness = await HeadlessTerminal.StartAsync(
+            new HeadlessTerminalOptions { InitialColumns = 40, InitialRows = 10 });
+
+        IReadOnlyList<Line> bigPrompt = Enumerable.Range(1, 30)
+            .Select(i => new Line([new Segment($"prompt line {i}")]))
+            .ToList();
+
+        InputRequest req = new(bigPrompt);
+
+        Task<DialogResult<string>> dialogTask = harness.Terminal.InputAsync(req);
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+        FrameSnapshot snap = harness.Snapshot;
+
+        // The overlay must still be active.
+        Assert.Equal(OverlayKind.Input, snap.Overlay.Kind);
+
+        // The fixed-region row count must not exceed the terminal height.
+        Assert.True(snap.FixedRegionRows.Count <= snap.Size.Rows,
+            $"FixedRegionRows ({snap.FixedRegionRows.Count}) exceeded terminal rows ({snap.Size.Rows})");
+
+        // The overlay visible row count must be positive.
+        Assert.True(snap.Overlay.VisibleRowCount > 0,
+            "Overlay must render at least one row even with an oversized preamble");
+
+        harness.SendKey(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+        await harness.SettleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        await dialogTask;
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
+
+    private static int FindRowIndexContaining(IReadOnlyList<Line> rows, string needle)
+    {
+        for (int i = 0; i < rows.Count; i++)
+        {
+            if (rows[i].Segments.Any(s => s.Text.Contains(needle, StringComparison.Ordinal)))
+                return i;
+        }
+        return -1;
     }
 }

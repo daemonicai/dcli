@@ -18,13 +18,13 @@
 
 ## 3. Tests
 
-- [ ] 3.1 `tests/Dcli.Tests/DialogSelectionTests.cs` — add a multi-line `Title` test using `HeadlessTerminal`: construct a `SelectRequest` with a 3-line title; capture a `FrameSnapshot`; assert all 3 lines appear above the list items in order.
-- [ ] 3.2 Equivalent multi-line test in `tests/Dcli.Tests/MultiSelectDialogTests.cs` (or wherever multi-select tests live) for `MultiSelectRequest.Title`.
-- [ ] 3.3 Equivalent multi-line test in `tests/Dcli.Tests/ChoiceDialogTests.cs` for `ChoiceRequest.Prompt`.
-- [ ] 3.4 Equivalent multi-line test in `tests/Dcli.Tests/InputDialogTests.cs` for `InputRequest.Prompt`.
-- [ ] 3.5 Backwards-compat round-trip tests in `tests/Dcli.Tests/FacadeTests.cs` (or `DialogRequestsTests.cs` if a dedicated file fits): each single-`Line` / single-`string` constructor produces a request whose preamble is a one-element list.
-- [ ] 3.6 Null/empty preamble test: a request with `null` or `[]` preamble paints zero preamble rows.
-- [ ] 3.7 Truncation regression test: a request with a preamble taller than the overlay budget paints up to the budget and leaves the widget visible (assert via `FrameSnapshot` shape).
+- [x] 3.1 `tests/Dcli.Tests/DialogSelectionTests.cs` — add a multi-line `Title` test using `HeadlessTerminal`: construct a `SelectRequest` with a 3-line title; capture a `FrameSnapshot`; assert all 3 lines appear above the list items in order.
+- [x] 3.2 Equivalent multi-line test in `tests/Dcli.Tests/MultiSelectDialogTests.cs` (or wherever multi-select tests live) for `MultiSelectRequest.Title`. **(Placed in `DialogSelectionTests.cs` — no dedicated MultiSelect test file exists.)**
+- [x] 3.3 Equivalent multi-line test in `tests/Dcli.Tests/ChoiceDialogTests.cs` for `ChoiceRequest.Prompt`.
+- [x] 3.4 Equivalent multi-line test in `tests/Dcli.Tests/InputDialogTests.cs` for `InputRequest.Prompt`.
+- [x] 3.5 Backwards-compat round-trip tests in `tests/Dcli.Tests/FacadeTests.cs` (or `DialogRequestsTests.cs` if a dedicated file fits): each single-`Line` / single-`string` constructor produces a request whose preamble is a one-element list. **(Placed in new `tests/Dcli.Tests/DialogRequestsTests.cs`.)**
+- [x] 3.6 Null/empty preamble test: a request with `null` or `[]` preamble paints zero preamble rows.
+- [x] 3.7 Truncation regression test: a request with a preamble taller than the overlay budget paints up to the budget and leaves the widget visible (assert via `FrameSnapshot` shape).
 
 ## 4. Sample updates
 

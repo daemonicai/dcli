@@ -24,6 +24,12 @@ internal sealed class FakeScrollback : IScrollback
         Appended.Add(line);
     }
 
+    public void Append(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        Append(Line.FromText(text));
+    }
+
     public ILiveBlock BeginLive()
     {
         BeginLiveCount++;
@@ -491,5 +497,27 @@ public sealed class FakeTerminalTests
             Assert.Equal(80, cols);
             Assert.Equal(24, rows);
         }
+    }
+
+    // ── §2 — string-overload symmetry ────────────────────────────────────────
+
+    [Fact]
+    public void FakeScrollbackAppendStringProducesSameRecordingAsAppendLine()
+    {
+        FakeScrollback fake = new();
+
+        // Two independent fakes, same text — one called with Line, one with string.
+        FakeScrollback fakeViaLine = new();
+        FakeScrollback fakeViaString = new();
+
+        fakeViaLine.Append(Line.FromText("hello"));
+        fakeViaString.Append("hello");
+
+        // Both record exactly one line with the same segment text.
+        Assert.Single(fakeViaLine.Appended);
+        Assert.Single(fakeViaString.Appended);
+        Assert.Equal(
+            fakeViaLine.Appended[0].Segments.Select(s => s.Text),
+            fakeViaString.Appended[0].Segments.Select(s => s.Text));
     }
 }

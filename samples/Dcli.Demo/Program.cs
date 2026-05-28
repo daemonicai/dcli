@@ -30,9 +30,7 @@ t.Scrollback.Append(new LineBuilder()
     .Fg("  Styled output flows into the real terminal scrollback.", Color.Named(Color.AnsiColor.Cyan))
     .Build());
 
-t.Scrollback.Append(new LineBuilder()
-    .Text("  A small interactive region is pinned at the bottom.")
-    .Build());
+t.Scrollback.Append("  A small interactive region is pinned at the bottom.");
 
 t.Scrollback.Append(new LineBuilder()
     .Dim("  Content above the commit horizon is frozen and terminal-owned.")
@@ -96,9 +94,7 @@ await Task.Delay(TimeSpan.FromMilliseconds(1000));
 
 collapsed.Expand();
 
-t.Scrollback.Append(new LineBuilder()
-    .Text("  Subsequent content lands below the expanded block.")
-    .Build());
+t.Scrollback.Append("  Subsequent content lands below the expanded block.");
 
 await Task.Delay(TimeSpan.FromMilliseconds(500));
 
@@ -194,10 +190,10 @@ await Task.Delay(TimeSpan.FromMilliseconds(200));
         new MultiSelectRequest(
             Items:
             [
-                new LineBuilder().Text("Inline scrollback rendering").Build(),
-                new LineBuilder().Text("Collapsible blocks").Build(),
-                new LineBuilder().Text("Autocomplete overlay").Build(),
-                new LineBuilder().Text("Dialog wizard chain").Build(),
+                Line.FromText("Inline scrollback rendering"),
+                Line.FromText("Collapsible blocks"),
+                Line.FromText("Autocomplete overlay"),
+                Line.FromText("Dialog wizard chain"),
             ],
             Title: new LineBuilder().Bold("Which features interest you?").Build()),
         cts.Token);

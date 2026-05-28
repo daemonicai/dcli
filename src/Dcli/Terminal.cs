@@ -139,7 +139,7 @@ public sealed class Terminal : ITerminal
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(req);
-        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Title);
+        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Title, allowBack: req.AllowBack);
         dialog.List.SetItems(req.Items);
         return OpenModalAsync<int>(
             dialog,
@@ -192,7 +192,7 @@ public sealed class Terminal : ITerminal
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(req);
-        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Prompt);
+        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Prompt, allowBack: req.AllowBack);
         dialog.List.SetItems(req.Options);
         return OpenModalAsync<int>(
             dialog,
@@ -237,7 +237,9 @@ public sealed class Terminal : ITerminal
     /// <param name="buildResult">
     /// Parameterless factory called on the loop thread when the overlay is submitted.
     /// The closure captures the overlay and reads its state (e.g. text, selection index).
-    /// Only called on <see cref="OverlayCloseKind.Submit"/>; Cancel produces a default result.
+    /// Only called on <see cref="OverlayCloseKind.Submit"/>; <see cref="OverlayCloseKind.Back"/>
+    /// and <see cref="OverlayCloseKind.Cancel"/> produce default-value results with the
+    /// corresponding <see cref="DialogOutcome"/>.
     /// </param>
     /// <param name="cancellationToken">External cancellation token.</param>
     private Task<DialogResult<T>> OpenModalAsync<T>(
@@ -259,9 +261,12 @@ public sealed class Terminal : ITerminal
         Action completion = () =>
         {
             // Running on the loop thread. Read overlay state and complete the TCS.
-            DialogResult<T> result = overlay.CloseRequest == OverlayCloseKind.Submit
-                ? buildResult()
-                : new DialogResult<T>(DialogOutcome.Cancelled, default!);
+            DialogResult<T> result = overlay.CloseRequest switch
+            {
+                OverlayCloseKind.Submit => buildResult(),
+                OverlayCloseKind.Back => new DialogResult<T>(DialogOutcome.Back, default!),
+                _ => new DialogResult<T>(DialogOutcome.Cancelled, default!),
+            };
             tcs.TrySetResult(result);
             // Dispose the CT registration to prevent a stale cancel command from posting later.
             registrationHolder[0].Dispose();

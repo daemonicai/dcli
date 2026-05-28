@@ -5,10 +5,10 @@ namespace Dcli;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="Submitted"/> and <see cref="Cancelled"/> are produced by the v1 list-based dialogs
-/// (<see cref="Terminal.SelectAsync"/>, <see cref="Terminal.MultiSelectAsync"/>,
-/// <see cref="Terminal.ChoiceAsync"/>). <see cref="Back"/> exists for API/wizard-flow
-/// compatibility but is not produced by any v1 dialog (no key maps to it in this release).
+/// <see cref="Submitted"/> and <see cref="Cancelled"/> are produced by all v1 list-based dialogs.
+/// <see cref="Back"/> is produced by <see cref="Terminal.SelectAsync"/> and
+/// <see cref="Terminal.ChoiceAsync"/> when the request has <c>AllowBack = true</c> and the user
+/// presses Backspace before moving the selection cursor.
 /// </para>
 /// </remarks>
 public enum DialogOutcome
@@ -17,7 +17,12 @@ public enum DialogOutcome
     Submitted,
 
     /// <summary>
-    /// Reserved for wizard-flow "go back" semantics. Not produced by any v1 dialog.
+    /// The user pressed Backspace to navigate back in a wizard flow.
+    /// Produced by <see cref="Terminal.SelectAsync"/> and <see cref="Terminal.ChoiceAsync"/>
+    /// when the request has <c>AllowBack = true</c> and the user presses Backspace before
+    /// moving the selection cursor (and before entering any filter text when type-to-filter
+    /// is active). <see cref="DialogResult{T}.Value"/> is <see langword="default"/> when this
+    /// outcome is returned.
     /// </summary>
     Back,
 

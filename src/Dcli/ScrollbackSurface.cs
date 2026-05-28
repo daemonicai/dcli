@@ -107,6 +107,15 @@ public sealed class ScrollbackSurface : IScrollback
     }
 
     /// <summary>
+    /// Appends a plain-text line to the scrollback live window.
+    /// </summary>
+    public void Append(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        Append(Line.FromText(text));
+    }
+
+    /// <summary>
     /// Begins a new live block in the scrollback, returning a handle for incremental mutation.
     /// </summary>
     /// <remarks>

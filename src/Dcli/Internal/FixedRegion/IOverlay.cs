@@ -25,6 +25,12 @@ internal enum OverlayCloseKind
     /// <summary>The user confirmed (Enter).</summary>
     Submit,
 
+    /// <summary>
+    /// The user navigated back (Backspace at position zero before any movement,
+    /// when <see cref="Dialog"/> was constructed with <c>allowBack: true</c>).
+    /// </summary>
+    Back,
+
     /// <summary>The user cancelled (Escape).</summary>
     Cancel,
 }

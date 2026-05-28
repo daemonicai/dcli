@@ -262,6 +262,57 @@ public sealed class StyledTextTests
     }
 
     // -----------------------------------------------------------------------------------------
+    // 2.3 Line.FromText
+    // -----------------------------------------------------------------------------------------
+
+    [Fact]
+    public void LineFromTextDefaultStyleProducesUnstyledSegment()
+    {
+        // Spec: FromText produces an unstyled line — no style argument → default(Style).
+        Line line = Line.FromText("hello");
+        Assert.Single(line.Segments);
+        Assert.Equal("hello", line.Segments[0].Text);
+        Assert.Equal(default, line.Segments[0].Style);
+    }
+
+    [Fact]
+    public void LineFromTextExplicitStyleIsCarried()
+    {
+        // Spec: FromText respects an explicit style.
+        Style bold = new(Format: Format.Bold);
+        Line line = Line.FromText("err", bold);
+        Assert.Single(line.Segments);
+        Assert.Equal("err", line.Segments[0].Text);
+        Assert.True(line.Segments[0].Style.Format.HasFlag(Format.Bold));
+    }
+
+    [Fact]
+    public void LineFromTextEmptyStringProducesSingleEmptySegment()
+    {
+        Line line = Line.FromText("");
+        Assert.Single(line.Segments);
+        Assert.Equal("", line.Segments[0].Text);
+    }
+
+    [Fact]
+    public void LineFromTextMultiRuneStringRoundTripsTextIntact()
+    {
+        // Unicode content (combining accent + emoji) must survive unchanged.
+        const string text = "héllo🦊";
+        Line line = Line.FromText(text);
+        Assert.Equal(text, line.Segments[0].Text);
+    }
+
+    [Fact]
+    public void LineFromTextStructurallyEqualsManualConstruction()
+    {
+        // Line has sequence equality; FromText must produce the same value as the long form.
+        Line fromFactory = Line.FromText("hello");
+        Line manual = new(new[] { new Segment("hello") });
+        Assert.Equal(manual, fromFactory);
+    }
+
+    // -----------------------------------------------------------------------------------------
     // 2.3 LineBuilder
     // -----------------------------------------------------------------------------------------
 

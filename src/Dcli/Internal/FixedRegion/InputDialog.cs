@@ -23,6 +23,11 @@ internal sealed class InputDialog : IModalOverlay
 {
     private readonly TextBuffer _buffer;
     private readonly bool _isSecret;
+    // True once the user makes any buffer-mutating keystroke (insert, Backspace, Delete).
+    // Sticky: never reset to false after being set. Used so that masking semantics are
+    // consistent: _userEdited=false means the buffer still holds the seeded Default exactly
+    // as constructed.
+    private bool _userEdited;
     private int _maxRows = 10;
     // Cached from the last Render call (or seeded by SeedWidth on the loop thread at open time)
     // so HandleKey has a correct width for Home/End/Up/Down before the first paint.
@@ -115,6 +120,7 @@ internal sealed class InputDialog : IModalOverlay
             Rune r = key.Code.RuneValue;
             if (r.Value >= 0x20 && r.Value != 0x7F)
             {
+                _userEdited = true;
                 _buffer.Insert(r);
                 return true;
             }
@@ -126,10 +132,12 @@ internal sealed class InputDialog : IModalOverlay
             switch (key.Code.NamedValue)
             {
                 case NamedKey.Backspace:
+                    _userEdited = true;
                     _buffer.Backspace();
                     return true;
 
                 case NamedKey.Delete:
+                    _userEdited = true;
                     _buffer.Delete();
                     return true;
 
@@ -225,6 +233,12 @@ internal sealed class InputDialog : IModalOverlay
 
     /// <summary>The real (unmasked) text currently in the buffer.</summary>
     internal string Text => _buffer.Text;
+
+    /// <summary>
+    /// <see langword="true"/> once the user has made any buffer-mutating keystroke
+    /// (insert, Backspace, Delete). Sticky — never reset after being set.
+    /// </summary>
+    internal bool UserEdited => _userEdited;
 
     /// <summary>
     /// Seeds the cached width used by width-dependent <see cref="HandleKey"/> operations

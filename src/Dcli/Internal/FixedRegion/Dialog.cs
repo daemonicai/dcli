@@ -52,11 +52,17 @@ internal sealed class Dialog : IModalOverlay
     /// of the <see cref="MaxRows"/> budget is reserved for it, and <c>List.MaxRows</c> is set to
     /// at most <c>MaxRows - 1</c> so the total output never exceeds the budget.
     /// </param>
-    internal Dialog(bool multiSelect = false, bool modal = true, bool typeToFilter = false, Line? title = null)
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, Backspace closes the dialog with
+    /// <see cref="OverlayCloseKind.Back"/> provided the user has not yet moved the selection
+    /// cursor and the filter text is empty. Defaults to <see langword="false"/>.
+    /// </param>
+    internal Dialog(bool multiSelect = false, bool modal = true, bool typeToFilter = false, Line? title = null, bool allowBack = false)
     {
         Modal = modal;
         TypeToFilter = typeToFilter;
         Title = title;
+        _allowBack = allowBack;
         List = new ScrollableList(multiSelect);
     }
 
@@ -100,7 +106,11 @@ internal sealed class Dialog : IModalOverlay
     /// <list type="number">
     ///   <item><description><c>Enter</c> → <see cref="CloseRequest"/> = Submit; consumed.</description></item>
     ///   <item><description><c>Escape</c> → <see cref="CloseRequest"/> = Cancel; consumed.</description></item>
-    ///   <item><description><c>↑</c> / <c>↓</c> → navigate the list; consumed.</description></item>
+    ///   <item><description><c>Backspace</c> when constructed with <c>allowBack: true</c>, the user
+    ///   has not yet moved the selection cursor, and <see cref="FilterText"/> is empty →
+    ///   <see cref="CloseRequest"/> = Back; consumed. (Does not fire when the cursor has moved or
+    ///   filter text is present, so it cannot mask the type-to-filter Backspace-trim behaviour.)</description></item>
+    ///   <item><description><c>↑</c> / <c>↓</c> → navigate the list (sets the internal moved flag); consumed.</description></item>
     ///   <item><description>Space (U+0020) when <see cref="ScrollableList.MultiSelect"/> → toggle current; consumed.</description></item>
     ///   <item><description>Printable rune (≥ U+0020, ≠ U+007F) when <see cref="TypeToFilter"/> → append to <see cref="FilterText"/>; consumed. Backspace → trim <see cref="FilterText"/>; consumed.</description></item>
     ///   <item><description>Any remaining key when <see cref="Modal"/> → consumed (modal catch-all).</description></item>
@@ -123,19 +133,31 @@ internal sealed class Dialog : IModalOverlay
             return true;
         }
 
-        // 3. Arrow navigation
+        // 3. Backspace-Back: fires only when AllowBack is true, the user has not yet moved the
+        //    selection cursor, and no filter text has been accumulated. The _filterText guard
+        //    ensures this branch cannot mask the type-to-filter Backspace-trim path (rule 5).
+        if (key.Code.Kind == KeyCode.KeyCodeKind.Named && key.Code.NamedValue == NamedKey.Backspace &&
+            _allowBack && !_hasMoved && _filterText.Length == 0)
+        {
+            CloseRequest = OverlayCloseKind.Back;
+            return true;
+        }
+
+        // 4. Arrow navigation (sets _hasMoved so the Back branch above is no longer eligible)
         if (key.Code.Kind == KeyCode.KeyCodeKind.Named && key.Code.NamedValue == NamedKey.Up)
         {
+            _hasMoved = true;
             List.MoveUp();
             return true;
         }
         if (key.Code.Kind == KeyCode.KeyCodeKind.Named && key.Code.NamedValue == NamedKey.Down)
         {
+            _hasMoved = true;
             List.MoveDown();
             return true;
         }
 
-        // 4. Space → toggle when multi-select (takes precedence over type-to-filter for space)
+        // 5. Space → toggle when multi-select (takes precedence over type-to-filter for space)
         if (key.Code.Kind == KeyCode.KeyCodeKind.UnicodeScalar &&
             key.Code.RuneValue.Value == ' ' &&
             List.MultiSelect)
@@ -144,7 +166,7 @@ internal sealed class Dialog : IModalOverlay
             return true;
         }
 
-        // 5. Type-to-filter: printable runes and Backspace
+        // 6. Type-to-filter: printable runes and Backspace
         if (TypeToFilter)
         {
             if (key.Code.Kind == KeyCode.KeyCodeKind.Named && key.Code.NamedValue == NamedKey.Backspace)
@@ -165,11 +187,11 @@ internal sealed class Dialog : IModalOverlay
             }
         }
 
-        // 6. Modal catch-all: consume everything so the input editor gets nothing
+        // 7. Modal catch-all: consume everything so the input editor gets nothing
         if (Modal)
             return true;
 
-        // 7. Non-modal fall-through
+        // 8. Non-modal fall-through
         return false;
     }
 
@@ -237,6 +259,10 @@ internal sealed class Dialog : IModalOverlay
 
     private int _maxRows = 10; // default matches ScrollableList default
     private readonly StringBuilder _filterText = new();
+    private readonly bool _allowBack;
+
+    // Set to true on the first ↑/↓ press; once moved, Backspace-Back is no longer eligible.
+    private bool _hasMoved;
 
     /// <summary>
     /// Removes the last grapheme cluster (text element) from <see cref="FilterText"/>.

@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Dcli</AssemblyName>
+    <RootNamespace>Dcli</RootNamespace>
+    <!-- Required for [LibraryImport] source-generated P/Invoke (termios / Win32 console). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- NuGet packaging -->
+    <IsPackable>true</IsPackable>
+    <PackageId>dcli</PackageId>
+    <Version>0.1.0-rc.1</Version>
+    <Authors>daemonicai</Authors>
+    <Company>daemonicai</Company>
+    <Description>Inline terminal-rendering library. Claude-Code-style styled output flows into the terminal's real scrollback, with a small interactive region pinned at the bottom.</Description>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/daemonicai/dcli</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/daemonicai/dcli</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>terminal;cli;tui;rendering;ansi;vt100</PackageTags>
+    <PackageReleaseNotes>
+- Inline scrollback rendering: styled output flows into native terminal scrollback with a pinned interactive region.
+- Awaitable modal dialogs: SelectAsync, MultiSelectAsync, ChoiceAsync, InputAsync.
+- Scrollback model: append lines, live mutable blocks, and one-way collapsibles.
+- Autocomplete dropdown overlay with whole-buffer-replace candidate acceptance.
+- Raw-mode VT input pipeline: own termios/Win32 shims, VtInputParser, bracketed-paste, SIGWINCH resize. Validated on macOS.
+    </PackageReleaseNotes>
+
+    <!-- Source Link: enables consumers to step into dcli source in the debugger. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dcli.Tests" />
+    <InternalsVisibleTo Include="Dcli.RawModeHarness" />
+    <InternalsVisibleTo Include="Dcli.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

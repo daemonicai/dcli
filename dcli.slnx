@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dcli/Dcli.csproj" />
+    <Project Path="src/Dcli.Testing/Dcli.Testing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Dcli.Tests/Dcli.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Dcli.RawModeHarness/Dcli.RawModeHarness.csproj" />
+    <Project Path="samples/Dcli.Demo/Dcli.Demo.csproj" />
+    <Project Path="samples/Dcli.Demo.DmonWizard/Dcli.Demo.DmonWizard.csproj" />
+  </Folder>
+</Solution>

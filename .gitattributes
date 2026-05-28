@@ -1,0 +1,33 @@
+# Default: auto-detect text files; store and check out with LF on every platform.
+# Combined with .editorconfig `end_of_line = lf`, this keeps `dotnet format` happy
+# on Windows CI runners (which would otherwise check out CRLF and fail ENDOFLINE).
+* text=auto eol=lf
+
+# Source / project / config — explicit for safety.
+*.cs           text eol=lf
+*.csproj       text eol=lf
+*.props        text eol=lf
+*.targets      text eol=lf
+*.slnx         text eol=lf
+*.json         text eol=lf
+*.xml          text eol=lf
+*.md           text eol=lf
+*.yml          text eol=lf
+*.yaml         text eol=lf
+*.sh           text eol=lf
+.editorconfig  text eol=lf
+.gitignore     text eol=lf
+.gitattributes text eol=lf
+
+# Binary — never line-normalised.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.dll    binary
+*.exe    binary
+*.pdb    binary
+*.snk    binary
+*.nupkg  binary
+*.snupkg binary

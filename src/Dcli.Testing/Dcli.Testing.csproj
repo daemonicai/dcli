@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Dcli.Testing</AssemblyName>
+    <RootNamespace>Dcli.Testing</RootNamespace>
+
+    <!-- NuGet packaging -->
+    <IsPackable>true</IsPackable>
+    <PackageId>dcli.testing</PackageId>
+    <Version>0.1.0-rc.1</Version>
+    <Authors>daemonicai</Authors>
+    <Company>daemonicai</Company>
+    <Description>Headless test harness for the dcli inline terminal-rendering library.</Description>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/daemonicai/dcli</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/daemonicai/dcli</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>terminal;cli;tui;rendering;testing;headless</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Headless test harness for dcli: HeadlessTerminal, scripted input drivers, deterministic SettleAsync, virtual clock, structured frame Snapshot.</PackageReleaseNotes>
+
+    <!-- Source Link / symbols -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dcli.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dcli\Dcli.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

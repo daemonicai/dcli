@@ -46,7 +46,7 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
     - **Line 3 (dim):** "Press Esc to cancel; Enter to confirm."
   - Type something + Enter and the wizard advances to the next step (validates submission still works through the widened renderer).
   - Sub-issue noted during first verification (2026-05-28): the demo's pre-existing 10s `CancellationTokenSource` timeout self-cancelled the wizard before keyboard input was possible. Pre-existing behaviour (not a §4 regression), but it blocked the interactive verification. Resolved by adding `DCLI_DEMO_DMONWIZARD_INTERACTIVE=1` env-var toggle; default CI behaviour (10s auto-cancel) preserved.
-  - Status: **pending — awaiting user confirmation with the env-var toggle before ticking 4.1.**
+  - Status: **verified by user 2026-05-28** — multi-line preamble renders correctly and Enter advances the wizard through the widened renderer.
 
 ## Open follow-ups / known gaps (after this change lands — NOT in scope here)
 
@@ -61,4 +61,4 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 
 ## Resume point
 
-> **Currently at §4 — Sample updates (first unticked task: `4.1`).** §1 + §2 + §3 landed: API surface, renderer, tests all in. Next worker call: pick one step in `samples/Dcli.Demo.DmonWizard/Engine/WizardRenderer.cs` (e.g. auth-config text input) and add a 2–3-line `Prompt` preamble that demonstrates the new multi-line surface end-to-end. 4.2 (multi-line choice demo in `samples/Dcli.Demo/`) is OPTIONAL — only do it if there's a clean spot. The HITL verification recorded in §4.1 must be handed back to the user; the worker can't tick 4.1 itself. After §4: §5 packages.
+> **Currently at §5 — Validation & packaging (first unticked task: `5.1`).** §1–§4 landed; §4.1 HITL-verified by the user. Final section: run the four gates clean, bump `Dcli.csproj` and `Dcli.Testing.csproj` `Version` from `0.2.0-rc.1` → `0.2.0-rc.2`, `dotnet pack` to produce the four nupkg/snupkg files, freeze the DEVLOG (`/devlog freeze`), and notify the user about the dmon Phase 2 resume recipe (5.8).

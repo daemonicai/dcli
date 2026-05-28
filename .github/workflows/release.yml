@@ -8,7 +8,8 @@ name: Release
 #   2. Run manually (Actions → Release → Run workflow), optionally overriding the version
 #      and/or ticking "dry run" to pack without publishing.
 #
-# Requires a repository (or `nuget` environment) secret named NUGET_API_KEY.
+# Requires a NUGET_API_KEY secret. This repo uses the organization-level secret
+# configured in the daemonicai org settings (ensure this repo is in its access list).
 
 on:
   push:
@@ -36,10 +37,6 @@ jobs:
   release:
     name: Pack & Publish
     runs-on: ubuntu-latest
-    # Scopes NUGET_API_KEY and allows optional required-reviewer protection.
-    # Create an environment named "nuget" (Settings → Environments) or move the
-    # secret to the repository level and delete this line.
-    environment: nuget
 
     steps:
       - name: Checkout

@@ -139,7 +139,8 @@ public sealed class Terminal : ITerminal
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(req);
-        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Title, allowBack: req.AllowBack);
+        // §1 bridge: internal Dialog still takes Line?; §2 will widen it to IReadOnlyList<Line>?.
+        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Title is { Count: > 0 } t1 ? t1[0] : null, allowBack: req.AllowBack);
         dialog.List.SetItems(req.Items);
         return OpenModalAsync<int>(
             dialog,
@@ -165,7 +166,8 @@ public sealed class Terminal : ITerminal
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(req);
-        Dialog dialog = new(multiSelect: true, modal: true, typeToFilter: false, title: req.Title);
+        // §1 bridge: internal Dialog still takes Line?; §2 will widen it to IReadOnlyList<Line>?.
+        Dialog dialog = new(multiSelect: true, modal: true, typeToFilter: false, title: req.Title is { Count: > 0 } t2 ? t2[0] : null);
         dialog.List.SetItems(req.Items);
         return OpenModalAsync<int[]>(
             dialog,
@@ -192,7 +194,8 @@ public sealed class Terminal : ITerminal
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(req);
-        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Prompt, allowBack: req.AllowBack);
+        // §1 bridge: internal Dialog still takes Line?; §2 will widen it to IReadOnlyList<Line>?.
+        Dialog dialog = new(multiSelect: false, modal: true, typeToFilter: false, title: req.Prompt is { Count: > 0 } p1 ? p1[0] : null, allowBack: req.AllowBack);
         dialog.List.SetItems(req.Options);
         return OpenModalAsync<int>(
             dialog,
@@ -221,7 +224,8 @@ public sealed class Terminal : ITerminal
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(req);
-        InputDialog dialog = new(req.Prompt, req.Default, req.IsSecret);
+        // §1 bridge: internal InputDialog still takes Line?; §2 will widen it to IReadOnlyList<Line>?.
+        InputDialog dialog = new(req.Prompt is { Count: > 0 } p2 ? p2[0] : null, req.Default, req.IsSecret);
         return OpenModalAsync<string>(
             dialog,
             () => new DialogResult<string>(DialogOutcome.Submitted, dialog.Text),

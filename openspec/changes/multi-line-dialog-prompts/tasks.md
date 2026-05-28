@@ -1,12 +1,12 @@
 ## 1. Widen the request records
 
-- [ ] 1.1 `src/Dcli/DialogRequests.cs` — change `SelectRequest.Title` from `Line?` to `IReadOnlyList<Line>?`; preserve the existing single-`Line` convenience constructor by wrapping the line into a one-element list; keep the existing `IReadOnlyList<string>` / `params string[]` item constructors unchanged.
-- [ ] 1.2 `src/Dcli/DialogRequests.cs` — add new `SelectRequest` constructors: `(IReadOnlyList<Line> items, IReadOnlyList<Line>? title, bool allowBack)`, `(IReadOnlyList<Line> items, params Line[] title)`, `(IReadOnlyList<Line> items, IReadOnlyList<string>? title, bool allowBack)`, `(IReadOnlyList<Line> items, params string[] title)`. String forms map each entry through `Line.FromText`.
-- [ ] 1.3 Repeat 1.1 + 1.2 for `MultiSelectRequest.Title` (note: no `AllowBack` parameter on MultiSelect, per the prior spec).
-- [ ] 1.4 Repeat 1.1 + 1.2 for `ChoiceRequest.Prompt` (with `AllowBack`).
-- [ ] 1.5 Repeat 1.1 + 1.2 for `InputRequest.Prompt` (preserve `Default` and `IsSecret` parameters; no `AllowBack`).
-- [ ] 1.6 XML docs on each record's new constructors describe the multi-line semantics and call out that the single-`Line` / single-`string` forms are equivalent to one-element lists.
-- [ ] 1.7 No implicit `Line → IReadOnlyList<Line>` conversion is defined (mirrors the api-ergonomics-pass-1 rejection of implicit `string → Line`). Document the explicit-only contract in the XML doc on the new multi-line constructors.
+- [x] 1.1 `src/Dcli/DialogRequests.cs` — change `SelectRequest.Title` from `Line?` to `IReadOnlyList<Line>?`; preserve the existing single-`Line` convenience constructor by wrapping the line into a one-element list; keep the existing `IReadOnlyList<string>` / `params string[]` item constructors unchanged.
+- [x] 1.2 `src/Dcli/DialogRequests.cs` — add new `SelectRequest` constructors: `(IReadOnlyList<Line> items, IReadOnlyList<Line>? title, bool allowBack)`, `(IReadOnlyList<Line> items, params Line[] title)`, `(IReadOnlyList<Line> items, IReadOnlyList<string>? title, bool allowBack)`, `(IReadOnlyList<Line> items, params string[] title)`. String forms map each entry through `Line.FromText`.
+- [x] 1.3 Repeat 1.1 + 1.2 for `MultiSelectRequest.Title` (note: no `AllowBack` parameter on MultiSelect, per the prior spec).
+- [x] 1.4 Repeat 1.1 + 1.2 for `ChoiceRequest.Prompt` (with `AllowBack`).
+- [x] 1.5 Repeat 1.1 + 1.2 for `InputRequest.Prompt` (preserve `Default` and `IsSecret` parameters; no `AllowBack`).
+- [x] 1.6 XML docs on each record's new constructors describe the multi-line semantics and call out that the single-`Line` / single-`string` forms are equivalent to one-element lists.
+- [x] 1.7 No implicit `Line → IReadOnlyList<Line>` conversion is defined (mirrors the api-ergonomics-pass-1 rejection of implicit `string → Line`). Document the explicit-only contract in the XML doc on the new multi-line constructors.
 
 ## 2. Renderer: iterate the preamble
 

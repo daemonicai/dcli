@@ -3,11 +3,8 @@ using System.Runtime.InteropServices;
 namespace Dcli.Internal;
 
 /// <summary>
-/// Checks whether the current environment supports VT terminal sequences.
-/// <para>
-/// Scope: this type performs the VT-or-fail gate only. Truecolor, synchronized-output, and
-/// unicode-width capability detection belong to §13.3 and are out of scope here.
-/// </para>
+/// Checks whether the current environment supports VT terminal sequences, and detects
+/// optional capabilities (truecolor, synchronized output, East-Asian ambiguous width).
 /// </summary>
 internal static class TerminalCapabilityDetector
 {
@@ -26,6 +23,52 @@ internal static class TerminalCapabilityDetector
     {
         CapabilityInputs env = inputs ?? CapabilityInputs.FromEnvironment();
         Check(env);
+    }
+
+    /// <summary>
+    /// Detects optional terminal capabilities from the environment.
+    /// </summary>
+    /// <param name="inputs">
+    /// Environment inputs. Pass <see langword="null"/> to read from the real process environment
+    /// (production path). Pass an explicit value in tests.
+    /// </param>
+    /// <returns>A <see cref="TerminalCapabilities"/> value reflecting what the terminal advertises.</returns>
+    internal static TerminalCapabilities DetectCapabilities(CapabilityInputs? inputs = null)
+    {
+        CapabilityInputs env = inputs ?? CapabilityInputs.FromEnvironment();
+
+        bool hasTruecolor = env.ColorTermVariable is not null &&
+            (env.ColorTermVariable.Equals("truecolor", StringComparison.OrdinalIgnoreCase) ||
+             env.ColorTermVariable.Equals("24bit", StringComparison.OrdinalIgnoreCase));
+
+        // Terminals that don't recognise ESC[?2026h…l ignore it harmlessly (already emitted
+        // unconditionally by VtFrameRenderer). False negatives here are harmless.
+        string termProg = env.TermProgramVariable ?? string.Empty;
+        string term = env.TermVariable ?? string.Empty;
+        bool hasSyncOutput =
+            termProg.Equals("WezTerm", StringComparison.OrdinalIgnoreCase) ||
+            termProg.Equals("iTerm.app", StringComparison.OrdinalIgnoreCase) ||
+            termProg.Equals("vscode", StringComparison.OrdinalIgnoreCase) ||
+            termProg.Equals("WarpTerminal", StringComparison.OrdinalIgnoreCase) ||
+            termProg.Equals("ghostty", StringComparison.OrdinalIgnoreCase) ||
+            termProg.Equals("kitty", StringComparison.OrdinalIgnoreCase) ||
+            termProg.Equals("foot", StringComparison.OrdinalIgnoreCase) ||
+            term.StartsWith("alacritty", StringComparison.OrdinalIgnoreCase) ||
+            term.Equals("xterm-kitty", StringComparison.OrdinalIgnoreCase) ||
+            env.IsWindows;
+
+        string? lang = env.LangVariable;
+        bool ambiguousWide = lang is not null &&
+            (lang.Contains("zh", StringComparison.OrdinalIgnoreCase) ||
+             lang.Contains("ja", StringComparison.OrdinalIgnoreCase) ||
+             lang.Contains("ko", StringComparison.OrdinalIgnoreCase));
+
+        return new TerminalCapabilities
+        {
+            HasTruecolor = hasTruecolor,
+            HasSynchronizedOutput = hasSyncOutput,
+            TreatAmbiguousAsWide = ambiguousWide,
+        };
     }
 
     private static void Check(CapabilityInputs env)
@@ -64,8 +107,8 @@ internal static class TerminalCapabilityDetector
 }
 
 /// <summary>
-/// Inputs used by <see cref="TerminalCapabilityDetector.EnsureVtCapable"/> for capability
-/// detection. Inject an explicit instance in tests to avoid reading the real process environment.
+/// Inputs used by <see cref="TerminalCapabilityDetector"/> for VT and capability detection.
+/// Inject an explicit instance in tests to avoid reading the real process environment.
 /// </summary>
 internal sealed class CapabilityInputs
 {
@@ -81,6 +124,21 @@ internal sealed class CapabilityInputs
     /// <summary>Whether the current platform is supported (Linux, macOS, or Windows).</summary>
     public bool IsSupportedPlatform { get; init; }
 
+    /// <summary>The value of the <c>COLORTERM</c> environment variable, or <see langword="null"/>.</summary>
+    public string? ColorTermVariable { get; init; }
+
+    /// <summary>The value of the <c>TERM_PROGRAM</c> environment variable, or <see langword="null"/>.</summary>
+    public string? TermProgramVariable { get; init; }
+
+    /// <summary>
+    /// The locale string to use for East-Asian ambiguous-width detection.
+    /// Set to <c>LANG</c> when available; falls back to <c>LC_ALL</c> when <c>LANG</c> is null.
+    /// </summary>
+    public string? LangVariable { get; init; }
+
+    /// <summary>Whether the process is running on Windows.</summary>
+    public bool IsWindows { get; init; }
+
     /// <summary>
     /// Reads capability inputs from the real process environment. Used on the production path.
     /// </summary>
@@ -90,12 +148,19 @@ internal sealed class CapabilityInputs
                       || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
                       || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
+        string? lang = Environment.GetEnvironmentVariable("LANG")
+                    ?? Environment.GetEnvironmentVariable("LC_ALL");
+
         return new CapabilityInputs
         {
             TermVariable = Environment.GetEnvironmentVariable("TERM"),
             IsStdinTty = !Console.IsInputRedirected,
             IsStdoutTty = !Console.IsOutputRedirected,
             IsSupportedPlatform = supported,
+            ColorTermVariable = Environment.GetEnvironmentVariable("COLORTERM"),
+            TermProgramVariable = Environment.GetEnvironmentVariable("TERM_PROGRAM"),
+            LangVariable = lang,
+            IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
         };
     }
 }

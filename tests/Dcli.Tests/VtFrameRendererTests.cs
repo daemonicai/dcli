@@ -1,3 +1,4 @@
+using Dcli.Internal;
 using Dcli.Internal.RenderLoop;
 using Xunit;
 
@@ -23,13 +24,16 @@ public sealed class VtFrameRendererTests
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static (VtFrameRenderer renderer, StringWriter writer, RenderModel model) MakeRenderer(
-        int cols = 80, int rows = 24)
+        int cols = 80, int rows = 24, TerminalCapabilities capabilities = default)
     {
         StringWriter w = new();
-        VtFrameRenderer r = new(w);
+        VtFrameRenderer r = new(w, capabilities);
         RenderModel m = new(new FixedSizeSource(cols, rows));
         return (r, w, m);
     }
+
+    private static TerminalCapabilities WithTruecolor =>
+        new TerminalCapabilities { HasTruecolor = true };
 
     private static Line L(params Segment[] segments) => new(segments);
     private static Line PlainLine(string text) => L(new Segment(text));
@@ -192,8 +196,8 @@ public sealed class VtFrameRendererTests
     [Fact]
     public void TruecolorForegroundEmitsRgbSequence()
     {
-        // Truecolor fg: ESC[38;2;255;128;0m
-        var (renderer, writer, model) = MakeRenderer();
+        // Truecolor fg: ESC[38;2;255;128;0m — requires HasTruecolor=true
+        var (renderer, writer, model) = MakeRenderer(capabilities: WithTruecolor);
         Segment seg = new("TC", new Style(Foreground: Color.FromRgb(255, 128, 0)));
         model.LiveWindowRows = [L(seg)];
         renderer.Paint(model);
@@ -205,8 +209,8 @@ public sealed class VtFrameRendererTests
     [Fact]
     public void TruecolorBackgroundEmitsRgbSequence()
     {
-        // Truecolor bg: ESC[48;2;10;20;30m
-        var (renderer, writer, model) = MakeRenderer();
+        // Truecolor bg: ESC[48;2;10;20;30m — requires HasTruecolor=true
+        var (renderer, writer, model) = MakeRenderer(capabilities: WithTruecolor);
         Segment seg = new("TC", new Style(Background: Color.FromRgb(10, 20, 30)));
         model.LiveWindowRows = [L(seg)];
         renderer.Paint(model);
@@ -218,8 +222,8 @@ public sealed class VtFrameRendererTests
     [Fact]
     public void FormatComboAndTruecolorAllCodesPresent()
     {
-        // Bold + Italic foreground truecolor = codes 1;3 + 38;2;r;g;b
-        var (renderer, writer, model) = MakeRenderer();
+        // Bold + Italic foreground truecolor = codes 1;3 + 38;2;r;g;b — requires HasTruecolor=true
+        var (renderer, writer, model) = MakeRenderer(capabilities: WithTruecolor);
         Segment seg = new("COMBO",
             new Style(Foreground: Color.FromRgb(1, 2, 3), Format: Format.Bold | Format.Italic));
         model.LiveWindowRows = [L(seg)];
@@ -420,17 +424,21 @@ public sealed class VtFrameRendererTests
 
     // ── SGR unit tests (pure SgrTranslator, no I/O) ──────────────────────────
 
+    // Helpers: default (no-truecolor) translator and truecolor translator.
+    private static SgrTranslator DefaultSgr => new(TerminalCapabilities.Default);
+    private static SgrTranslator TruecolorSgr => new(new TerminalCapabilities { HasTruecolor = true });
+
     [Fact]
     public void SgrDefaultStyleReturnsEmpty()
     {
-        string sgr = SgrTranslator.ToOpenSgr(default);
+        string sgr = DefaultSgr.ToOpenSgr(default);
         Assert.Equal(string.Empty, sgr);
     }
 
     [Fact]
     public void SgrBoldContainsCode1()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Format: Format.Bold));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Format: Format.Bold));
         Assert.Contains("1", sgr, StringComparison.Ordinal);
         Assert.StartsWith("\x1b[", sgr, StringComparison.Ordinal);
         Assert.EndsWith("m", sgr, StringComparison.Ordinal);
@@ -439,98 +447,100 @@ public sealed class VtFrameRendererTests
     [Fact]
     public void SgrDimContainsCode2()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Format: Format.Dim));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Format: Format.Dim));
         Assert.Contains("2", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrItalicContainsCode3()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Format: Format.Italic));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Format: Format.Italic));
         Assert.Contains("3", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrUnderlineContainsCode4()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Format: Format.Underline));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Format: Format.Underline));
         Assert.Contains("4", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrReverseContainsCode7()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Format: Format.Reverse));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Format: Format.Reverse));
         Assert.Contains("7", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrStrikethroughContainsCode9()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Format: Format.Strikethrough));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Format: Format.Strikethrough));
         Assert.Contains("9", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrNamedBlackFg30()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Foreground: Color.Named(Color.AnsiColor.Black)));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Foreground: Color.Named(Color.AnsiColor.Black)));
         Assert.Contains("30", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrNamedWhiteFg37()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Foreground: Color.Named(Color.AnsiColor.White)));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Foreground: Color.Named(Color.AnsiColor.White)));
         Assert.Contains("37", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrBrightBlackFg90()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Foreground: Color.Named(Color.AnsiColor.BrightBlack)));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Foreground: Color.Named(Color.AnsiColor.BrightBlack)));
         Assert.Contains("90", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrBrightWhiteFg97()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Foreground: Color.Named(Color.AnsiColor.BrightWhite)));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Foreground: Color.Named(Color.AnsiColor.BrightWhite)));
         Assert.Contains("97", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrNamedBgBlueCode44()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Background: Color.Named(Color.AnsiColor.Blue)));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Background: Color.Named(Color.AnsiColor.Blue)));
         Assert.Contains("44", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrIndexedFgContains38With5AndN()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Foreground: Color.FromIndex(77)));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Foreground: Color.FromIndex(77)));
         Assert.Contains("38;5;77", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrIndexedBgContains48With5AndN()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Background: Color.FromIndex(200)));
+        string sgr = DefaultSgr.ToOpenSgr(new Style(Background: Color.FromIndex(200)));
         Assert.Contains("48;5;200", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrTruecolorFgContains38With2AndRgb()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Foreground: Color.FromRgb(10, 20, 30)));
+        // HasTruecolor=true: emit 24-bit sequence
+        string sgr = TruecolorSgr.ToOpenSgr(new Style(Foreground: Color.FromRgb(10, 20, 30)));
         Assert.Contains("38;2;10;20;30", sgr, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SgrTruecolorBgContains48With2AndRgb()
     {
-        string sgr = SgrTranslator.ToOpenSgr(new Style(Background: Color.FromRgb(100, 200, 50)));
+        // HasTruecolor=true: emit 24-bit sequence
+        string sgr = TruecolorSgr.ToOpenSgr(new Style(Background: Color.FromRgb(100, 200, 50)));
         Assert.Contains("48;2;100;200;50", sgr, StringComparison.Ordinal);
     }
 
@@ -538,7 +548,7 @@ public sealed class VtFrameRendererTests
     public void SgrBoldAndTruecolorFgBothPresentCorrectOrder()
     {
         // Bold first (format flags before colors), then truecolor.
-        string sgr = SgrTranslator.ToOpenSgr(
+        string sgr = TruecolorSgr.ToOpenSgr(
             new Style(Foreground: Color.FromRgb(1, 2, 3), Format: Format.Bold));
         int boldPos = sgr.IndexOf('1', StringComparison.Ordinal);
         int colorPos = sgr.IndexOf("38;2;1;2;3", StringComparison.Ordinal);

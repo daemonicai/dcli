@@ -52,6 +52,7 @@ internal sealed class VtFrameRenderer : IOutputSink
     private const string _cursorShow = "\x1b[?25h";   // DECTCEM show
 
     private readonly TextWriter _writer;
+    private readonly SgrTranslator _sgr;
     private readonly StringBuilder _buf = new(capacity: 4096);
 
     // ── Cross-frame painter state ─────────────────────────────────────────────
@@ -66,16 +67,21 @@ internal sealed class VtFrameRenderer : IOutputSink
     private bool _isFirstFrame = true; // true until the first Paint call completes
 
     /// <summary>
-    /// Initialises the renderer with the given output destination.
+    /// Initialises the renderer with the given output destination and terminal capabilities.
     /// </summary>
     /// <param name="writer">
     /// The byte/text destination. Use <see cref="System.IO.StringWriter"/> for tests;
     /// use a <see cref="System.IO.StreamWriter"/> around stdout for production.
     /// </param>
-    internal VtFrameRenderer(TextWriter writer)
+    /// <param name="capabilities">
+    /// Detected terminal capabilities that influence color encoding.
+    /// Pass <see cref="TerminalCapabilities.Default"/> for headless tests.
+    /// </param>
+    internal VtFrameRenderer(TextWriter writer, TerminalCapabilities capabilities = default)
     {
         ArgumentNullException.ThrowIfNull(writer);
         _writer = writer;
+        _sgr = new SgrTranslator(capabilities);
     }
 
     /// <inheritdoc/>
@@ -254,7 +260,7 @@ internal sealed class VtFrameRenderer : IOutputSink
     {
         foreach (Segment segment in line.Segments)
         {
-            bool hasStyle = SgrTranslator.AppendOpenSgr(segment.Style, _buf);
+            bool hasStyle = _sgr.AppendOpenSgr(segment.Style, _buf);
             _buf.Append(segment.Text);
             if (hasStyle)
                 _buf.Append(SgrTranslator.Reset);

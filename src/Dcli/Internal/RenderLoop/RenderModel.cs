@@ -29,8 +29,8 @@ namespace Dcli.Internal.RenderLoop;
 /// <strong>Terminal size snapshot:</strong> <see cref="Columns"/> and <see cref="Rows"/> are
 /// read by consumers via a volatile snapshot (Decision 10 — "value reads served from snapshot,
 /// not round-trip"). The snapshot is initialised from the injected
-/// <see cref="ITerminalSizeSource"/> and updated by resize messages. §13 will wire SIGWINCH
-/// resize events into the inbound channel.
+/// <see cref="ITerminalSizeSource"/> and updated by resize messages. Resize events flow in
+/// via <c>PosixResizeWatcher</c> (§13.1).
 /// </para>
 /// <para>
 /// <strong>MaxFixedHeight:</strong> recorded from <see cref="TerminalOptions.MaxFixedHeight"/>

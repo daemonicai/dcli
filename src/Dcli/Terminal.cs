@@ -324,6 +324,10 @@ public sealed class Terminal : ITerminal
         // Capability gate + raw mode (§4). Throws TerminalNotSupportedException if not VT-capable.
         IRawModeSession session = RawModeSession.Enter(capabilityInputs);
 
+        // Detect optional capabilities (truecolor, synchronized-output, ambiguous-width) after
+        // the VT gate passes. The gate runs first; capabilities are the "extras" layer.
+        TerminalCapabilities capabilities = TerminalCapabilityDetector.DetectCapabilities(capabilityInputs);
+
         // Last-resort restore net for signals + ProcessExit (§4). Registered before the loop
         // starts so no window exists between raw-mode entry and signal coverage.
         RestoreCoordinator coordinator = RestoreCoordinator.Wire(session);
@@ -339,7 +343,7 @@ public sealed class Terminal : ITerminal
             new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
             bufferSize: 65536,
             leaveOpen: false);
-        IOutputSink sink = new VtFrameRenderer(stdoutWriter);
+        IOutputSink sink = new VtFrameRenderer(stdoutWriter, capabilities);
 
         Terminal terminal = StartCore(
             session,

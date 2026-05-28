@@ -1,20 +1,18 @@
 # DEVLOG — `multi-line-dialog-prompts`
 
-> **Status: in-flight.** Maintained while applying the change per the OpenSpec apply
-> workflow (see `CLAUDE.md`). Captures per-section narrative the spec files don't carry:
-> decisions under uncertainty, deviations, surfaced bugs, HITL verifications. On archive
-> this file moves with the change to
-> `openspec/changes/archive/YYYY-MM-DD-multi-line-dialog-prompts/DEVLOG.md` and the status
-> flips to **shipped** (see `/devlog freeze`).
+> **Status: shipped.** Final commit `56de80d`. Archived 2026-05-28 to
+> `openspec/changes/archive/2026-05-28-multi-line-dialog-prompts/DEVLOG.md`. Released as
+> `dcli` + `dcli.testing` `0.2.0-rc.2`. dmon-migration Phase 2 resumed on the same day
+> against rc.2 (user-confirmed). PR link backfilled below once merged.
 
 ## How to resume
 
-- Branch: **`change/multi-line-dialog-prompts`** (create from `main` if not yet).
-- Working tree state: **CLEAN** (no implementation work has started — proposal only).
-- Sanity check command:
-  `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate multi-line-dialog-prompts --strict`
-- Resume point: **§1 — Widen the request records** (first unticked: `1.1`).
-- This change is consumer-driven by the dmon-migration. dmon Phase 2 is currently paused waiting for this change to ship — see `[[dmon-migration-phase2-paused-on-dcli]]` in the dmon-core project memory.
+> _Historical — frozen at archive._
+
+- Branch at archive: **`change/multi-line-dialog-prompts`** (13 commits ahead of `main`).
+- Final working-tree state: **CLEAN** at `56de80d`.
+- Final sanity-check command (passed at archive): `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate multi-line-dialog-prompts --strict` (735/735 green).
+- The change was consumer-driven by `dmon-migration`. dmon Phase 2 confirmed resumed against `0.2.0-rc.2` on 2026-05-28 — the scrollback workaround in `ToolConfirmPrompt` was replaced with multi-line `ChoiceRequest.Prompt`.
 
 ## Section status
 
@@ -69,4 +67,4 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 
 ## Resume point
 
-> **§5 complete except 5.8 (dmon hand-off).** All sections shipped: §1 `8b97189`, §2 `159e18c`, §3 `106b20a`, §4 `300cc0a` (+ env-var `4132a3d`, tick `e635343`), §5 (this commit). 735 tests green. `dcli.0.2.0-rc.2.{nupkg,snupkg}` + `dcli.testing.0.2.0-rc.2.{nupkg,snupkg}` packed. The change is ready for `/opsx:archive` once 5.8 (dmon Phase 2 resume) ticks — or it can archive with 5.8 deferred to dmon's own change, at the user's discretion.
+> **Shipped 2026-05-28.** All 29 tasks ticked. Final commits: §1 `8b97189`, §2 `159e18c`, §3 `106b20a`, §4 `300cc0a` (+ env-var `4132a3d`, 4.1 tick `e635343`), §5 `34f84ac` (5.8 tick `56de80d`). Released as `dcli` + `dcli.testing` `0.2.0-rc.2`. dmon-migration Phase 2 resumed and committed against rc.2 the same day. Any follow-ups (e.g. `InputDialog` over-budget caret reporting, VT-escape sanitisation surface, multi-select `AllowBack`) live in separate future OpenSpec changes — see Open follow-ups above.

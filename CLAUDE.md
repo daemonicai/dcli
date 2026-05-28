@@ -8,6 +8,17 @@ full-screen TUI. It owns rendering and widget mechanics; the consumer (dmon) own
 Spec-driven development is managed with **OpenSpec** (`openspec/`, schema `spec-driven`). All feature
 work flows through a change in `openspec/changes/`.
 
+### Where to look for historical context on a shipped change
+
+The OpenSpec archive (`openspec/changes/archive/YYYY-MM-DD-<name>/`) contains the spec deltas for every
+shipped change. Alongside `proposal.md` / `design.md` / `specs/**/*.md` / `tasks.md` there may also be a
+**`DEVLOG.md`** — a working note kept by the orchestrator while the change was being applied. It captures
+the *narrative* the spec files don't: per-section status, decisions made under uncertainty, deviations
+from the original plan, bugs surfaced during implementation, and human-in-the-loop verifications. When a
+new session needs context on *how* a prior change was built (not just *what* it specified), read the
+archived `DEVLOG.md` for that change. Newly-active changes may also keep a `DEVLOG.md` at the change's
+root while in-flight; when the change archives, the DEVLOG moves with it.
+
 ### Commands
 
 > The solution itself is created by section 1 of the first change. Before that, only `openspec` commands apply.

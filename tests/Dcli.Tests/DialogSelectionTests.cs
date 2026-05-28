@@ -116,7 +116,7 @@ public sealed class DialogSelectionTests
     private static Task<DialogResult<int>> PostSelectDialog(
         LoopEngine engine,
         List<Line> items,
-        Line? title = null,
+        IReadOnlyList<Line>? title = null,
         CancellationToken ct = default)
     {
         Dialog dialog = new(multiSelect: false, modal: true, title: title);
@@ -367,7 +367,7 @@ public sealed class DialogSelectionTests
     public void DialogWithTitleMaxRowsReservesOneRowForTitle()
     {
         Line title = PlainLine("Choose:");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("A", "B", "C"));
 
         // Set MaxRows = 4. With a title, List.MaxRows = 3 → 3 list rows fit.
@@ -386,7 +386,7 @@ public sealed class DialogSelectionTests
     public void DialogWithTitleRenderPrependsTitleRow()
     {
         Line title = PlainLine("My Title");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("X", "Y"));
         dialog.MaxRows = 10; // no truncation
 
@@ -403,7 +403,7 @@ public sealed class DialogSelectionTests
     public void DialogWithTitleMaxRowsNeverExceedsBudget()
     {
         Line title = PlainLine("Title");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("1", "2", "3", "4", "5"));
         dialog.MaxRows = 3; // budget: title(1) + list(max 2)
 
@@ -567,7 +567,7 @@ public sealed class DialogSelectionTests
     {
         // At MaxRows=1 the title consumes the entire budget; zero list rows must appear.
         Line title = PlainLine("Title");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("A", "B", "C"));
         dialog.MaxRows = 1;
 
@@ -583,7 +583,7 @@ public sealed class DialogSelectionTests
     {
         // At MaxRows=2: title(1) + list(1) = 2 rows total.
         Line title = PlainLine("Title");
-        Dialog dialog = new(multiSelect: false, modal: true, title: title);
+        Dialog dialog = new(multiSelect: false, modal: true, title: [title]);
         dialog.List.SetItems(Items("A", "B", "C"));
         dialog.MaxRows = 2;
 

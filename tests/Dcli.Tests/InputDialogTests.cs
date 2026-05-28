@@ -105,7 +105,7 @@ public sealed class InputDialogTests
 
     private static Task<DialogResult<string>> PostInputDialog(
         LoopEngine engine,
-        Line? prompt = null,
+        IReadOnlyList<Line>? prompt = null,
         string? @default = null,
         bool isSecret = false,
         CancellationToken ct = default)
@@ -454,7 +454,7 @@ public sealed class InputDialogTests
     public void InputDialogRenderPrependsPromptRow()
     {
         Line prompt = PlainLine("Enter value:");
-        InputDialog dialog = new(prompt, @default: null, isSecret: false);
+        InputDialog dialog = new([prompt], @default: null, isSecret: false);
         dialog.MaxRows = 10;
 
         IReadOnlyList<Line> rows = dialog.Render(80);
@@ -469,7 +469,7 @@ public sealed class InputDialogTests
     public void InputDialogRenderNeverExceedsMaxRows()
     {
         Line prompt = PlainLine("Prompt:");
-        InputDialog dialog = new(prompt, @default: null, isSecret: false);
+        InputDialog dialog = new([prompt], @default: null, isSecret: false);
         dialog.MaxRows = 2;
 
         IReadOnlyList<Line> rows = dialog.Render(80);
@@ -492,7 +492,7 @@ public sealed class InputDialogTests
     public void InputDialogCaretInOverlayOffsetByPromptRow()
     {
         Line prompt = PlainLine("Prompt:");
-        InputDialog dialog = new(prompt, @default: null, isSecret: false);
+        InputDialog dialog = new([prompt], @default: null, isSecret: false);
         dialog.MaxRows = 10;
 
         dialog.Render(80);

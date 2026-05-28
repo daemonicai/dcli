@@ -10,11 +10,11 @@
 
 ## 2. Renderer: iterate the preamble
 
-- [ ] 2.1 `src/Dcli/Internal/FixedRegion/Dialog.cs` (covers `SelectRequest` + `MultiSelectRequest`) — replace the single-line preamble paint with a `foreach` over `preamble ?? []` that paints each `Line` top-to-bottom above the list.
-- [ ] 2.2 `src/Dcli/Internal/FixedRegion/ChoiceDialog.cs` — same change for `ChoiceRequest.Prompt`.
-- [ ] 2.3 `src/Dcli/Internal/FixedRegion/InputDialog.cs` — same change for `InputRequest.Prompt`. The preamble paints above the input field; the existing secret-default masking on the field itself is unaffected.
-- [ ] 2.4 Confirm the overlay-budget arithmetic (row allocation between preamble + widget) handles variable preamble heights without new logic. The same machinery already serves live-blocks; the dialog overlay re-uses it via the existing layout pipeline.
-- [ ] 2.5 Confirm null / empty / single-line / multi-line preambles all paint consistently (zero rows / zero rows / one row / N rows).
+- [x] 2.1 `src/Dcli/Internal/FixedRegion/Dialog.cs` (covers `SelectRequest` + `MultiSelectRequest`) — replace the single-line preamble paint with a `foreach` over `preamble ?? []` that paints each `Line` top-to-bottom above the list.
+- [x] 2.2 ~~`src/Dcli/Internal/FixedRegion/ChoiceDialog.cs`~~ — same change for `ChoiceRequest.Prompt`. **(File does not exist — `ChoiceRequest` is rendered by `Dialog.cs`; covered by 2.1.)**
+- [x] 2.3 `src/Dcli/Internal/FixedRegion/InputDialog.cs` — same change for `InputRequest.Prompt`. The preamble paints above the input field; the existing secret-default masking on the field itself is unaffected.
+- [x] 2.4 Confirm the overlay-budget arithmetic (row allocation between preamble + widget) handles variable preamble heights without new logic. The same machinery already serves live-blocks; the dialog overlay re-uses it via the existing layout pipeline.
+- [x] 2.5 Confirm null / empty / single-line / multi-line preambles all paint consistently (zero rows / zero rows / one row / N rows).
 
 ## 3. Tests
 

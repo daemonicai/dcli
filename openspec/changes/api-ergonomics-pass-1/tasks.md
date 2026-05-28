@@ -18,14 +18,14 @@
 
 ## 3. `AllowBack` flag on `SelectRequest` / `ChoiceRequest`
 
-- [ ] 3.1 `src/Dcli/SelectRequest.cs` — add `bool AllowBack = false` (default false, additive)
-- [ ] 3.2 `src/Dcli/ChoiceRequest.cs` — add `bool AllowBack = false`
-- [ ] 3.3 `src/Dcli/Internal/FixedRegion/Dialog.cs` — handle Backspace: if `AllowBack && !_hasMoved`, set `CloseRequest = OverlayCloseKind.Back`; otherwise no-op (preserve v1)
-- [ ] 3.4 `src/Dcli/Internal/FixedRegion/Dialog.cs` — set `_hasMoved = true` on `↑`/`↓` (or whatever the current movement keys are); confirm Backspace before any movement still produces Back
-- [ ] 3.5 Map `OverlayCloseKind.Back` → `DialogOutcome.Back` in the loop's dismiss hook (the wiring already routes Submit/Cancel; add the Back arm)
-- [ ] 3.6 Tests in `tests/Dcli.Tests/DialogSelectionTests.cs`: `AllowBack=true` + Backspace-at-empty produces `DialogOutcome.Back`; `AllowBack=true` + `↓` then Backspace is a no-op; `AllowBack=false` (default) + Backspace is a no-op
-- [ ] 3.7 Equivalent tests for `ChoiceRequest` in a new or existing `ChoiceDialogTests.cs`
-- [ ] 3.8 Confirm `MultiSelectRequest` did NOT receive an `AllowBack` member (this is deliberate; one test asserting it compiles without)
+- [x] 3.1 `src/Dcli/SelectRequest.cs` — add `bool AllowBack = false` (default false, additive)
+- [x] 3.2 `src/Dcli/ChoiceRequest.cs` — add `bool AllowBack = false`
+- [x] 3.3 `src/Dcli/Internal/FixedRegion/Dialog.cs` — handle Backspace: if `AllowBack && !_hasMoved`, set `CloseRequest = OverlayCloseKind.Back`; otherwise no-op (preserve v1)
+- [x] 3.4 `src/Dcli/Internal/FixedRegion/Dialog.cs` — set `_hasMoved = true` on `↑`/`↓` (or whatever the current movement keys are); confirm Backspace before any movement still produces Back
+- [x] 3.5 Map `OverlayCloseKind.Back` → `DialogOutcome.Back` in the loop's dismiss hook (the wiring already routes Submit/Cancel; add the Back arm)
+- [x] 3.6 Tests in `tests/Dcli.Tests/DialogSelectionTests.cs`: `AllowBack=true` + Backspace-at-empty produces `DialogOutcome.Back`; `AllowBack=true` + `↓` then Backspace is a no-op; `AllowBack=false` (default) + Backspace is a no-op
+- [x] 3.7 Equivalent tests for `ChoiceRequest` in a new or existing `ChoiceDialogTests.cs`
+- [x] 3.8 Confirm `MultiSelectRequest` did NOT receive an `AllowBack` member (this is deliberate; one test asserting it compiles without)
 
 ## 4. Secret-default masking in `InputDialog`
 

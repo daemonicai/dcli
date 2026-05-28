@@ -593,4 +593,126 @@ public sealed class DialogSelectionTests
         Assert.Equal(2, rows.Count);
         Assert.Same(title, rows[0]);
     }
+
+    // ── AllowBack — section 3 ─────────────────────────────────────────────────
+
+    // Helper: post a select dialog with AllowBack=true; completion maps Back correctly.
+    private static Task<DialogResult<int>> PostSelectDialogAllowBack(
+        LoopEngine engine,
+        List<Line> items)
+    {
+        Dialog dialog = new(multiSelect: false, modal: true, allowBack: true);
+        dialog.List.SetItems(items);
+
+        TaskCompletionSource<DialogResult<int>> tcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Action completion = () =>
+        {
+            DialogResult<int> result = dialog.CloseRequest switch
+            {
+                OverlayCloseKind.Submit => new DialogResult<int>(DialogOutcome.Submitted, dialog.List.SelectedIndex),
+                OverlayCloseKind.Back => new DialogResult<int>(DialogOutcome.Back, -1),
+                _ => new DialogResult<int>(DialogOutcome.Cancelled, -1),
+            };
+            tcs.TrySetResult(result);
+        };
+
+        Action reject = () =>
+            tcs.TrySetException(new InvalidOperationException("A dialog is already active."));
+
+        engine.Post(new OpenDialogCommand(dialog, completion, reject));
+        return tcs.Task;
+    }
+
+    /// <summary>
+    /// AllowBack=true + Backspace at empty (no movement) → DialogOutcome.Back.
+    /// </summary>
+    [Fact]
+    public async Task SelectAllowBackBackspaceAtEmptyReturnsBack()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int>> task = PostSelectDialogAllowBack(engine, Items("A", "B", "C"));
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+            DialogResult<int> result = await task;
+
+            Assert.Equal(DialogOutcome.Back, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// AllowBack=true + ↓ then Backspace → Backspace is a no-op (cursor has moved).
+    /// The dialog stays open; pressing Escape afterwards produces Cancelled.
+    /// </summary>
+    [Fact]
+    public async Task SelectAllowBackBackspaceAfterMovementIsNoOp()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int>> task = PostSelectDialogAllowBack(engine, Items("A", "B", "C"));
+
+            // ↓ marks _hasMoved = true; subsequent Backspace must not close the dialog.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Down), Modifiers.None));
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+
+            // Give the loop time to process both keys.
+            await SettleAsync(engine, clock);
+
+            // Task must not be complete — the dialog is still open.
+            Assert.False(task.IsCompleted, "Dialog should still be open after Backspace post-movement");
+
+            // Dismiss with Escape to clean up.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+            await SettleAsync(engine, clock);
+
+            DialogResult<int> result = await task;
+            Assert.Equal(DialogOutcome.Cancelled, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// AllowBack=false (default) + Backspace → no-op; dialog stays open; Enter produces Submitted.
+    /// </summary>
+    [Fact]
+    public async Task SelectAllowBackFalseDefaultBackspaceIsNoOp()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            // Default AllowBack=false — use the standard PostSelectDialog helper.
+            Task<DialogResult<int>> task = PostSelectDialog(engine, Items("X", "Y", "Z"));
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+
+            // Task must still be pending — Backspace should have been swallowed by the modal catch-all.
+            Assert.False(task.IsCompleted, "Dialog should still be open after Backspace when AllowBack=false");
+
+            // Submit to close.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Enter), Modifiers.None));
+            await SettleAsync(engine, clock);
+
+            DialogResult<int> result = await task;
+            Assert.Equal(DialogOutcome.Submitted, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    // ── 3.8 — MultiSelectRequest deliberately omits AllowBack ────────────────
+
+    [Fact]
+    public void MultiSelectRequestDoesNotHaveAllowBackProperty()
+    {
+        // AllowBack is intentionally absent from MultiSelectRequest (design decision §3.8).
+        Assert.Null(typeof(MultiSelectRequest).GetProperty("AllowBack"));
+    }
 }

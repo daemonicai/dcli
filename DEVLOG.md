@@ -46,7 +46,7 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 | 11 | Fixed region: overlays (autocomplete & dialog) | `bf35c99` | 554 | `ScrollableList` (reverse-video highlight, never the hardware cursor; viewport reconciled **on render** so it survives `MaxRows` changes between frames), `IOverlay` seam, `Autocomplete`/`Dialog` overlays, `OverlayState` invariant on the model (`ShowAutocomplete`/`ShowDialog`/`ClearOverlay`), intercept-chain routing (overlay→editor→emit), composer overlay-slot (dialog above / autocomplete below) + Decision-8 budget squeeze (status sacred → caret visible → overlay absorbs squeeze, **zero-cap guarded**) + cursor hide-while-modal. Built across 3 worker calls (A=ScrollableList, B-i=components, B-ii=integration). |
 | 12 | Public API: dialogs, events, façade | `394c9ba` | 615 | `ITerminal` + sub-surfaces, awaitable dialogs (`SelectAsync`/`MultiSelectAsync`/`InputAsync`/`ChoiceAsync` → `DialogResult<T>`), `Events` emission (`InputSubmitted`/`InputChanged`/`KeyPressed`/`Resized`), public `Scrollback`/`Input`/`Status`/`Autocomplete` façade + `ILiveBlock`/`ICollapsible` handles. Much of §9/§10/§11 was built as **internal model + commands** specifically so §12 wraps them. |
 | 13 | Resize & reflow | Chunk A `e2b2b97`, Chunk B `6f9f3e9` | 660 | **Open Question #2** resolved. Chunk A: `IResizeWatcher` + POSIX SIGWINCH + reflow tests + manual CHECK 5; surfaced & fixed an AArch64-Darwin variadic-ABI bug in §7 `PosixTerminalSizeSource.GetSize` (replaced manual `ioctl` P/Invoke with `Console.WindowWidth`). Chunk B: `TerminalCapabilities` (`HasTruecolor`/`HasSynchronizedOutput`/`TreatAmbiguousAsWide`) + `TerminalCapabilityDetector.DetectCapabilities`; `SgrTranslator` static→instance with truecolor→256-indexed nearest-match downgrade (cube + grey ramp, squared-Euclidean). |
-| 14 | Cross-platform validation & packaging | — | — | **Human-in-the-loop:** 14.1 manual smoke on WT/macOS/Linux; 14.2 demo app; 14.3 finalize NuGet/README/XML docs + pre-release; 14.4 port a dmon `Dmon.Terminal` slice. |
+| 14 | Cross-platform validation & packaging | `fe7eb73` | 665 | Spec amend: Win/Linux smoke deferred (user macOS-only); nuget.org publication held until that clears. **14.2 `samples/Dcli.Demo`** (self-driving full tour, auto-cancel dialogs). **14.3** README expanded to a real package front page; XML docs scrubbed of devlog tags; Source Link wired (`Microsoft.SourceLink.GitHub` 8.0.0 + `IncludeSymbols`/snupkg); `Version` `0.1.0`→`0.1.0-rc.1`; `dotnet pack` produces `dcli.0.1.0-rc.1.{nupkg,snupkg}`. **14.4 `samples/Dcli.Demo.DmonWizard`** ports `dmon-core`'s `WizardEngine`+`WizardRenderer` slice onto dcli's public `ITerminal` (engine back-stack byte-for-byte identical to Spectre.Console-based original; only rendering dep swapped). **14.1 macOS** confirmed by user across full-tour demo, dmon-wizard slice, and `kill -TERM` restore. Surfaced & fixed a real bug along the way (see Decisions). |
 | 15 | Headless test harness (`Dcli.Testing`) | — | — | Generalize the in-memory edges (raw-mode no-op, scripted input, in-memory sink, virtual clock) into the public `Dcli.Testing` package: `HeadlessTerminal`, `SettleAsync`, frame `Snapshot`; retarget §5.6/§7.6/§8.5 tests onto it. The substrate already exists internally from §4/§6/§7/§8. |
 
 ## Codebase layout (post §7 namespace reorg)
@@ -83,6 +83,22 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
 - **§11 ↔ §12 seam:** `Dialog.CloseRequest` (`Submit`/`Cancel`) + the loop's `ClearOverlay()` on `IsDismissed` is where §12's TCS-bundled open-dialog
   command will complete its `DialogResult` (the dialog object survives the clear so its selection/outcome are still readable). `RenderModel.ShowAutocomplete/ShowDialog`
   are the §12 façade-command entry points (exercised today only by §11.5 tests).
+- **§14 restore-on-signal bug fix (surfaced by 14.1 CHECK 3, in scope per §4.4 "guaranteed restore"):** SIGTERM left the cursor hidden when a modal
+  was up — §4's restore path only handled termios, not rendering-side ANSI state. §4.5's harness didn't render dialogs so the gap was invisible until §14.1.
+  Fix routes restore through the **loop thread** (Option C, preserves single-writer discipline): `IOutputSink.EmitRestoreSequence` emits
+  `ESC[?2026l ESC[?25h ESC[0m` + flush; `LoopEngine.RunLoop`'s `finally` calls it before termios restore with **two independent try/catch guards**
+  (ANSI fault → `IOException`/`ObjectDisposedException` filter only, never bare; termios restore broad-catch with localized `#pragma CA1031` — the §4.5
+  invariant is load-bearing); `RestoreCoordinator.SetHaltAction(loop.Dispose)` is wired by `Terminal.StartCore` so `SimulateTerminateSignal` halts the
+  loop (CTS-cancel + channel-complete + `_thread.Join(2s)`) and lets the loop's own `finally` emit the bytes on the loop thread, then falls back to
+  termios restore. Test seam: `internal Terminal.Coordinator` exposes the same coordinator the loop wiring uses; lifecycle test asserts
+  ordering via `RecordingRawModeSession.OutputLengthAtRestore` snapshot (catches any future "termios-before-ANSI" reorder).
+- **§14.4 API ergonomics findings (NOT yet a change — recorded for a follow-up):** porting `dmon-core`'s `WizardEngine` slice surfaced
+  (1) `DialogOutcome.Back` is structurally dead — no v1 keybinding produces it, so wizard-style "go back one step" affordances need a workaround;
+  (2) `MultiSelectAsync` is a real upgrade over Spectre's single-pick fallback (the dmon original literally had a "future enhancement" comment);
+  (3) `IsSecret` works end-to-end including default rendering; (4) no `internal→public` widening was required; (5) plain-string ceremony
+  (`new LineBuilder().Text(s).Build()`) appears ~12× in the renderer — convenience overloads (e.g. `Line.FromText(string)`, `Append(string)`,
+  string-accepting `SelectRequest.Items`) would reduce a lot of mechanical wrapping. These five are the candidates for the first post-architecture
+  ergonomics change.
 
 ## Human-in-the-loop verifications
 
@@ -94,9 +110,13 @@ We are applying the single active OpenSpec change `openspec/changes/core-renderi
   cannot be marshalled by `LibraryImport` as a fixed-arity call on Apple Silicon — args 3+ must travel on the stack, not in registers).
   Replaced the hand-rolled `ioctl` P/Invoke with `Console.WindowWidth`/`Console.WindowHeight` (the .NET runtime's `libSystem.Native` shim
   is non-variadic). Side benefit: `WindowsTerminalSizeSource` is no longer a hardcoded 80×24 stub.
-- **Pending:** §13 Chunk B (capability detection — 13.3/13.4, no real-terminal verification expected). §14.1 (manual cross-platform smoke),
-  §14.2 (demo app), §14.3 (NuGet pre-release publish — outward-facing, will confirm before publishing). Windows runtime paths are stubbed
-  and deferred to §14.1.
+- **Done — §14.1 (macOS only):** user ran `samples/Dcli.Demo` (full scripted tour: banner → streaming live block → collapsible expand →
+  autocomplete show/hide → wizard chain → finale, all clean) and `samples/Dcli.Demo.DmonWizard` (ported `WizardEngine` slice rendered the
+  provider-select cleanly under auto-cancel). **CHECK 3 (`kill -TERM`)** surfaced the cursor-not-restored bug above; after the fix landed,
+  user re-ran and confirmed cursor visible + echo working + no ANSI residue on exit. Win/Linux smoke deferred to a follow-up change
+  (recorded in proposal.md).
+- **Held — nuget.org publication (§14.3):** `dotnet pack` produces `dcli.0.1.0-rc.1.{nupkg,snupkg}` cleanly. Actual feed publish is held
+  until Win/Linux smoke from the deferred follow-up clears.
 
 ## Open follow-ups / known gaps (after this change lands — NOT in scope here)
 
@@ -118,7 +138,7 @@ These are recorded as memory files and should become their own future OpenSpec c
 
 ## Resume point
 
-> **NEXT: §14 — Cross-platform validation & packaging.** §13 is COMPLETE and committed (Chunk A `e2b2b97`, Chunk B `6f9f3e9`). §14 is **human-in-the-loop**: 14.1 manual smoke on Windows Terminal / macOS / Linux; 14.2 demo app; 14.3 finalize NuGet/README/XML docs + pre-release publish; 14.4 port a `Dmon.Terminal` vertical slice to validate end-to-end API ergonomics. After §14 comes §15 (`Dcli.Testing` headless harness).
+> **NEXT: §15 — Headless test harness (`Dcli.Testing`).** §14 is COMPLETE and committed (`fe7eb73`, 665 tests). The OS-facing edges already exist internally from §4/§6/§7/§8 (`IRawModeSession`/`IInputByteSource`/`ITerminalSizeSource`/`IOutputSink`/`IClock` + their fakes are already exercised by 615+ terminal-free tests); §15 generalizes them into a separately-versioned public `Dcli.Testing` NuGet package (`HeadlessTerminal` + scripted `Feed/SendKey/Type/Paste/Resize` + deterministic `SettleAsync` + structured frame `Snapshot`), and retargets the §5.6 / §7.6 / §8.5 fixtures onto it so dcli and its consumers share one substrate. After §15, the change is done and ready to archive.
 
 ### §13 chunk progress
 

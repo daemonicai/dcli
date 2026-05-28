@@ -109,10 +109,10 @@
 
 > The OS-facing edges are introduced behind interfaces as the driver/loop/painting are built (§4, §6–§8); this section generalizes that substrate into the public, documented `Dcli.Testing` package and retargets dcli's own terminal-free tests onto it.
 
-- [ ] 15.1 Factor the OS-facing edges behind interfaces — raw-mode session, input byte source, terminal-size source, output sink, clock — so the real loop/driver run against swappable edges (the load-bearing core is never mocked)
-- [ ] 15.2 Implement `HeadlessTerminal` (a real `ITerminal` over in-memory edges) with scripted input drivers: `Feed(bytes)`, `SendKey`, `Type`, `Paste`, `Resize`
-- [ ] 15.3 Implement deterministic `SettleAsync` (drain all pending work → exactly one coalesced frame, no wall-clock time) and a controllable virtual clock for cadence tests
-- [ ] 15.4 Implement the structured frame `Snapshot` (live-window rows as styled runs, fixed-region layout, caret position, active overlay) + a human-diffable pretty-printer for golden frames
-- [ ] 15.5 Ship `Dcli.Testing` as a separate package with an XML-documented public API; the production `dcli` package takes no dependency on it
-- [ ] 15.6 Retarget the terminal-free tests onto the harness (parser fixtures §5.6, loop coalescing §7.6, golden frames §8.5) so dcli and its consumers share one substrate
-- [ ] 15.7 Tests: byte-feed → parsed event; `SettleAsync` → a single frame; virtual-clock advance triggers a throttled paint; snapshot reflects scrollback content + overlay state
+- [x] 15.1 Factor the OS-facing edges behind interfaces — raw-mode session, input byte source, terminal-size source, output sink, clock — so the real loop/driver run against swappable edges (the load-bearing core is never mocked)
+- [x] 15.2 Implement `HeadlessTerminal` (a real `ITerminal` over in-memory edges) with scripted input drivers: `Feed(bytes)`, `SendKey`, `Type`, `Paste`, `Resize`
+- [x] 15.3 Implement deterministic `SettleAsync` (drain all pending work → exactly one coalesced frame, no wall-clock time) and a controllable virtual clock for cadence tests
+- [x] 15.4 Implement the structured frame `Snapshot` (live-window rows as styled runs, fixed-region layout, caret position, active overlay) + a human-diffable pretty-printer for golden frames
+- [x] 15.5 Ship `Dcli.Testing` as a separate package with an XML-documented public API; the production `dcli` package takes no dependency on it
+- [x] 15.6 Retarget the terminal-free tests onto the harness (parser fixtures §5.6, loop coalescing §7.6, golden frames §8.5) so dcli and its consumers share one substrate
+- [x] 15.7 Tests: byte-feed → parsed event; `SettleAsync` → a single frame; virtual-clock advance triggers a throttled paint; snapshot reflects scrollback content + overlay state

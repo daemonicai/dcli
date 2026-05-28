@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dcli\Dcli.csproj" />
+    <ProjectReference Include="..\..\src\Dcli.Testing\Dcli.Testing.csproj" />
   </ItemGroup>
 
 </Project>

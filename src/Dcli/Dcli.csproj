@@ -41,6 +41,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Dcli.Tests" />
     <InternalsVisibleTo Include="Dcli.RawModeHarness" />
+    <InternalsVisibleTo Include="Dcli.Testing" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Dcli/Dcli.csproj" />
+    <Project Path="src/Dcli.Testing/Dcli.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Dcli.Tests/Dcli.Tests.csproj" />

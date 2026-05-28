@@ -141,6 +141,14 @@ internal sealed class Autocomplete : IOverlay
         _visible = false;
     }
 
+    // ── Internal accessors ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Zero-based index of the currently selected candidate, or <c>-1</c> when the list is empty.
+    /// Exposed for <c>Dcli.Testing</c> snapshot construction.
+    /// </summary>
+    internal int SelectedIndex => _list.SelectedIndex;
+
     // ── Private ───────────────────────────────────────────────────────────────
 
     /// <summary>

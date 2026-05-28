@@ -284,7 +284,11 @@ public sealed class TerminalLifecycleTests
         await term.DisposeAsync();
         sw.Stop();
 
-        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(1),
+        // Budget 2s = LoopEngine's 2s thread-join timeout. A real hang trips that timeout
+        // and dispose takes ≥2s; CI scheduling jitter on shared macOS runners can push the
+        // happy path to ~1.5s without anything actually wedging. Matches the 2s budget on
+        // DirtyParkShutdownViaLoopEngineJoinsPromptly below.
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(2),
             $"DisposeAsync took {sw.Elapsed.TotalMilliseconds:F0} ms — threads did not join promptly.");
     }
 

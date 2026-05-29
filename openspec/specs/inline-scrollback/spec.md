@@ -1,9 +1,7 @@
 ## Purpose
 
 The `inline-scrollback` capability defines the append-mostly scrollback buffer — line-objects, the commit horizon, one-way collapsibles, and the content-model-to-visual-rows render contract — so styled output flows into the terminal's native scrollback while a bounded live window remains re-renderable.
-
 ## Requirements
-
 ### Requirement: Inline rendering preserves native scrollback
 The library SHALL render inline and SHALL NOT use the terminal's alternate screen buffer; committed output SHALL remain in the terminal's native scrollback.
 
@@ -49,7 +47,7 @@ The library SHALL provide a live block that accepts appended text and whose cont
 - **THEN** the replaced content is what freezes into native scrollback
 
 ### Requirement: One-way collapsible
-A collapsible line-object SHALL begin collapsed (showing a summary) and SHALL expand at most once; it SHALL NOT re-collapse.
+A collapsible line-object SHALL begin collapsed (showing a summary) and SHALL expand at most once; it SHALL NOT re-collapse. The library SHALL allow a caller holding the collapsible handle to **incrementally append** lines to the collapsible's hidden-line set via `AppendLine(Line)` and a `AppendLine(string)` shorthand (the string form wrapped through `Line.FromText` with default style). An incremental append SHALL be honored only while the block is still collapsed and live: once the block has been expanded, or has frozen collapsed past the commit horizon, a further `AppendLine` SHALL be a no-op (mirroring the past-horizon no-op of `Expand`). When honored before expansion, the appended line SHALL become part of the hidden set that a subsequent `Expand` reveals.
 
 #### Scenario: Expand reveals hidden lines
 - **WHEN** a collapsed collapsible is expanded
@@ -63,6 +61,18 @@ A collapsible line-object SHALL begin collapsed (showing a summary) and SHALL ex
 - **WHEN** a still-collapsed collapsible commits past the horizon before being expanded
 - **THEN** it freezes in the collapsed state and can no longer be expanded
 
+#### Scenario: Append grows the hidden set before expansion
+- **WHEN** a caller calls `AppendLine` on a still-collapsed, still-live collapsible and then expands it
+- **THEN** the expanded content includes the appended line in append order after the originally-supplied hidden lines
+
+#### Scenario: Append after expansion is a no-op
+- **WHEN** a caller calls `AppendLine` on a collapsible that has already been expanded
+- **THEN** the call has no effect and the revealed content is unchanged
+
+#### Scenario: Append after horizon-freeze is a no-op
+- **WHEN** a caller calls `AppendLine` on a collapsible that has frozen collapsed past the commit horizon
+- **THEN** the call has no effect
+
 ### Requirement: Oversized expansion reprints into flow
 WHEN expanding a collapsible would make it taller than the live window, the library SHALL reprint the expanded content as normal flowing output rather than keeping it re-renderable.
 
@@ -71,12 +81,17 @@ WHEN expanding a collapsible would make it taller than the live window, the libr
 - **THEN** its content is emitted as flowing output and scrolls into native scrollback
 
 ### Requirement: Scrollback command surface
-The library SHALL expose commands to append a line, append a rule/separator, begin a live block, and begin a collapsible.
+The library SHALL expose commands to append a line, append a rule/separator, append a line to a collapsible's hidden set, begin a live block, and begin a collapsible. The append-a-rule command SHALL be `IScrollback.AppendRule()`, producing a width-aware horizontal-rule line-object that spans the live-window content width at render time; it SHALL be posted as a fire-and-forget loop command like `Append`.
 
 #### Scenario: Append a line
 - **WHEN** a caller appends a styled line
 - **THEN** the line is enqueued for rendering into the live window
 
+#### Scenario: Append a rule
+- **WHEN** a caller calls `AppendRule`
+- **THEN** a width-aware rule line-object is enqueued and rendered as a horizontal separator spanning the live-window content width
+
 #### Scenario: Begin a collapsible
 - **WHEN** a caller begins a collapsible with a summary line
 - **THEN** a collapsible line-object is created in the collapsed state showing that summary
+

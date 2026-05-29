@@ -1,9 +1,7 @@
 ## Purpose
 
 The `fixed-region` capability defines the pinned bottom component stack: an owned input editor, two mutually-exclusive overlays (a Dialog slot above the input, Autocomplete below), the reusable scrollable selection list, status lines, height budgeting, and intercept-chain key routing.
-
 ## Requirements
-
 ### Requirement: Bottom-pinned component stack
 The fixed region SHALL be a contiguous, bottom-pinned stack of components — input, status, and overlays — with the live window rendered above it.
 
@@ -13,9 +11,11 @@ The fixed region SHALL be a contiguous, bottom-pinned stack of components — in
 
 ### Requirement: Owned input editor
 
-The library SHALL own an input editor supporting caret movement, multiline text, display-width-aware wrapping, history recall, and internal scrolling when its content exceeds its allotted height.
+The library SHALL own an input editor supporting caret movement, multiline text, display-width-aware wrapping, history recall, paste insertion, and internal scrolling when its content exceeds its allotted height.
 
-When an `InputRequest` is constructed with `IsSecret = true` and a non-empty `Default`, the editor SHALL render the seeded default as `'•'` repeated by the default's display width on every paint that occurs before the user's first edit. Once the user makes any edit (insert, delete, paste, history-recall), the editor SHALL fall back to the existing secret-render path (which masks the current buffer contents as bullets on each paint). The `Submit` outcome SHALL return the real string contents — either the unedited `Default` or the edited text — regardless of how it was rendered.
+A `PasteEvent` delivered to the active input surface SHALL have its entire text inserted at the caret as a single edit, with the same display-width-aware and multiline-aware semantics as typed character insertion (the caret advances past the inserted text and wrapping is recomputed). Paste SHALL be routed through the intercept chain like other input: while a modal Dialog or `InputDialog` is active it is consumed by that overlay's editor; otherwise it is applied to the base input editor.
+
+When an `InputRequest` is constructed with `IsSecret = true` and a non-empty `Default`, the editor SHALL render the seeded default as `'•'` repeated by the default's display width on every paint that occurs before the user's first edit. Any edit — insert, delete, **paste**, or history-recall — SHALL count as the user's first edit, after which the editor SHALL fall back to the existing secret-render path (which masks the current buffer contents as bullets on each paint). The `Submit` outcome SHALL return the real string contents — either the unedited `Default` or the edited text — regardless of how it was rendered.
 
 When `IsSecret = false`, the editor SHALL render the seeded default as plain text (unchanged from v1 behaviour).
 
@@ -28,6 +28,21 @@ When `IsSecret = false`, the editor SHALL render the seeded default as plain tex
 
 - **WHEN** the user navigates input history
 - **THEN** the buffer is replaced with the recalled entry
+
+#### Scenario: Paste inserts text at the caret
+
+- **WHEN** a `PasteEvent` is delivered while the input editor is focused
+- **THEN** the event's entire text is inserted at the caret position and the caret advances to the end of the inserted text
+
+#### Scenario: Paste into a multiline buffer wraps correctly
+
+- **WHEN** a `PasteEvent` whose text exceeds the available width is delivered
+- **THEN** the inserted text wraps display-width-aware across rows and the caret is positioned at the correct visual row and column
+
+#### Scenario: Paste counts as a first edit for a secret default
+
+- **WHEN** an `InputRequest` with `IsSecret=true` and a non-empty `Default` is shown and the user's first interaction is a `PasteEvent`
+- **THEN** the editor switches from default-masking to buffer-masking on the next paint (the seeded default is no longer the rendered content) and `Submit` returns the real edited buffer text
 
 #### Scenario: Secret default is masked before first edit
 
@@ -109,7 +124,10 @@ Each dialog request type SHALL carry an optional **multi-line preamble** rendere
 
 Each request type SHALL expose backwards-compatible convenience constructors that accept a single `Line`, a single `string` (converted via `Line.FromText`), an `IReadOnlyList<Line>`, a `params Line[]`, an `IReadOnlyList<string>`, or a `params string[]` for the preamble. Single-`Line` and single-`string` forms SHALL be internally equivalent to passing a one-element list. When the preamble is `null` or empty, no preamble row SHALL be painted and the full overlay budget SHALL be available to the interactive widget.
 
-`SelectRequest` and `ChoiceRequest` SHALL continue to expose the opt-in `AllowBack` flag (default `false`) introduced in `api-ergonomics-pass-1`. `MultiSelectRequest` SHALL continue to omit `AllowBack`. `InputRequest` SHALL continue to omit `AllowBack`.
+`SelectRequest`, `ChoiceRequest`, and `MultiSelectRequest` SHALL each expose an opt-in `AllowBack` flag (default `false`, backward-compatible). When `AllowBack=false`, no key produces `Back` and existing v1 behaviour is preserved. When `AllowBack=true`:
+
+- `SelectRequest` and `ChoiceRequest` SHALL produce `DialogOutcome.Back` when **Backspace** is pressed before the selection is moved (the binding introduced in `api-ergonomics-pass-1`), and SHALL additionally accept **`[`** as a secondary Back key with no movement-suppression.
+- `MultiSelectRequest` SHALL produce `DialogOutcome.Back` when **`[`** is pressed at any time, regardless of whether items have been toggled. Multi-select SHALL NOT bind Backspace to `Back` — Space-toggle and Backspace interplay makes a Backspace-position heuristic unreliable, so a distinct key (`[`) is used instead.
 
 #### Scenario: Select submitted
 
@@ -148,8 +166,23 @@ Each request type SHALL expose backwards-compatible convenience constructors tha
 
 #### Scenario: AllowBack=false is the default
 
-- **WHEN** a `SelectRequest` or `ChoiceRequest` is constructed without setting `AllowBack`
-- **THEN** Backspace has no effect on the dialog and existing v1 behaviour is preserved
+- **WHEN** a `SelectRequest`, `ChoiceRequest`, or `MultiSelectRequest` is constructed without setting `AllowBack`
+- **THEN** Backspace and `[` have no effect on the dialog and existing v1 behaviour is preserved
+
+#### Scenario: AllowBack=true on MultiSelect produces Back via '['
+
+- **WHEN** a `MultiSelectRequest` with `AllowBack=true` is shown and the user presses `[`
+- **THEN** the awaited result is `DialogOutcome.Back`
+
+#### Scenario: MultiSelect Back via '[' survives toggling
+
+- **WHEN** the user toggles one or more items with Space and then presses `[` in a `MultiSelectRequest` with `AllowBack=true`
+- **THEN** the awaited result is still `DialogOutcome.Back` (multi-select applies no movement-suppression to the `[` binding)
+
+#### Scenario: Select and Choice accept '[' as a secondary Back key
+
+- **WHEN** a `SelectRequest` or `ChoiceRequest` with `AllowBack=true` is shown and the user presses `[` before moving the selection
+- **THEN** the awaited result is `DialogOutcome.Back`
 
 #### Scenario: Multi-line preamble renders all lines above the widget
 
@@ -186,3 +219,4 @@ Autocomplete candidates SHALL be supplied by the consumer in response to input-c
 #### Scenario: Accept a candidate
 - **WHEN** the user accepts a highlighted candidate
 - **THEN** the candidate's insert text is applied to the input buffer
+

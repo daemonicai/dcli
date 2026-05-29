@@ -1,20 +1,19 @@
 # DEVLOG — `vt-escape-sanitization`
 
-> **Status: in-flight.** Maintained while applying the change per the OpenSpec apply
-> workflow (see the project's `CLAUDE.md`). Captures per-section narrative the spec
-> files don't carry: decisions under uncertainty, deviations, surfaced bugs, HITL
-> verifications. On archive this file moves with the change to
-> `openspec/changes/archive/YYYY-MM-DD-vt-escape-sanitization/DEVLOG.md` and the status flips
-> to **shipped** (see `/devlog freeze`).
+> **Status: shipped.** Applied per the OpenSpec apply workflow (see the project's `CLAUDE.md`)
+> across 5 sections, all gates green (827 tests). Final section commit `698d5a7`; frozen
+> 2026-05-29 on branch `change/vt-escape-sanitization` (not yet merged — no PR number at freeze).
+> This file is the narrative record the spec files don't carry: per-section status, decisions
+> under uncertainty, deviations, surfaced bugs. Archived with the change to
+> `openspec/changes/archive/2026-05-29-vt-escape-sanitization/DEVLOG.md`.
 
-## How to resume
+## How to resume (historical — change is shipped)
 
-- Branch: **`change/vt-escape-sanitization`** (created from `main`). Stay on it.
-- Working tree state: CLEAN (§1–§5 committed — all sections done).
-- Sanity check command:
+- Branch: **`change/vt-escape-sanitization`** (created from `main`).
+- Final state at archive: CLEAN, all 5 sections committed, 18/18 tasks ticked, 827 tests green.
+- Final commits: §1 `d4c7de8` · §2 `ee320cf` · §3 `1d91cd0` · §4 `094ca73` · §5 `698d5a7`.
+- Sanity check command (if revisiting):
   `dotnet build && dotnet test && dotnet format --verify-no-changes && openspec validate vt-escape-sanitization --strict`
-- Resume point: **DONE** — all 5 sections shipped (18/18 tasks ticked). Ready for `/devlog freeze` → `/opsx:archive`.
-- Check the memory files listed at the bottom before briefing — several encode hard-won constraints.
 
 ## Section status
 
@@ -61,4 +60,4 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **DONE — all 5 sections shipped (18/18 tasks), 827 tests green.** The VT-escape injection gap is closed: `Segment` sanitizes at construction (single chokepoint), `Segment.Raw`/`LineBuilder.Raw` is the only audited verbatim seam, `DCLI_SANITIZE_MODE` (default `strip`) configures the transform, and the sync-fence-cannot-be-defeated guarantee is proven at the emit-byte level. Next: `/devlog freeze` then `/opsx:archive`. The `vt-escape-sanitization-gap` memory should be retired/updated on archive (the gap it tracks is now fixed).
+> **SHIPPED (frozen 2026-05-29).** All 5 sections, 18/18 tasks, 827 tests green. Final section commit `698d5a7`; archived to `openspec/changes/archive/2026-05-29-vt-escape-sanitization/`. Not yet merged to `main` at freeze — no PR number. The VT-escape injection gap is closed: `Segment` sanitizes at construction (single chokepoint), `Segment.Raw`/`LineBuilder.Raw` is the only audited verbatim seam, `DCLI_SANITIZE_MODE` (default `strip`) configures the transform, and the sync-fence-cannot-be-defeated guarantee is proven at the emit-byte level. Follow-ups (the `Segment.WithStyle` helper, and giving `CHANGELOG.md`'s `[Unreleased]` entry a version heading at release) live outside this change.

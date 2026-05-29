@@ -1,10 +1,10 @@
 ## 1. Sanitizer core
 
-- [ ] 1.1 Add internal `TextSanitizer` (in `src/Dcli/Internal/`) with an internal `SanitizeMode { Strip, Replace }` enum and the two-class transform from design Decision 3: Class A (C0 `0x00-0x08`/`0x0E-0x1F` incl. `ESC`, `DEL` `0x7F`, C1 `0x80-0x9F`) follows the mode; Class B whitespace controls (`\t \n \v \f \r`) always → single space `U+0020`.
-- [ ] 1.2 Implement `replace`-mode glyph mapping: C0 → Control Picture `U+2400`+offset, `DEL` → `U+2421`, C1 → `U+FFFD` (all width 1).
-- [ ] 1.3 Implement the allocation-free fast path (Decision 7): scan first; if no Class-A/B byte present, return the same string instance. Ensure idempotence (sanitized text re-sanitizes to itself via the fast path).
-- [ ] 1.4 Add `static readonly DefaultMode` initialized once from `DCLI_SANITIZE_MODE` (case-insensitive `strip`/`replace`; unset/empty/unknown → `strip`), plus `Apply(string)` (uses `DefaultMode`) and an internal `Apply(string, SanitizeMode)` overload for deterministic testing (Decision 5).
-- [ ] 1.5 Unit tests for `TextSanitizer`: each byte class in both modes, whitespace→space (incl. `"a\tb"`→`"a b"`, `"line1\nline2"`→`"line1 line2"`), printable/wide/emoji passthrough unchanged, fast-path returns same instance, idempotence, env-var parsing incl. unrecognized→strip.
+- [x] 1.1 Add internal `TextSanitizer` (in `src/Dcli/Internal/`) with an internal `SanitizeMode { Strip, Replace }` enum and the two-class transform from design Decision 3: Class A (C0 `0x00-0x08`/`0x0E-0x1F` incl. `ESC`, `DEL` `0x7F`, C1 `0x80-0x9F`) follows the mode; Class B whitespace controls (`\t \n \v \f \r`) always → single space `U+0020`.
+- [x] 1.2 Implement `replace`-mode glyph mapping: C0 → Control Picture `U+2400`+offset, `DEL` → `U+2421`, C1 → `U+FFFD` (all width 1).
+- [x] 1.3 Implement the allocation-free fast path (Decision 7): scan first; if no Class-A/B byte present, return the same string instance. Ensure idempotence (sanitized text re-sanitizes to itself via the fast path).
+- [x] 1.4 Add `static readonly DefaultMode` initialized once from `DCLI_SANITIZE_MODE` (case-insensitive `strip`/`replace`; unset/empty/unknown → `strip`), plus `Apply(string)` (uses `DefaultMode`) and an internal `Apply(string, SanitizeMode)` overload for deterministic testing (Decision 5).
+- [x] 1.5 Unit tests for `TextSanitizer`: each byte class in both modes, whitespace→space (incl. `"a\tb"`→`"a b"`, `"line1\nline2"`→`"line1 line2"`), printable/wide/emoji passthrough unchanged, fast-path returns same instance, idempotence, env-var parsing incl. unrecognized→strip.
 
 ## 2. Segment safe-by-default construction + Raw seam
 

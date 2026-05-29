@@ -79,13 +79,6 @@ public interface ICollapsible
 /// they post to the loop's inbound channel. The render-loop thread is the sole mutator of
 /// scrollback state.
 /// </para>
-/// <para>
-/// <strong>Documented gaps:</strong>
-/// <list type="bullet">
-///   <item><c>AppendRule</c> — needs a width-aware rule line-object that does not yet exist;
-///     deferred to a future change.</item>
-/// </list>
-/// </para>
 /// </remarks>
 public sealed class ScrollbackSurface : IScrollback
 {
@@ -113,6 +106,14 @@ public sealed class ScrollbackSurface : IScrollback
     {
         ArgumentNullException.ThrowIfNull(text);
         Append(Line.FromText(text));
+    }
+
+    /// <summary>
+    /// Appends a horizontal rule to the scrollback live window.
+    /// </summary>
+    public void AppendRule()
+    {
+        _loop.Post(new AppendRuleToScrollbackCommand());
     }
 
     /// <summary>
@@ -209,6 +210,15 @@ public sealed class ScrollbackSurface : IScrollback
         void ILoopCommand.Apply(RenderModel model)
         {
             model.Scrollback.Append(new TextBlock(_line), model);
+            model.MarkDirty();
+        }
+    }
+
+    private sealed class AppendRuleToScrollbackCommand : ILoopCommand
+    {
+        void ILoopCommand.Apply(RenderModel model)
+        {
+            model.Scrollback.Append(new RuleBlock(), model);
             model.MarkDirty();
         }
     }

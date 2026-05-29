@@ -11,13 +11,13 @@
 
 ## 2. Scrollback.AppendRule
 
-- [ ] 2.1 Add a width-aware rule line-object in the inline-scrollback widget layer whose rendered width resolves to the live-window content width at paint time (correct across resize); do not bake a fixed width.
-- [ ] 2.2 Add `void AppendRule()` to `IScrollback` (`src/Dcli/ITerminal.cs`) with XML doc.
-- [ ] 2.3 Implement `ScrollbackSurface.AppendRule()` posting a new fire-and-forget loop command (sibling of `AppendToScrollbackCommand`); the command appends the rule line-object on the render-loop thread only.
-- [ ] 2.4 Remove the `// AppendRule … needs a width-aware rule line-object … deferred to a future change` documented-gap comment from `ScrollbackSurface`.
-- [ ] 2.5 Add a test asserting `AppendRule` enqueues and renders a horizontal separator spanning the live-window content width (via `HeadlessTerminal`/`FrameSnapshot`).
-- [ ] 2.6 Add a resize test asserting the rule re-expands to the new content width after the terminal resizes.
-- [ ] 2.7 Build + test + format gates clean for this section.
+- [x] 2.1 Add a width-aware rule line-object in the inline-scrollback widget layer whose rendered width resolves to the live-window content width at paint time (correct across resize); do not bake a fixed width.
+- [x] 2.2 Add `void AppendRule()` to `IScrollback` (`src/Dcli/ITerminal.cs`) with XML doc.
+- [x] 2.3 Implement `ScrollbackSurface.AppendRule()` posting a new fire-and-forget loop command (sibling of `AppendToScrollbackCommand`); the command appends the rule line-object on the render-loop thread only.
+- [x] 2.4 Remove the `// AppendRule … needs a width-aware rule line-object … deferred to a future change` documented-gap comment from `ScrollbackSurface`.
+- [x] 2.5 Add a test asserting `AppendRule` enqueues and renders a horizontal separator spanning the live-window content width (via `HeadlessTerminal`/`FrameSnapshot`).
+- [x] 2.6 Add a resize test asserting the rule re-expands to the new content width after the terminal resizes.
+- [x] 2.7 Build + test + format gates clean for this section.
 
 ## 3. Incremental Collapsible.AppendLine
 

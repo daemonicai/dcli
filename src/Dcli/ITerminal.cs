@@ -41,6 +41,16 @@ public interface IScrollback
     /// <param name="hiddenLines">The lines revealed when the block is expanded.</param>
     /// <returns>A handle whose <see cref="ICollapsible.Expand"/> posts a command to the render loop.</returns>
     ICollapsible BeginCollapsible(Line summary, IReadOnlyList<Line> hiddenLines);
+
+    /// <summary>
+    /// Appends a horizontal rule to the scrollback live window.
+    /// </summary>
+    /// <remarks>
+    /// The rule spans the full live-window content width at paint time using U+2500 BOX DRAWINGS
+    /// LIGHT HORIZONTAL characters. Width is resolved at render time, so the rule expands or
+    /// contracts correctly after a terminal resize.
+    /// </remarks>
+    void AppendRule();
 }
 
 /// <summary>

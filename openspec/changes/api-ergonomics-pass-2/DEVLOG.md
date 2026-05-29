@@ -13,7 +13,7 @@
 - Working tree state: CLEAN (§1 committed; next section unstarted).
 - Sanity check command:
   `dotnet build && dotnet test && dotnet format --verify-no-changes && openspec validate api-ergonomics-pass-2 --strict`
-- Resume point: **§2 — Scrollback.AppendRule** (first unticked task: `2.1`). See the Section status table for what's done so far.
+- Resume point: **§3 — Incremental Collapsible.AppendLine** (first unticked task: `3.1`). See the Section status table for what's done so far.
 - Check the memory files listed at the bottom before briefing — several encode hard-won constraints for upcoming sections (render-loop thread discipline for §2/§3/§4; oversized-reprint ordering for §3).
 
 ## Section status
@@ -22,7 +22,8 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 
 | § | Section | Commit | Tests after | Notes |
 |---|---------|--------|-------------|-------|
-| 1 | Line single-style shorthand factories | `<§1 hash>` | 836 (827 + 9) | Bold/Dim/Fg/Bg as thin sanitizing wrappers over `FromText`. Reviewer clean first pass (all 5 dimensions); null-guard inherited from `FromText` (accepted — message names `text` correctly); the repeated "no Raw" doc paragraph is mandated by task 1.5, not noise. Tests added to `tests/Dcli.Tests/StyledTextTests.cs`. |
+| 1 | Line single-style shorthand factories | `9292b4d` | 836 (827 + 9) | Bold/Dim/Fg/Bg as thin sanitizing wrappers over `FromText`. Reviewer clean first pass (all 5 dimensions); null-guard inherited from `FromText` (accepted — message names `text` correctly); the repeated "no Raw" doc paragraph is mandated by task 1.5, not noise. Tests added to `tests/Dcli.Tests/StyledTextTests.cs`. |
+| 2 | Scrollback.AppendRule | `<§2 hash>` | 838 (836 + 2) | New `RuleBlock : ILineObject` resolves width at paint time (re-expands on resize for free); `AppendRule()` posts a private nested `AppendRuleToScrollbackCommand` mirroring `AppendToScrollbackCommand`; the `// AppendRule … deferred` gap comment removed. Surfaced: adding a member to `IScrollback` required a `FakeScrollback.AppendRule()` stub in `FakeTerminalTests.cs`. Reviewer round 1 should-fix: the test hand-rolled doubles instead of `HeadlessTerminal`/`FrameSnapshot` — rewritten onto the real harness (also fixed a latent size-source/resize-watcher desync by using `harness.Resize`). Round 2 clean. |
 
 ## Decisions & deviations
 
@@ -58,9 +59,14 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **Currently at §2.1 — width-aware rule line-object.** §1 shipped (four `Line` factories, reviewer
-> clean, 836 tests). Next: brief the `worker` on §2 (Scrollback.AppendRule), with the
-> `inline-scrollback` delta ("Scrollback command surface" → "Append a rule" scenario) and design
-> Decision 3 (width resolved at paint time; minimal parameterless signature; remove the
-> `// AppendRule … deferred` gap comment). Watch [[ca2007-render-loop-thread-discipline]]: the new
-> loop command must mutate scrollback state only on the render-loop thread, like `AppendToScrollbackCommand`.
+> **Currently at §3.1 — `Collapsible.AppendLine`.** §1+§2 shipped (838 tests). Next: brief the
+> `worker` on §3 (incremental `ICollapsible.AppendLine(Line)`/`(string)`), with the
+> `inline-scrollback` delta ("One-way collapsible" MODIFIED — append honored only while
+> collapsed-and-live; no-op after expand or horizon-freeze) and design Decision 4 (append touches
+> only the pre-expansion hidden snapshot, so it cannot interleave with the oversized-reprint commit
+> ordering — see [[scrollback-oversized-reprint-ordering]]). New loop command mutates the
+> collapsible's hidden-line list on the loop thread only ([[ca2007-render-loop-thread-discipline]]).
+> §3.7 regression test must show ordering is unchanged from baseline after append+oversized-expand.
+> Note: `Collapsible` model lives in `src/Dcli/Internal/Scrollback/Collapsible.cs`; the façade's
+> `ExpandCollapsibleFacadeCommand` / `CollapsibleHandle` patterns in `ScrollbackSurface.cs` are the
+> template for the new append command + handle method.

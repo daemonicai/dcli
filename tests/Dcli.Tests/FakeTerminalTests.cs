@@ -11,12 +11,13 @@ namespace Dcli.Tests;
 
 #region Fake sub-surfaces
 
-/// <summary>Records every Append/BeginLive/BeginCollapsible call for assertion.</summary>
+/// <summary>Records every Append/BeginLive/BeginCollapsible/AppendRule call for assertion.</summary>
 internal sealed class FakeScrollback : IScrollback
 {
     internal List<Line> Appended { get; } = [];
     internal int BeginLiveCount { get; private set; }
     internal List<(Line Summary, IReadOnlyList<Line> Hidden)> Collapsibles { get; } = [];
+    internal int AppendRuleCount { get; private set; }
 
     public void Append(Line line)
     {
@@ -42,6 +43,11 @@ internal sealed class FakeScrollback : IScrollback
         ArgumentNullException.ThrowIfNull(hiddenLines);
         Collapsibles.Add((summary, hiddenLines));
         return new NoOpCollapsible();
+    }
+
+    public void AppendRule()
+    {
+        AppendRuleCount++;
     }
 
     private sealed class NoOpLiveBlock : ILiveBlock

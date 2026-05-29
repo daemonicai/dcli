@@ -93,6 +93,29 @@ internal sealed class ScrollbackModel
     }
 
     /// <summary>
+    /// Appends <paramref name="line"/> to the hidden-line set of a <see cref="Collapsible"/>
+    /// that is still collapsed-and-live. No-op if the collapsible has already expanded or
+    /// frozen past the commit horizon (mirroring the guard precedence of
+    /// <see cref="ExpandCollapsible"/>).
+    /// </summary>
+    internal void AppendToCollapsible(Collapsible collapsible, Line line, RenderModel model)
+    {
+        ArgumentNullException.ThrowIfNull(collapsible);
+        ArgumentNullException.ThrowIfNull(line);
+
+        // Freeze-collapsed-at-horizon: already committed → not in live list → no-op.
+        if (!_liveObjects.Contains(collapsible))
+            return;
+
+        // Already expanded → no-op.
+        if (collapsible.IsExpanded)
+            return;
+
+        collapsible.AppendHidden(line);
+        model.MarkDirty();
+    }
+
+    /// <summary>
     /// Expands a <see cref="Collapsible"/> that is still in the live list.
     /// </summary>
     /// <remarks>

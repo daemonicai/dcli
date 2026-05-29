@@ -46,10 +46,11 @@ public interface ILiveBlock
 /// </summary>
 /// <remarks>
 /// Obtain a handle via <see cref="ScrollbackSurface.BeginCollapsible"/>.
-/// The underlying <c>Collapsible</c> object is pre-created on the calling thread with
-/// immutable <c>summary</c> and <c>hiddenLines</c>; only the loop thread mutates its expanded
-/// state. Incremental append to the hidden-line list after construction is a documented gap —
-/// the model stores hidden lines as an immutable snapshot at construction time.
+/// The underlying <c>Collapsible</c> object is pre-created on the calling thread; only the
+/// loop thread mutates its state. Incremental append to the hidden-line set is supported via
+/// <see cref="AppendLine(Line)"/> / <see cref="AppendLine(string)"/> while the block remains
+/// collapsed-and-live. Once expanded or frozen past the commit horizon, further
+/// <c>AppendLine</c> calls are no-ops.
 /// </remarks>
 public interface ICollapsible
 {
@@ -60,6 +61,22 @@ public interface ICollapsible
     /// expanding in-place.
     /// </summary>
     void Expand();
+
+    /// <summary>
+    /// Appends <paramref name="line"/> to the collapsible's hidden-line set.
+    /// Honored only while the block is still collapsed-and-live; a no-op once expanded or
+    /// frozen past the commit horizon.
+    /// </summary>
+    void AppendLine(Line line);
+
+    /// <summary>
+    /// Appends a plain-text line (via <see cref="Line.FromText"/>) to the collapsible's
+    /// hidden-line set. Equivalent to <see cref="AppendLine(Line)"/> with
+    /// <c>Line.FromText(<paramref name="text"/>)</c>.
+    /// Honored only while the block is still collapsed-and-live; a no-op once expanded or
+    /// frozen past the commit horizon.
+    /// </summary>
+    void AppendLine(string text);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,14 +150,15 @@ public sealed class ScrollbackSurface : IScrollback
     }
 
     /// <summary>
-    /// Begins a new collapsible block, returning a handle for one-time expansion.
+    /// Begins a new collapsible block, returning a handle for one-time expansion and
+    /// incremental append.
     /// </summary>
     /// <param name="summary">The summary line shown while the block is collapsed.</param>
-    /// <param name="hiddenLines">The lines revealed when the block is expanded.</param>
+    /// <param name="hiddenLines">The initial lines revealed when the block is expanded.</param>
     /// <remarks>
-    /// Hidden lines are captured as an immutable snapshot at construction time. Incremental
-    /// append to the hidden-line list after the handle is created is a documented gap for a
-    /// future refinement.
+    /// Hidden lines are copied at construction time. Additional lines may be appended via
+    /// <see cref="ICollapsible.AppendLine(Line)"/> while the block remains collapsed-and-live;
+    /// those calls are no-ops once the block has been expanded or frozen past the commit horizon.
     /// </remarks>
     public ICollapsible BeginCollapsible(Line summary, IReadOnlyList<Line> hiddenLines)
     {
@@ -196,6 +214,18 @@ public sealed class ScrollbackSurface : IScrollback
         public void Expand()
         {
             _loop.Post(new ExpandCollapsibleFacadeCommand(_collapsible));
+        }
+
+        public void AppendLine(Line line)
+        {
+            ArgumentNullException.ThrowIfNull(line);
+            _loop.Post(new AppendLineToCollapsibleFacadeCommand(_collapsible, line));
+        }
+
+        public void AppendLine(string text)
+        {
+            ArgumentNullException.ThrowIfNull(text);
+            AppendLine(Line.FromText(text));
         }
     }
 
@@ -306,6 +336,23 @@ public sealed class ScrollbackSurface : IScrollback
         void ILoopCommand.Apply(RenderModel model)
         {
             model.Scrollback.ExpandCollapsible(_collapsible, model);
+        }
+    }
+
+    private sealed class AppendLineToCollapsibleFacadeCommand : ILoopCommand
+    {
+        private readonly Collapsible _collapsible;
+        private readonly Line _line;
+
+        internal AppendLineToCollapsibleFacadeCommand(Collapsible collapsible, Line line)
+        {
+            _collapsible = collapsible;
+            _line = line;
+        }
+
+        void ILoopCommand.Apply(RenderModel model)
+        {
+            model.Scrollback.AppendToCollapsible(_collapsible, _line, model);
         }
     }
 }

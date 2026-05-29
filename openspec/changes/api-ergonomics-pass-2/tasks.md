@@ -21,14 +21,14 @@
 
 ## 3. Incremental Collapsible.AppendLine
 
-- [ ] 3.1 Add `void AppendLine(Line line)` and `void AppendLine(string text)` (string form via `Line.FromText`) to `ICollapsible` (`src/Dcli/ScrollbackSurface.cs`) with XML doc stating the one-way semantics.
-- [ ] 3.2 Add a new loop command that appends to the collapsible's hidden-line list on the render-loop thread only; it MUST no-op if the collapsible has already expanded or frozen past the commit horizon (mirror `Expand`'s past-horizon no-op).
-- [ ] 3.3 Wire `CollapsibleHandle.AppendLine` to post the command; update the `BeginCollapsible` "incremental append … is a documented gap" remark to reflect that the gap is now closed.
-- [ ] 3.4 Add a test: append before expansion, then expand → revealed content includes the appended line in append order after the original hidden lines.
-- [ ] 3.5 Add a test: append after expansion is a no-op (revealed content unchanged).
-- [ ] 3.6 Add a test: append after horizon-freeze is a no-op.
-- [ ] 3.7 Add a regression test guarding `scrollback-oversized-reprint-ordering`: append, then trigger an oversized expansion, and assert commit ordering matches the existing baseline (AppendLine does not worsen the edge).
-- [ ] 3.8 Build + test + format gates clean for this section.
+- [x] 3.1 Add `void AppendLine(Line line)` and `void AppendLine(string text)` (string form via `Line.FromText`) to `ICollapsible` (`src/Dcli/ScrollbackSurface.cs`) with XML doc stating the one-way semantics.
+- [x] 3.2 Add a new loop command that appends to the collapsible's hidden-line list on the render-loop thread only; it MUST no-op if the collapsible has already expanded or frozen past the commit horizon (mirror `Expand`'s past-horizon no-op).
+- [x] 3.3 Wire `CollapsibleHandle.AppendLine` to post the command; update the `BeginCollapsible` "incremental append … is a documented gap" remark to reflect that the gap is now closed.
+- [x] 3.4 Add a test: append before expansion, then expand → revealed content includes the appended line in append order after the original hidden lines.
+- [x] 3.5 Add a test: append after expansion is a no-op (revealed content unchanged).
+- [x] 3.6 Add a test: append after horizon-freeze is a no-op.
+- [x] 3.7 Add a regression test guarding `scrollback-oversized-reprint-ordering`: append, then trigger an oversized expansion, and assert commit ordering matches the existing baseline (AppendLine does not worsen the edge).
+- [x] 3.8 Build + test + format gates clean for this section.
 
 ## 4. PasteEvent editor routing
 

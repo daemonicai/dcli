@@ -60,6 +60,8 @@ internal sealed class FakeScrollback : IScrollback
     private sealed class NoOpCollapsible : ICollapsible
     {
         public void Expand() { }
+        public void AppendLine(Line line) { }
+        public void AppendLine(string text) { }
     }
 }
 

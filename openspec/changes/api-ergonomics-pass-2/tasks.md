@@ -1,13 +1,13 @@
 ## 1. Line single-style shorthand factories
 
-- [ ] 1.1 Add `public static Line Bold(string text)` to `src/Dcli/Line.cs`, equivalent to `FromText(text, new Style(Format: Format.Bold))`.
-- [ ] 1.2 Add `public static Line Dim(string text)` equivalent to `FromText(text, new Style(Format: Format.Dim))`.
-- [ ] 1.3 Add `public static Line Fg(string text, Color foreground)` equivalent to `FromText(text, new Style(Foreground: foreground))`.
-- [ ] 1.4 Add `public static Line Bg(string text, Color background)` equivalent to `FromText(text, new Style(Background: background))`.
-- [ ] 1.5 XML-doc each factory: single sanitized `Segment`, equivalent `FromText` form, and that there is deliberately no `Italic`/`Underline`/`Reverse`/`Strikethrough`/`Raw` shorthand (`Segment.Raw`/`LineBuilder.Raw` remain the only verbatim seams; no implicit `string`→`Line` conversion).
-- [ ] 1.6 Add `LineTests` covering: Bold→single bold segment; Dim→single dim segment; Fg→single fg-colored segment + `Format.None`; Bg→single bg-colored segment.
-- [ ] 1.7 Add `LineTests` asserting `Line.Bold("x")` equals `Line.FromText("x", new Style(Format: Format.Bold))` (equivalence), and that a control/escape byte is neutralized identically to `FromText` under the default sanitization mode.
-- [ ] 1.8 Build + test + format gates clean for this section.
+- [x] 1.1 Add `public static Line Bold(string text)` to `src/Dcli/Line.cs`, equivalent to `FromText(text, new Style(Format: Format.Bold))`.
+- [x] 1.2 Add `public static Line Dim(string text)` equivalent to `FromText(text, new Style(Format: Format.Dim))`.
+- [x] 1.3 Add `public static Line Fg(string text, Color foreground)` equivalent to `FromText(text, new Style(Foreground: foreground))`.
+- [x] 1.4 Add `public static Line Bg(string text, Color background)` equivalent to `FromText(text, new Style(Background: background))`.
+- [x] 1.5 XML-doc each factory: single sanitized `Segment`, equivalent `FromText` form, and that there is deliberately no `Italic`/`Underline`/`Reverse`/`Strikethrough`/`Raw` shorthand (`Segment.Raw`/`LineBuilder.Raw` remain the only verbatim seams; no implicit `string`→`Line` conversion).
+- [x] 1.6 Add `LineTests` covering: Bold→single bold segment; Dim→single dim segment; Fg→single fg-colored segment + `Format.None`; Bg→single bg-colored segment.
+- [x] 1.7 Add `LineTests` asserting `Line.Bold("x")` equals `Line.FromText("x", new Style(Format: Format.Bold))` (equivalence), and that a control/escape byte is neutralized identically to `FromText` under the default sanitization mode.
+- [x] 1.8 Build + test + format gates clean for this section.
 
 ## 2. Scrollback.AppendRule
 

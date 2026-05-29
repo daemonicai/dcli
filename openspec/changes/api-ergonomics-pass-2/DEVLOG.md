@@ -10,10 +10,10 @@
 ## How to resume
 
 - Branch: **`change/api-ergonomics-pass-2`** (created from `main`). Stay on it.
-- Working tree state: CLEAN (proposal base committed at `c56dc0f`; no section work yet).
+- Working tree state: CLEAN (§1 committed; next section unstarted).
 - Sanity check command:
   `dotnet build && dotnet test && dotnet format --verify-no-changes && openspec validate api-ergonomics-pass-2 --strict`
-- Resume point: **§1 — Line single-style shorthand factories** (first unticked task: `1.1`). See the Section status table for what's done so far.
+- Resume point: **§2 — Scrollback.AppendRule** (first unticked task: `2.1`). See the Section status table for what's done so far.
 - Check the memory files listed at the bottom before briefing — several encode hard-won constraints for upcoming sections (render-loop thread discipline for §2/§3/§4; oversized-reprint ordering for §3).
 
 ## Section status
@@ -22,7 +22,7 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 
 | § | Section | Commit | Tests after | Notes |
 |---|---------|--------|-------------|-------|
-| — | (none committed yet) | — | — | proposal/design/specs/tasks base at `c56dc0f` |
+| 1 | Line single-style shorthand factories | `<§1 hash>` | 836 (827 + 9) | Bold/Dim/Fg/Bg as thin sanitizing wrappers over `FromText`. Reviewer clean first pass (all 5 dimensions); null-guard inherited from `FromText` (accepted — message names `text` correctly); the repeated "no Raw" doc paragraph is mandated by task 1.5, not noise. Tests added to `tests/Dcli.Tests/StyledTextTests.cs`. |
 
 ## Decisions & deviations
 
@@ -58,8 +58,9 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **Currently at §1.1 — `Line.Bold` factory.** Proposal base committed (`c56dc0f`); branch
-> `change/api-ergonomics-pass-2` created from `main`; DEVLOG scaffolded. Next: brief the `worker`
-> on §1 (the four `Line` single-style factories + their `LineTests`), with the spec excerpt from
-> `specs/styled-text/spec.md` ("Single-style line shorthand factories") and design Decisions 1–2
-> (sanitizing wrappers over `FromText`; no `Raw`, no Italic/Underline/Reverse/Strikethrough).
+> **Currently at §2.1 — width-aware rule line-object.** §1 shipped (four `Line` factories, reviewer
+> clean, 836 tests). Next: brief the `worker` on §2 (Scrollback.AppendRule), with the
+> `inline-scrollback` delta ("Scrollback command surface" → "Append a rule" scenario) and design
+> Decision 3 (width resolved at paint time; minimal parameterless signature; remove the
+> `// AppendRule … deferred` gap comment). Watch [[ca2007-render-loop-thread-discipline]]: the new
+> loop command must mutate scrollback state only on the render-loop thread, like `AppendToScrollbackCommand`.

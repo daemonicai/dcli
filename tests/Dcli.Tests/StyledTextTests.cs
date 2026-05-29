@@ -313,6 +313,104 @@ public sealed class StyledTextTests
     }
 
     // -----------------------------------------------------------------------------------------
+    // 2.3 Line single-style shorthand factories (Section 1 — api-ergonomics-pass-2)
+    // -----------------------------------------------------------------------------------------
+
+    [Fact]
+    public void LineBoldProducesSingleBoldSegment()
+    {
+        // 1.6: Bold → single bold segment.
+        Line line = Line.Bold("hello");
+        Assert.Single(line.Segments);
+        Assert.Equal("hello", line.Segments[0].Text);
+        Assert.True(line.Segments[0].Style.Format.HasFlag(Format.Bold));
+    }
+
+    [Fact]
+    public void LineDimProducesSingleDimSegment()
+    {
+        // 1.6: Dim → single dim segment.
+        Line line = Line.Dim("muted");
+        Assert.Single(line.Segments);
+        Assert.Equal("muted", line.Segments[0].Text);
+        Assert.True(line.Segments[0].Style.Format.HasFlag(Format.Dim));
+    }
+
+    [Fact]
+    public void LineFgProducesSingleFgColoredSegmentWithFormatNone()
+    {
+        // 1.6: Fg → single fg-colored segment + Format.None.
+        Color red = Color.Named(Color.AnsiColor.Red);
+        Line line = Line.Fg("colored", red);
+        Assert.Single(line.Segments);
+        Assert.Equal("colored", line.Segments[0].Text);
+        Assert.Equal(red, line.Segments[0].Style.Foreground);
+        Assert.Equal(Format.None, line.Segments[0].Style.Format);
+    }
+
+    [Fact]
+    public void LineBgProducesSingleBgColoredSegment()
+    {
+        // 1.6: Bg → single bg-colored segment.
+        Color blue = Color.Named(Color.AnsiColor.Blue);
+        Line line = Line.Bg("highlighted", blue);
+        Assert.Single(line.Segments);
+        Assert.Equal("highlighted", line.Segments[0].Text);
+        Assert.Equal(blue, line.Segments[0].Style.Background);
+    }
+
+    [Fact]
+    public void LineBoldEqualsFromTextWithBoldStyle()
+    {
+        // 1.7: Line.Bold("x") ≡ Line.FromText("x", new Style(Format: Format.Bold)).
+        Line shorthand = Line.Bold("x");
+        Line longForm = Line.FromText("x", new Style(Format: Format.Bold));
+        Assert.Equal(longForm, shorthand);
+    }
+
+    [Fact]
+    public void LineDimEqualsFromTextWithDimStyle()
+    {
+        // 1.7: Equivalence check for Dim.
+        Line shorthand = Line.Dim("x");
+        Line longForm = Line.FromText("x", new Style(Format: Format.Dim));
+        Assert.Equal(longForm, shorthand);
+    }
+
+    [Fact]
+    public void LineFgEqualsFromTextWithFgStyle()
+    {
+        // 1.7: Equivalence check for Fg.
+        Color green = Color.Named(Color.AnsiColor.Green);
+        Line shorthand = Line.Fg("x", green);
+        Line longForm = Line.FromText("x", new Style(Foreground: green));
+        Assert.Equal(longForm, shorthand);
+    }
+
+    [Fact]
+    public void LineBgEqualsFromTextWithBgStyle()
+    {
+        // 1.7: Equivalence check for Bg.
+        Color cyan = Color.Named(Color.AnsiColor.Cyan);
+        Line shorthand = Line.Bg("x", cyan);
+        Line longForm = Line.FromText("x", new Style(Background: cyan));
+        Assert.Equal(longForm, shorthand);
+    }
+
+    [Fact]
+    public void LineBoldNeutralizesControlByteIdenticallyToFromText()
+    {
+        // 1.7: ESC byte (0x1B) is a Class-A control byte; under default strip mode it is
+        // removed. The shorthand and FromText must produce identical sanitized results.
+        const string dirty = "hello\x1Bworld";
+        Line shorthand = Line.Bold(dirty);
+        Line longForm = Line.FromText(dirty, new Style(Format: Format.Bold));
+        Assert.Equal(longForm, shorthand);
+        // Both should have the ESC stripped.
+        Assert.Equal("helloworld", shorthand.Segments[0].Text);
+    }
+
+    // -----------------------------------------------------------------------------------------
     // 2.3 LineBuilder
     // -----------------------------------------------------------------------------------------
 

@@ -1,20 +1,18 @@
 # DEVLOG — `api-ergonomics-pass-2`
 
-> **Status: in-flight.** Maintained while applying the change per the OpenSpec apply
-> workflow (see the project's `CLAUDE.md`). Captures per-section narrative the spec
-> files don't carry: decisions under uncertainty, deviations, surfaced bugs, HITL
-> verifications. On archive this file moves with the change to
-> `openspec/changes/archive/YYYY-MM-DD-api-ergonomics-pass-2/DEVLOG.md` and the status flips
-> to **shipped** (see `/devlog freeze`).
+> **Status: shipped.** All 7 sections landed on `change/api-ergonomics-pass-2` (created from `main`).
+> Final section commit `9f1cedb` (§7 validation & packaging); DEVLOG hash-backfill `719c587`.
+> Released as `dcli` + `dcli.testing` `0.2.0-rc.3`. Pending `/opsx:archive` (awaiting user
+> confirmation) — on archive this file moves with the change to
+> `openspec/changes/archive/2026-05-29-api-ergonomics-pass-2/DEVLOG.md`. PR link backfilled on merge.
 
 ## How to resume
 
-- Branch: **`change/api-ergonomics-pass-2`** (created from `main`). Stay on it.
-- Working tree state: CLEAN (§1–§7 committed; all tasks ticked; ready to freeze + archive).
-- Sanity check command:
-  `dotnet build && dotnet test && dotnet format --verify-no-changes && openspec validate api-ergonomics-pass-2 --strict`
-- Resume point: **DONE — all 7 sections shipped.** Next action is `/devlog freeze` then propose `/opsx:archive` (awaiting user confirmation).
-- Check the memory files listed at the bottom before briefing — several encode hard-won constraints for upcoming sections (render-loop thread discipline for §2/§3/§4; oversized-reprint ordering for §3).
+> _Historical — frozen at archive-readiness._
+
+- Final state at archive: branch **`change/api-ergonomics-pass-2`** (created from `main`), 9 commits ahead (proposal scaffold + DEVLOG scaffold + 7 section commits + 1 hash-backfill). Working tree CLEAN.
+- Final sanity check (passed before freeze): `dotnet build -c Release && dotnet test -c Release && dotnet format --verify-no-changes && openspec validate api-ergonomics-pass-2 --strict` → 0 warnings, **856 tests green** (827 baseline + 29 new), format clean, validate clean.
+- Memory files at the bottom encode the hard-won constraints that survive past this change (render-loop thread discipline; oversized-reprint ordering).
 
 ## Section status
 
@@ -64,9 +62,11 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **Currently at §7.1 — Validation & packaging.** §1–§6 shipped (856 tests). Final section, mostly
-> orchestrator-direct (no feature code): run all four gates against the version bump, bump `Version`
-> `0.2.0-rc.2 → 0.2.0-rc.3` in `src/Dcli/Dcli.csproj` AND `src/Dcli.Testing/Dcli.Testing.csproj`,
-> `dotnet pack -c Release` → expect `dcli.0.2.0-rc.3.{nupkg,snupkg}` + `dcli.testing.0.2.0-rc.3.{nupkg,snupkg}`,
-> then this DEVLOG's per-section hashes are already recorded. After §7 commits, freeze the DEVLOG
-> (`/devlog freeze`) and propose `/opsx:archive` — do NOT archive without user confirmation.
+> **Shipped 2026-05-29.** All 7 sections landed on `change/api-ergonomics-pass-2`. Section commits:
+> §1 `9292b4d`, §2 `512374a`, §3 `ad8c8a1`, §4 `7476fb0`, §5 `7928485`, §6 `5d8a0aa`, §7 `9f1cedb`
+> (+ DEVLOG hash-backfill `719c587`). Released as `dcli` + `dcli.testing` `0.2.0-rc.3` (all four
+> nupkg/snupkg artifacts produced). 856 tests green (+29). No HITL was required (§4 and §5 are fully
+> covered headlessly — reviewer-confirmed). Follow-ups (Italic/Underline/Reverse/Strikethrough `Line`
+> factories; `Line.Raw`; `Input.Prompt`/`ReadOnly`; `InputDialog` over-budget caret reporting) live as
+> separate future OpenSpec changes — see "Open follow-ups" above. Pending `/opsx:archive` (awaiting
+> user confirmation); on archive this file moves to `openspec/changes/archive/2026-05-29-api-ergonomics-pass-2/`.

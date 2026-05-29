@@ -421,8 +421,9 @@ public sealed class StyledTextTests
     [Fact]
     public void StyledTextMarkupLikeTextIsLiteralInBothZones()
     {
-        // Markup-like strings stay verbatim in all contexts.
-        string[] literals = ["[bold]", "{x}", "<em>", "**strong**", "\x1b[1m"];
+        // Printable markup-like strings stay verbatim in all contexts.
+        // Control bytes (like ESC) are neutralized by the sanitizing ctor — use Segment.Raw for verbatim VT.
+        string[] literals = ["[bold]", "{x}", "<em>", "**strong**"];
         foreach (string literal in literals)
         {
             Line line = new LineBuilder().Text(literal).Build();

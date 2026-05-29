@@ -262,7 +262,10 @@ internal sealed class ScrollableList
         {
             Segment seg = truncated.Segments[i];
             Style reversedStyle = seg.Style with { Format = seg.Style.Format | Format.Reverse };
-            reversed[i] = seg with { Style = reversedStyle };
+            // Text is already sanitized; constructing a new Segment re-sanitizes via the fast path (no-op).
+            reversed[i] = seg.IsRaw
+                ? Segment.Raw(seg.Text, reversedStyle)
+                : new Segment(seg.Text, reversedStyle);
             col += DisplayWidth.Measure(seg.Text);
         }
 

@@ -8,11 +8,11 @@
 
 ## 2. Segment safe-by-default construction + Raw seam
 
-- [ ] 2.1 Convert `Segment` from a positional record to an explicit `record` preserving the source-compatible public ctor `Segment(string Text, Style Style = default)` as the sanitizing primary ctor (`Text` runs through `TextSanitizer.Apply`); keep `Style` defaulting to `default`.
-- [ ] 2.2 Make `Text` and `Style` **get-only** (not `init`) to close the `with`-expression bypass (Decision 6); add `Deconstruct(out string Text, out Style Style)` if any existing call site relies on positional deconstruction.
-- [ ] 2.3 Add `internal bool IsRaw` (default `false`) and a `private Segment(string text, Style style, bool raw)` ctor; expose `public static Segment Raw(string text, Style style = default)` that bypasses sanitization (null-checks `text`) and sets `IsRaw = true`. Confirm `IsRaw` participates in record value equality (Decision 2).
-- [ ] 2.4 Update `Segment` XML docs: replace the "stored and returned verbatim" wording with the safe-by-default contract; document `Raw` as the audited, dangerous opt-out.
-- [ ] 2.5 Unit tests: control bytes neutralized via `new Segment(...)` and `Line.FromText(...)`; `Segment.Raw` stores verbatim; `Segment.Raw("hi") != new Segment("hi")`; `with { Text = ... }` does not compile (verify via doc/comment + a compile-guard test that uses the copy ctor path); width measured on stored text.
+- [x] 2.1 Convert `Segment` from a positional record to an explicit `record` preserving the source-compatible public ctor `Segment(string Text, Style Style = default)` as the sanitizing primary ctor (`Text` runs through `TextSanitizer.Apply`); keep `Style` defaulting to `default`.
+- [x] 2.2 Make `Text` and `Style` **get-only** (not `init`) to close the `with`-expression bypass (Decision 6); add `Deconstruct(out string Text, out Style Style)` if any existing call site relies on positional deconstruction.
+- [x] 2.3 Add `internal bool IsRaw` (default `false`) and a `private Segment(string text, Style style, bool raw)` ctor; expose `public static Segment Raw(string text, Style style = default)` that bypasses sanitization (null-checks `text`) and sets `IsRaw = true`. Confirm `IsRaw` participates in record value equality (Decision 2).
+- [x] 2.4 Update `Segment` XML docs: replace the "stored and returned verbatim" wording with the safe-by-default contract; document `Raw` as the audited, dangerous opt-out.
+- [x] 2.5 Unit tests: control bytes neutralized via `new Segment(...)` and `Line.FromText(...)`; `Segment.Raw` stores verbatim; `Segment.Raw("hi") != new Segment("hi")`; `with { Text = ... }` does not compile (verify via doc/comment + a compile-guard test that uses the copy ctor path); width measured on stored text.
 
 ## 3. Wire construction paths + LineBuilder.Raw
 

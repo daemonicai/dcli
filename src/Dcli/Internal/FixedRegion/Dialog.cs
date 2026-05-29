@@ -197,6 +197,12 @@ internal sealed class Dialog : IModalOverlay
 
     /// <inheritdoc/>
     /// <remarks>
+    /// A modal dialog captures all input including paste. A non-modal dialog passes paste through.
+    /// </remarks>
+    public bool HandlePaste(string text) => Modal;
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// When <see cref="Title"/> is non-null and non-empty, its lines are prepended above the list
     /// rows. The total row count never exceeds <see cref="MaxRows"/>: preamble lines are emitted
     /// first (truncated to budget if taller than the budget), then list rows fill whatever remains.

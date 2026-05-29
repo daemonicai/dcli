@@ -32,14 +32,14 @@
 
 ## 4. PasteEvent editor routing
 
-- [ ] 4.1 Route `PasteEvent` through the existing intercept chain to the active input surface (overlay-first: an active `Dialog`/`InputDialog` consumes it; otherwise the base input editor) on the render-loop thread.
-- [ ] 4.2 Insert the paste text at the caret as a single edit using the editor's existing insert path (display-width-aware, multiline-aware; caret advances past the inserted text; wrapping recomputed).
-- [ ] 4.3 Flip the existing sticky `_userEdited` flag (from pass-1 §4) on paste so a seeded secret `Default` switches from default-masking to buffer-masking.
-- [ ] 4.4 Add a test: paste inserts text at the caret and the caret advances to the end of the inserted text.
-- [ ] 4.5 Add a test: pasting text wider than the available width wraps display-width-aware and the caret lands at the correct visual row/column.
-- [ ] 4.6 Add a test driving a `PasteEvent` as the first interaction on an `IsSecret=true` `InputRequest` with a non-empty `Default`: next paint shows buffer-masking (seeded default no longer the rendered content) and `Submit` returns the real edited buffer.
-- [ ] 4.7 Add a test confirming paste is consumed by an active modal dialog/InputDialog and does not leak to the base editor when an overlay is active.
-- [ ] 4.8 Build + test + format gates clean for this section.
+- [x] 4.1 Route `PasteEvent` through the existing intercept chain to the active input surface (overlay-first: an active `Dialog`/`InputDialog` consumes it; otherwise the base input editor) on the render-loop thread.
+- [x] 4.2 Insert the paste text at the caret as a single edit using the editor's existing insert path (display-width-aware, multiline-aware; caret advances past the inserted text; wrapping recomputed).
+- [x] 4.3 Flip the existing sticky `_userEdited` flag (from pass-1 §4) on paste so a seeded secret `Default` switches from default-masking to buffer-masking.
+- [x] 4.4 Add a test: paste inserts text at the caret and the caret advances to the end of the inserted text.
+- [x] 4.5 Add a test: pasting text wider than the available width wraps display-width-aware and the caret lands at the correct visual row/column.
+- [x] 4.6 Add a test driving a `PasteEvent` as the first interaction on an `IsSecret=true` `InputRequest` with a non-empty `Default`: next paint shows buffer-masking (seeded default no longer the rendered content) and `Submit` returns the real edited buffer.
+- [x] 4.7 Add a test confirming paste is consumed by an active modal dialog/InputDialog and does not leak to the base editor when an overlay is active.
+- [x] 4.8 Build + test + format gates clean for this section.
 
 ## 5. Multi-select Back via '['
 

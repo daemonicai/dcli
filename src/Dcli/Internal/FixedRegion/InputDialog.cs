@@ -172,6 +172,14 @@ internal sealed class InputDialog : IModalOverlay
     }
 
     /// <inheritdoc/>
+    public bool HandlePaste(string text)
+    {
+        _userEdited = true;
+        _buffer.Insert(text);
+        return true;
+    }
+
+    /// <inheritdoc/>
     /// <remarks>
     /// When <see cref="Prompt"/> is non-<see langword="null"/> and non-empty, its lines are
     /// prepended above the text field rows. When <see cref="IsSecret"/> is <see langword="true"/>,

@@ -10,10 +10,10 @@
 ## How to resume
 
 - Branch: **`change/vt-escape-sanitization`** (created from `main`). Stay on it.
-- Working tree state: CLEAN (§1–§4 committed).
+- Working tree state: CLEAN (§1–§5 committed — all sections done).
 - Sanity check command:
   `dotnet build && dotnet test && dotnet format --verify-no-changes && openspec validate vt-escape-sanitization --strict`
-- Resume point: **§5 — Docs, sample audit, release notes** (first unticked task: `5.1`). See the Section status table for what's done so far.
+- Resume point: **DONE** — all 5 sections shipped (18/18 tasks ticked). Ready for `/devlog freeze` → `/opsx:archive`.
 - Check the memory files listed at the bottom before briefing — several encode hard-won constraints.
 
 ## Section status
@@ -25,7 +25,8 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 | 1 | Sanitizer core | `d4c7de8` | 771 | Standalone `TextSanitizer` (+30 tests, then +5 reviewer-requested boundary/spec tests = 35 new). Reviewer approved with nits; all three nits landed before commit (class-edge boundary tests 0x08/0x09, 0x0D/0x0E, 0x7E/0x7F, 0xA0; literal `ESC[2J` spec test; `ClassAGlyph` comment tightened). |
 | 2 | Segment safe-by-default + Raw | `ee320cf` | 795 | `Segment` positional→explicit record; get-only `Text`/`Style`; sanitizing primary ctor; `internal IsRaw` in value equality; `Segment.Raw` verbatim seam. Surfaced a real `with`-on-Segment site in `ScrollableList` reverse-video path (get-only broke it) — fixed with an `IsRaw`-branching rebuild (raw→`Segment.Raw`, sanitized→`new Segment` hits idempotent fast path). Reviewer signed off, no nits. |
 | 3 | Wire construction paths + `LineBuilder.Raw` | `1d91cd0` | 814 | Additive `LineBuilder.Raw` + audit. **First worker died mid-section (socket error) after writing `LineBuilder.Raw` + a non-compiling test file; no SendMessage-resume available in this harness, so a fresh worker finished from the partial tree.** Fixed test compile errors (no `(items, string title)` overload on Multi/Choice → use single-element `IReadOnlyList<string>` title path; CA1307). Reviewer **empirically verified the §2 single-chokepoint claim**: only two `Segment.Raw` consumers repo-wide (`LineBuilder.Raw`, `ScrollableList` reverse-video); `LiveBlock.AppendText` holds raw string in a StringBuilder transiently but only emits via `new Segment(_text.ToString())` at `Render()` — no bypass. One reviewer nit (scrollback test vacuous-pass) fixed. |
-| 4 | End-to-end rendering safety tests | `<pending>` | 827 | Tests only (13 new). Emit-byte-level proof via `VtFrameRenderer`+`StringWriter` (deviation from task's model-level harness — see Decisions). Headline: consumer `ESC[?2026l` → one fence-close in output, `Segment.Raw` → two (byte-sensitive). Worker caught the greedy-`\x`-hex-escape C# hazard (`"\x1bB"`→U+01BB). Reviewer sign-off; two must-fix nits landed (replace-mode width tautologies → `.Length == Measure`; ESC constants → `` form). |
+| 4 | End-to-end rendering safety tests | `094ca73` | 827 | Tests only (13 new). Emit-byte-level proof via `VtFrameRenderer`+`StringWriter` (deviation from task's model-level harness — see Decisions). Headline: consumer `ESC[?2026l` → one fence-close in output, `Segment.Raw` → two (byte-sensitive). Worker caught the greedy-`\x`-hex-escape C# hazard (`"\x1bB"`→U+01BB). Reviewer sign-off; two must-fix nits landed (replace-mode width tautologies → `.Length == Measure`; ESC constants → `` form). |
+| 5 | Docs, sample audit, release notes | `<pending>` | 827 | Docs only. Sample audit: ZERO raw-VT passthrough in `samples/` (nothing to convert). New `CHANGELOG.md` (BREAKING behavioural + `Segment.Raw`/`LineBuilder.Raw` + `DCLI_SANITIZE_MODE`). `docs/styled-text.md` rewritten ("Sanitize by default" replaces a stale "consumers must pre-sanitize" note). Reviewer caught a blocker the first pass missed — `docs/api-reference.md:207` still claimed "emitted verbatim"; fixed + added `Segment.Raw`/`LineBuilder.Raw` entries. Full docs/ stale-sweep clean. |
 
 ## Decisions & deviations
 
@@ -60,4 +61,4 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **Currently at §5.1 — Docs, sample audit, release notes.** §1–§4 shipped, green (827 tests). The security guarantee is proven at the emit-byte level. Next worker call: §5 — audit `samples/`, `Dcli.Demo`, `Dcli.Demo.DmonWizard` for any intentional raw-VT passthrough and convert to `Segment.Raw`/`LineBuilder.Raw` (expected: none); add a release note (default construction now neutralizes control bytes; use `Segment.Raw` for verbatim; `DCLI_SANITIZE_MODE=replace` to visualize). Docs-only / no production behaviour change expected.
+> **DONE — all 5 sections shipped (18/18 tasks), 827 tests green.** The VT-escape injection gap is closed: `Segment` sanitizes at construction (single chokepoint), `Segment.Raw`/`LineBuilder.Raw` is the only audited verbatim seam, `DCLI_SANITIZE_MODE` (default `strip`) configures the transform, and the sync-fence-cannot-be-defeated guarantee is proven at the emit-byte level. Next: `/devlog freeze` then `/opsx:archive`. The `vt-escape-sanitization-gap` memory should be retired/updated on archive (the gap it tracks is now fixed).

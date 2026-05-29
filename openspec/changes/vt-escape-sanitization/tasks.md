@@ -28,5 +28,5 @@
 
 ## 5. Docs, sample audit, release notes
 
-- [ ] 5.1 Audit in-repo call sites (`samples/`, `Dcli.Demo`, `Dcli.Demo.DmonWizard`) for intentional raw-VT passthrough; convert any to `Segment.Raw` / `LineBuilder.Raw` (expected: none).
-- [ ] 5.2 Add a release note: default construction now neutralizes control bytes; use `Segment.Raw` for verbatim; `DCLI_SANITIZE_MODE=replace` visualizes stripped bytes when debugging.
+- [x] 5.1 Audit in-repo call sites (`samples/`, `Dcli.Demo`, `Dcli.Demo.DmonWizard`) for intentional raw-VT passthrough; convert any to `Segment.Raw` / `LineBuilder.Raw` (expected: none).
+- [x] 5.2 Add a release note: default construction now neutralizes control bytes; use `Segment.Raw` for verbatim; `DCLI_SANITIZE_MODE=replace` visualizes stripped bytes when debugging.

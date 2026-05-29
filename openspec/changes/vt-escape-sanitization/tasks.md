@@ -22,9 +22,9 @@
 
 ## 4. End-to-end rendering safety tests
 
-- [ ] 4.1 Via `Dcli.Testing.HeadlessTerminal` / `FrameSnapshot` / `InMemoryOutputSink`: assert consumer text containing `ESC`/CSI/OSC/newline never reaches the output sink except via `Segment.Raw`.
-- [ ] 4.2 Sync-fence test: a frame whose content was built from text containing `"[?2026l"` emits exactly one sync mode-reset (the renderer's own fence close) and not the consumer's.
-- [ ] 4.3 Raw passthrough test: `Segment.Raw("[31mred[0m")` reaches the sink byte-for-byte; width/wrapping consistency test across strip and replace modes (using the internal explicit-mode entry).
+- [x] 4.1 Via `Dcli.Testing.HeadlessTerminal` / `FrameSnapshot` / `InMemoryOutputSink`: assert consumer text containing `ESC`/CSI/OSC/newline never reaches the output sink except via `Segment.Raw`.
+- [x] 4.2 Sync-fence test: a frame whose content was built from text containing `"[?2026l"` emits exactly one sync mode-reset (the renderer's own fence close) and not the consumer's.
+- [x] 4.3 Raw passthrough test: `Segment.Raw("[31mred[0m")` reaches the sink byte-for-byte; width/wrapping consistency test across strip and replace modes (using the internal explicit-mode entry).
 
 ## 5. Docs, sample audit, release notes
 

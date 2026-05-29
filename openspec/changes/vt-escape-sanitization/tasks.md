@@ -16,9 +16,9 @@
 
 ## 3. Wire construction paths + LineBuilder.Raw
 
-- [ ] 3.1 Add `LineBuilder.Raw(string text, Style style = default)` that appends a raw segment; confirm all other `LineBuilder` append paths build segments through the sanitizing `Segment` ctor.
-- [ ] 3.2 Verify `Line.FromText`, the string-accepting `*Request` overloads (`DialogRequests.cs`), and the scrollback/status surfaces all funnel through the sanitizing `Segment` ctor (no path constructs segment text around it). Adjust any that bypass it.
-- [ ] 3.3 Unit tests confirming a string prompt/option/append carrying escape bytes yields neutralized segment text through each public surface.
+- [x] 3.1 Add `LineBuilder.Raw(string text, Style style = default)` that appends a raw segment; confirm all other `LineBuilder` append paths build segments through the sanitizing `Segment` ctor.
+- [x] 3.2 Verify `Line.FromText`, the string-accepting `*Request` overloads (`DialogRequests.cs`), and the scrollback/status surfaces all funnel through the sanitizing `Segment` ctor (no path constructs segment text around it). Adjust any that bypass it.
+- [x] 3.3 Unit tests confirming a string prompt/option/append carrying escape bytes yields neutralized segment text through each public surface.
 
 ## 4. End-to-end rendering safety tests
 

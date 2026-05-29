@@ -92,6 +92,28 @@ public sealed class LineBuilder
         Append(text, new Style(Background: background));
 
     /// <summary>
+    /// Appends a <b>verbatim</b> (raw) segment whose text is stored without sanitization.
+    /// <para>
+    /// Use only for internally-generated, audited sequences such as renderer-owned SGR strings.
+    /// Consumer-supplied strings must never be passed here; use <see cref="Append"/>,
+    /// <see cref="Text"/>, or any other builder method instead — those all sanitize via
+    /// <see cref="Segment(string, Style)"/>.
+    /// </para>
+    /// <para>
+    /// The appended segment has <see cref="Segment.IsRaw"/> set to <see langword="true"/>
+    /// (participates in equality). The caller owns terminal integrity.
+    /// </para>
+    /// </summary>
+    /// <param name="text">The verbatim text to append. Must not be <see langword="null"/>.</param>
+    /// <param name="style">The style to apply. Defaults to <c>default(Style)</c>.</param>
+    /// <returns>This builder.</returns>
+    public LineBuilder Raw(string text, Style style = default)
+    {
+        _segments.Add(Segment.Raw(text, style));
+        return this;
+    }
+
+    /// <summary>
     /// Returns the composed <see cref="Line"/> containing all appended segments in the order they
     /// were added.
     /// </summary>

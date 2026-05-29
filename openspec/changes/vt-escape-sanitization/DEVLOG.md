@@ -10,10 +10,10 @@
 ## How to resume
 
 - Branch: **`change/vt-escape-sanitization`** (created from `main`). Stay on it.
-- Working tree state: CLEAN (§1, §2 committed).
+- Working tree state: CLEAN (§1, §2, §3 committed).
 - Sanity check command:
   `dotnet build && dotnet test && dotnet format --verify-no-changes && openspec validate vt-escape-sanitization --strict`
-- Resume point: **§3 — Wire construction paths + LineBuilder.Raw** (first unticked task: `3.1`). See the Section status table for what's done so far.
+- Resume point: **§4 — End-to-end rendering safety tests** (first unticked task: `4.1`). See the Section status table for what's done so far.
 - Check the memory files listed at the bottom before briefing — several encode hard-won constraints.
 
 ## Section status
@@ -23,7 +23,8 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 | § | Section | Commit | Tests after | Notes |
 |---|---------|--------|-------------|-------|
 | 1 | Sanitizer core | `d4c7de8` | 771 | Standalone `TextSanitizer` (+30 tests, then +5 reviewer-requested boundary/spec tests = 35 new). Reviewer approved with nits; all three nits landed before commit (class-edge boundary tests 0x08/0x09, 0x0D/0x0E, 0x7E/0x7F, 0xA0; literal `ESC[2J` spec test; `ClassAGlyph` comment tightened). |
-| 2 | Segment safe-by-default + Raw | `<pending>` | 795 | `Segment` positional→explicit record; get-only `Text`/`Style`; sanitizing primary ctor; `internal IsRaw` in value equality; `Segment.Raw` verbatim seam. Surfaced a real `with`-on-Segment site in `ScrollableList` reverse-video path (get-only broke it) — fixed with an `IsRaw`-branching rebuild (raw→`Segment.Raw`, sanitized→`new Segment` hits idempotent fast path). Reviewer signed off, no nits. |
+| 2 | Segment safe-by-default + Raw | `ee320cf` | 795 | `Segment` positional→explicit record; get-only `Text`/`Style`; sanitizing primary ctor; `internal IsRaw` in value equality; `Segment.Raw` verbatim seam. Surfaced a real `with`-on-Segment site in `ScrollableList` reverse-video path (get-only broke it) — fixed with an `IsRaw`-branching rebuild (raw→`Segment.Raw`, sanitized→`new Segment` hits idempotent fast path). Reviewer signed off, no nits. |
+| 3 | Wire construction paths + `LineBuilder.Raw` | `<pending>` | 814 | Additive `LineBuilder.Raw` + audit. **First worker died mid-section (socket error) after writing `LineBuilder.Raw` + a non-compiling test file; no SendMessage-resume available in this harness, so a fresh worker finished from the partial tree.** Fixed test compile errors (no `(items, string title)` overload on Multi/Choice → use single-element `IReadOnlyList<string>` title path; CA1307). Reviewer **empirically verified the §2 single-chokepoint claim**: only two `Segment.Raw` consumers repo-wide (`LineBuilder.Raw`, `ScrollableList` reverse-video); `LiveBlock.AppendText` holds raw string in a StringBuilder transiently but only emits via `new Segment(_text.ToString())` at `Render()` — no bypass. One reviewer nit (scrollback test vacuous-pass) fixed. |
 
 ## Decisions & deviations
 
@@ -56,4 +57,4 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **Currently at §3.1 — Wire construction paths + `LineBuilder.Raw`.** §1+§2 shipped, green (795 tests). `Segment` now sanitizes by default with the `Raw` seam. Next worker call: add `LineBuilder.Raw(text, style)`; verify `Line.FromText`, the string-accepting `*Request` overloads (`DialogRequests.cs`), and the scrollback/status surfaces all funnel through the sanitizing `Segment` ctor (no bypass); add tests proving escape bytes are neutralized through each public surface. Mostly a verification/wiring section since §2's ctor is the chokepoint — but confirm no surface builds a `Segment` via a path that skips the primary ctor.
+> **Currently at §4.1 — End-to-end rendering safety tests.** §1–§3 shipped, green (814 tests). Construction is proven safe and the chokepoint is empirically single. Next worker call: §4 end-to-end via `HeadlessTerminal`/`FrameSnapshot`/`InMemoryOutputSink` — assert consumer ESC/CSI/OSC/newline never reaches the output sink except via `Segment.Raw`; the sync-fence-cannot-be-defeated test (`[?2026l` in content → only the renderer's own fence-close in output); `Segment.Raw` byte-for-byte passthrough; width/wrapping consistency across strip and replace modes (use `TextSanitizer.Apply(text, mode)` explicit overload, since `DefaultMode` is process-cached).

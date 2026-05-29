@@ -60,8 +60,8 @@
 
 ## 7. Validation & packaging
 
-- [ ] 7.1 `openspec validate api-ergonomics-pass-2 --strict` passes.
-- [ ] 7.2 `dotnet build` clean (0 warnings, analyzers/warnings-as-errors), `dotnet test` green (all sections' new tests + full existing suite), `dotnet format --verify-no-changes` clean.
-- [ ] 7.3 Bump `Version` `0.2.0-rc.2 → 0.2.0-rc.3` in `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj`.
-- [ ] 7.4 `dotnet pack -c Release` produces `dcli.0.2.0-rc.3.{nupkg,snupkg}` and `dcli.testing.0.2.0-rc.3.{nupkg,snupkg}`.
-- [ ] 7.5 Final gates re-run clean against the version bump; record per-section commit hashes in the DEVLOG.
+- [x] 7.1 `openspec validate api-ergonomics-pass-2 --strict` passes.
+- [x] 7.2 `dotnet build` clean (0 warnings, analyzers/warnings-as-errors), `dotnet test` green (all sections' new tests + full existing suite), `dotnet format --verify-no-changes` clean.
+- [x] 7.3 Bump `Version` `0.2.0-rc.2 → 0.2.0-rc.3` in `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj`.
+- [x] 7.4 `dotnet pack -c Release` produces `dcli.0.2.0-rc.3.{nupkg,snupkg}` and `dcli.testing.0.2.0-rc.3.{nupkg,snupkg}`.
+- [x] 7.5 Final gates re-run clean against the version bump; record per-section commit hashes in the DEVLOG.

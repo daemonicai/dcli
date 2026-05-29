@@ -708,13 +708,206 @@ public sealed class DialogSelectionTests
         finally { engine.Dispose(); }
     }
 
-    // ── 3.8 — MultiSelectRequest deliberately omits AllowBack ────────────────
+    // ── §5 — MultiSelectRequest.AllowBack + '[' Back key ────────────────────────
 
-    [Fact]
-    public void MultiSelectRequestDoesNotHaveAllowBackProperty()
+    // Helper: post a multi-select dialog with AllowBack=true; completion maps Back correctly.
+    private static Task<DialogResult<int[]>> PostMultiSelectDialogAllowBack(
+        LoopEngine engine,
+        List<Line> items)
     {
-        // AllowBack is intentionally absent from MultiSelectRequest (design decision §3.8).
-        Assert.Null(typeof(MultiSelectRequest).GetProperty("AllowBack"));
+        Dialog dialog = new(multiSelect: true, modal: true, allowBack: true);
+        dialog.List.SetItems(items);
+
+        TaskCompletionSource<DialogResult<int[]>> tcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Action completion = () =>
+        {
+            DialogResult<int[]> result = dialog.CloseRequest switch
+            {
+                OverlayCloseKind.Submit => new DialogResult<int[]>(DialogOutcome.Submitted, [.. dialog.List.CheckedIndices]),
+                OverlayCloseKind.Back => new DialogResult<int[]>(DialogOutcome.Back, []),
+                _ => new DialogResult<int[]>(DialogOutcome.Cancelled, []),
+            };
+            tcs.TrySetResult(result);
+        };
+
+        Action reject = () =>
+            tcs.TrySetException(new InvalidOperationException("A dialog is already active."));
+
+        engine.Post(new OpenDialogCommand(dialog, completion, reject));
+        return tcs.Task;
+    }
+
+    /// <summary>
+    /// §5.1/5.4 — MultiSelect AllowBack=true + '[' → DialogOutcome.Back.
+    /// </summary>
+    [Fact]
+    public async Task MultiSelectAllowBackBracketReturnsBack()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int[]>> task = PostMultiSelectDialogAllowBack(engine, Items("A", "B", "C"));
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+            DialogResult<int[]> result = await task;
+
+            Assert.Equal(DialogOutcome.Back, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// §5.4 — MultiSelect AllowBack=true: '[' still produces Back AFTER toggling items with Space.
+    /// Toggling does NOT disarm the '[' Back key.
+    /// </summary>
+    [Fact]
+    public async Task MultiSelectAllowBackBracketAfterSpaceToggleReturnsBack()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int[]>> task = PostMultiSelectDialogAllowBack(engine, Items("Alpha", "Beta", "Gamma"));
+
+            // Toggle the first item with Space, then press '['.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune(' ')), Modifiers.None));
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+            DialogResult<int[]> result = await task;
+
+            Assert.Equal(DialogOutcome.Back, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// §5.4 — Regression guard: MultiSelect AllowBack=true: '[' still produces Back even when an
+    /// arrow key (↑ or ↓) is pressed FIRST. Multi-select does NOT apply movement-suppression on '[':
+    /// the predicate is <c>List.MultiSelect || !_hasMoved</c>, so movement never disarms Back for
+    /// multi-select. This test pins that contract against a future regression.
+    /// </summary>
+    [Fact]
+    public async Task MultiSelectAllowBackBracketAfterArrowMovementStillReturnsBack()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int[]>> task = PostMultiSelectDialogAllowBack(engine, Items("Alpha", "Beta", "Gamma"));
+
+            // Move the cursor first (↓), then press '['.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Down), Modifiers.None));
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+            DialogResult<int[]> result = await task;
+
+            // Movement must NOT suppress '[' Back for multi-select.
+            Assert.Equal(DialogOutcome.Back, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// §5.4 — MultiSelect AllowBack=false (default): '[' has no Back effect; dialog stays open.
+    /// </summary>
+    [Fact]
+    public async Task MultiSelectAllowBackFalseDefaultBracketIsNoOp()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            // Use the standard helper (AllowBack=false by default).
+            Task<DialogResult<int[]>> task = PostMultiSelectDialog(engine, Items("X", "Y", "Z"));
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+
+            // Task must still be pending — '[' was swallowed by the modal catch-all.
+            Assert.False(task.IsCompleted, "Dialog should still be open after '[' when AllowBack=false");
+
+            // Submit to close cleanly.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Enter), Modifiers.None));
+            await SettleAsync(engine, clock);
+
+            DialogResult<int[]> result = await task;
+            Assert.Equal(DialogOutcome.Submitted, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// §5.5 — Select AllowBack=true + '[' before moving → DialogOutcome.Back.
+    /// </summary>
+    [Fact]
+    public async Task SelectAllowBackBracketBeforeMovingReturnsBack()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int>> task = PostSelectDialogAllowBack(engine, Items("A", "B", "C"));
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+            DialogResult<int> result = await task;
+
+            Assert.Equal(DialogOutcome.Back, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// §5.5 — Select AllowBack=true + ↓ then '[' → NOT Back (movement-suppression applies to '[').
+    /// </summary>
+    [Fact]
+    public async Task SelectAllowBackBracketAfterMovementIsNoOp()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int>> task = PostSelectDialogAllowBack(engine, Items("A", "B", "C"));
+
+            // ↓ marks _hasMoved = true; subsequent '[' must not close the dialog.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Down), Modifiers.None));
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+
+            Assert.False(task.IsCompleted, "Dialog should still be open after '[' post-movement");
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+            await SettleAsync(engine, clock);
+
+            DialogResult<int> result = await task;
+            Assert.Equal(DialogOutcome.Cancelled, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// §5.5 — Regression: Select AllowBack=true Backspace-Back still works after adding '['-Back.
+    /// </summary>
+    [Fact]
+    public async Task SelectAllowBackBackspaceStillWorksAfterBracketKeyAdded()
+    {
+        (LoopEngine engine, VirtualClock clock, _) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int>> task = PostSelectDialogAllowBack(engine, Items("A", "B"));
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+            DialogResult<int> result = await task;
+
+            Assert.Equal(DialogOutcome.Back, result.Outcome);
+        }
+        finally { engine.Dispose(); }
     }
 
     // ── §3.1 — Multi-line Title on SelectRequest renders all lines above items ─

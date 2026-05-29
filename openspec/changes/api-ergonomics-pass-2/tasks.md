@@ -43,12 +43,12 @@
 
 ## 5. Multi-select Back via '['
 
-- [ ] 5.1 Add `AllowBack` (default `false`) to `MultiSelectRequest` (`src/Dcli/DialogRequests.cs`) with XML doc explaining the `[` binding and why Backspace is not used for multi-select.
-- [ ] 5.2 In the dialog key handler, when a multi-select overlay has `AllowBack=true`, map `[` (at any time, no movement-suppression) to `OverlayCloseKind.Back` → `DialogOutcome.Back`.
-- [ ] 5.3 For `Select`/`Choice` with `AllowBack=true`, additionally accept `[` as a secondary Back key alongside the existing pass-1 Backspace-before-first-move binding (apply the same movement-suppression as Backspace for these two).
-- [ ] 5.4 Add tests: MultiSelect `AllowBack=true` + `[` → `Back`; MultiSelect `[` still produces `Back` after toggling items with Space; MultiSelect `AllowBack=false` (default) → `[` has no effect (v1 behaviour preserved).
-- [ ] 5.5 Add tests: Select/Choice `AllowBack=true` + `[` before moving the selection → `Back`; the existing Backspace bindings remain unchanged.
-- [ ] 5.6 Build + test + format gates clean for this section.
+- [x] 5.1 Add `AllowBack` (default `false`) to `MultiSelectRequest` (`src/Dcli/DialogRequests.cs`) with XML doc explaining the `[` binding and why Backspace is not used for multi-select.
+- [x] 5.2 In the dialog key handler, when a multi-select overlay has `AllowBack=true`, map `[` (at any time, no movement-suppression) to `OverlayCloseKind.Back` → `DialogOutcome.Back`.
+- [x] 5.3 For `Select`/`Choice` with `AllowBack=true`, additionally accept `[` as a secondary Back key alongside the existing pass-1 Backspace-before-first-move binding (apply the same movement-suppression as Backspace for these two).
+- [x] 5.4 Add tests: MultiSelect `AllowBack=true` + `[` → `Back`; MultiSelect `[` still produces `Back` after toggling items with Space; MultiSelect `AllowBack=false` (default) → `[` has no effect (v1 behaviour preserved).
+- [x] 5.5 Add tests: Select/Choice `AllowBack=true` + `[` before moving the selection → `Back`; the existing Backspace bindings remain unchanged.
+- [x] 5.6 Build + test + format gates clean for this section.
 
 ## 6. Sample migration onto the new Line factories
 

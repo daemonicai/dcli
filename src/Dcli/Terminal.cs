@@ -165,7 +165,7 @@ public sealed class Terminal : ITerminal
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(req);
-        Dialog dialog = new(multiSelect: true, modal: true, typeToFilter: false, title: req.Title);
+        Dialog dialog = new(multiSelect: true, modal: true, typeToFilter: false, title: req.Title, allowBack: req.AllowBack);
         dialog.List.SetItems(req.Items);
         return OpenModalAsync<int[]>(
             dialog,

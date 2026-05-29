@@ -130,7 +130,16 @@ public sealed record SelectRequest(IReadOnlyList<Line> Items, IReadOnlyList<Line
 /// When <see langword="null"/> or empty, no preamble row is painted and the full overlay
 /// budget is available to the list. Single-line forms (see convenience constructors) are
 /// internally equivalent to a one-element list.</param>
-public sealed record MultiSelectRequest(IReadOnlyList<Line> Items, IReadOnlyList<Line>? Title = null)
+/// <param name="AllowBack">
+/// When <see langword="true"/>, pressing <c>[</c> at any time (including after toggling items
+/// with Space) closes the dialog with <see cref="DialogOutcome.Back"/>.
+/// Backspace is intentionally NOT bound for multi-select: because Space toggles items,
+/// Backspace-at-empty is ambiguous and was never shipped. Use <c>[</c> for unambiguous
+/// back-navigation in wizard flows. Defaults to <see langword="false"/>; existing callers
+/// are unaffected. When <see langword="false"/>, <c>[</c> has no effect and the dialog
+/// remains open — v1 callers that omit this parameter are unaffected.
+/// </param>
+public sealed record MultiSelectRequest(IReadOnlyList<Line> Items, IReadOnlyList<Line>? Title = null, bool AllowBack = false)
 {
     /// <summary>
     /// Constructs a <see cref="MultiSelectRequest"/> with a single <see cref="Line"/> title.
@@ -142,13 +151,19 @@ public sealed record MultiSelectRequest(IReadOnlyList<Line> Items, IReadOnlyList
     /// </summary>
     /// <param name="Items">The list items to display.</param>
     /// <param name="Title">Optional single-line preamble; <see langword="null"/> means no preamble.</param>
-    public MultiSelectRequest(IReadOnlyList<Line> Items, Line? Title)
-        : this(Items, Title is null ? null : (IReadOnlyList<Line>)[Title]) { }
+    /// <param name="AllowBack">
+    /// When <see langword="true"/>, <c>[</c> closes the dialog with <see cref="DialogOutcome.Back"/>
+    /// at any time. Defaults to <see langword="false"/>.
+    /// </param>
+    public MultiSelectRequest(IReadOnlyList<Line> Items, Line? Title, bool AllowBack = false)
+        : this(Items, Title is null ? null : (IReadOnlyList<Line>)[Title], AllowBack) { }
 
     /// <summary>
     /// Constructs a <see cref="MultiSelectRequest"/> with multiple <see cref="Line"/> preamble
     /// entries supplied as a <see langword="params"/> array. Each line is painted in order
     /// above the list. No implicit conversion is defined; pass lines explicitly.
+    /// <c>AllowBack</c> cannot be set via this constructor because <see langword="params"/> must
+    /// be the last parameter; use the primary constructor or another overload.
     /// </summary>
     /// <param name="items">The list items to display.</param>
     /// <param name="title">Preamble lines in top-to-bottom order (may be empty).</param>
@@ -164,8 +179,12 @@ public sealed record MultiSelectRequest(IReadOnlyList<Line> Items, IReadOnlyList
     /// </summary>
     /// <param name="items">The plain-text items to display.</param>
     /// <param name="title">Optional multi-line string preamble; <see langword="null"/> means no preamble.</param>
-    public MultiSelectRequest(IReadOnlyList<string> items, IReadOnlyList<string>? title)
-        : this(ConvertItems(items), ConvertPreamble(title)) { }
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, <c>[</c> closes the dialog with <see cref="DialogOutcome.Back"/>
+    /// at any time. Defaults to <see langword="false"/>.
+    /// </param>
+    public MultiSelectRequest(IReadOnlyList<string> items, IReadOnlyList<string>? title, bool allowBack = false)
+        : this(ConvertItems(items), ConvertPreamble(title), allowBack) { }
 
     /// <summary>
     /// Constructs a <see cref="MultiSelectRequest"/> from plain-text item strings with an
@@ -175,14 +194,20 @@ public sealed record MultiSelectRequest(IReadOnlyList<Line> Items, IReadOnlyList
     /// </summary>
     /// <param name="items">The plain-text items to display.</param>
     /// <param name="title">Optional leading title row.</param>
-    public MultiSelectRequest(IReadOnlyList<string> items, Line? title = null)
-        : this(ConvertItems(items), title) { }
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, <c>[</c> closes the dialog with <see cref="DialogOutcome.Back"/>
+    /// at any time. Defaults to <see langword="false"/>.
+    /// </param>
+    public MultiSelectRequest(IReadOnlyList<string> items, Line? title = null, bool allowBack = false)
+        : this(ConvertItems(items), title, allowBack) { }
 
     /// <summary>
     /// Constructs a <see cref="MultiSelectRequest"/> from plain-text item strings with a
     /// <see langword="params"/> string preamble. Each preamble string is converted via
     /// <see cref="Line.FromText(string, Style?)"/>.
     /// Shorthand for inline multi-line preambles without pre-building a list.
+    /// <c>AllowBack</c> cannot be set via this constructor because <see langword="params"/> must
+    /// be the last parameter; use the primary constructor or another overload.
     /// </summary>
     /// <param name="items">The list items to display.</param>
     /// <param name="title">Preamble strings in top-to-bottom order (may be empty).</param>
@@ -192,6 +217,8 @@ public sealed record MultiSelectRequest(IReadOnlyList<Line> Items, IReadOnlyList
     /// <summary>
     /// Constructs a <see cref="MultiSelectRequest"/> from a params array of plain-text item strings.
     /// Shorthand equivalent to passing <c>items.Select(Line.FromText).ToList()</c> as <c>Items</c>.
+    /// <c>AllowBack</c> cannot be set via this constructor because <see langword="params"/> must
+    /// be the last parameter; use the primary constructor or another overload.
     /// </summary>
     /// <param name="items">The plain-text items to display.</param>
     public MultiSelectRequest(params string[] items)
@@ -203,8 +230,12 @@ public sealed record MultiSelectRequest(IReadOnlyList<Line> Items, IReadOnlyList
     /// </summary>
     /// <param name="items">The list items to display.</param>
     /// <param name="title">Optional plain-text title string; <see langword="null"/> means no preamble.</param>
-    public MultiSelectRequest(IReadOnlyList<Line> items, string? title)
-        : this(items, title is null ? null : (IReadOnlyList<Line>)[Line.FromText(title)]) { }
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, <c>[</c> closes the dialog with <see cref="DialogOutcome.Back"/>
+    /// at any time. Defaults to <see langword="false"/>.
+    /// </param>
+    public MultiSelectRequest(IReadOnlyList<Line> items, string? title, bool allowBack = false)
+        : this(items, title is null ? null : (IReadOnlyList<Line>)[Line.FromText(title)], allowBack) { }
 
     private static List<Line> ConvertItems(IReadOnlyList<string> items)
     {

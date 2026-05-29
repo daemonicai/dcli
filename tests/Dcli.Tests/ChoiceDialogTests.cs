@@ -1,3 +1,4 @@
+using System.Text;
 using Dcli.Internal.FixedRegion;
 using Dcli.Internal.RenderLoop;
 using Dcli.Testing;
@@ -237,6 +238,56 @@ public sealed class ChoiceDialogTests
 
             DialogResult<int> result = await task;
             Assert.Equal(DialogOutcome.Submitted, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    // ── §5.5 — Choice AllowBack=true accepts '[' as secondary Back key ───────────
+
+    /// <summary>
+    /// §5.5 — Choice AllowBack=true + '[' before moving → DialogOutcome.Back.
+    /// </summary>
+    [Fact]
+    public async Task ChoiceAllowBackBracketBeforeMovingReturnsBack()
+    {
+        (LoopEngine engine, VirtualClock clock) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int>> task = PostChoiceDialogAllowBack(engine, Options("Yes", "No", "Maybe"));
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+            DialogResult<int> result = await task;
+
+            Assert.Equal(DialogOutcome.Back, result.Outcome);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    /// <summary>
+    /// §5.5 — Choice AllowBack=true + ↓ then '[' → NOT Back (movement-suppression applies to '[').
+    /// </summary>
+    [Fact]
+    public async Task ChoiceAllowBackBracketAfterMovementIsNoOp()
+    {
+        (LoopEngine engine, VirtualClock clock) = CreateEngine();
+        try
+        {
+            Task<DialogResult<int>> task = PostChoiceDialogAllowBack(engine, Options("Yes", "No", "Maybe"));
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Down), Modifiers.None));
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+            await SettleAsync(engine, clock);
+
+            Assert.False(task.IsCompleted, "Choice dialog should still be open after '[' post-movement");
+
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+            await SettleAsync(engine, clock);
+
+            DialogResult<int> result = await task;
+            Assert.Equal(DialogOutcome.Cancelled, result.Outcome);
         }
         finally { engine.Dispose(); }
     }

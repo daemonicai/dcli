@@ -34,7 +34,7 @@ internal static class WizardRenderer
         DialogResult<int> result = await terminal.SelectAsync(
             new SelectRequest(
                 Items: items,
-                Title: new LineBuilder().Bold(step.Prompt).Build(),
+                Title: Line.Bold(step.Prompt),
                 AllowBack: true),
             ct).ConfigureAwait(false);
 
@@ -60,7 +60,7 @@ internal static class WizardRenderer
         DialogResult<int[]> result = await terminal.MultiSelectAsync(
             new MultiSelectRequest(
                 Items: items,
-                Title: new LineBuilder().Bold(step.Prompt).Build()),
+                Title: Line.Bold(step.Prompt)),
             ct).ConfigureAwait(false);
 
         if (result.Outcome == DialogOutcome.Cancelled)
@@ -76,19 +76,17 @@ internal static class WizardRenderer
         if (step.Default is not null)
         {
             string shown = step.Secret ? new string('*', 8) : step.Default;
-            terminal.Scrollback.Append(new LineBuilder()
-                .Dim($"Default: {shown}")
-                .Build());
+            terminal.Scrollback.Append(Line.Dim($"Default: {shown}"));
         }
 
         IReadOnlyList<Line> prompt = step.Secret
             ? (IReadOnlyList<Line>)
             [
-                new LineBuilder().Bold(step.Prompt).Build(),
-                new LineBuilder().Dim("Used only for this session. Not persisted to disk.").Build(),
-                new LineBuilder().Dim("Press Esc to cancel; Enter to confirm.").Build(),
+                Line.Bold(step.Prompt),
+                Line.Dim("Used only for this session. Not persisted to disk."),
+                Line.Dim("Press Esc to cancel; Enter to confirm."),
             ]
-            : [new LineBuilder().Bold(step.Prompt).Build()];
+            : [Line.Bold(step.Prompt)];
 
         DialogResult<string> result = await terminal.InputAsync(
             new InputRequest(
@@ -118,17 +116,17 @@ internal static class WizardRenderer
         // Use ChoiceAsync for a clean Yes/No prompt.
         // Honour step.Default by placing the default option first.
         List<Line> options = step.Default
-            ? [new LineBuilder().Fg("Yes", Color.Named(Color.AnsiColor.Green)).Build(),
-               new LineBuilder().Fg("No",  Color.Named(Color.AnsiColor.Red)).Build()]
-            : [new LineBuilder().Fg("No",  Color.Named(Color.AnsiColor.Red)).Build(),
-               new LineBuilder().Fg("Yes", Color.Named(Color.AnsiColor.Green)).Build()];
+            ? [Line.Fg("Yes", Color.Named(Color.AnsiColor.Green)),
+               Line.Fg("No",  Color.Named(Color.AnsiColor.Red))]
+            : [Line.Fg("No",  Color.Named(Color.AnsiColor.Red)),
+               Line.Fg("Yes", Color.Named(Color.AnsiColor.Green))];
 
         string hint = step.Default ? "[Y/n]" : "[y/N]";
 
         DialogResult<int> result = await terminal.ChoiceAsync(
             new ChoiceRequest(
                 Options: options,
-                Prompt: new LineBuilder().Bold($"{step.Prompt} {hint}").Build()),
+                Prompt: Line.Bold($"{step.Prompt} {hint}")),
             ct).ConfigureAwait(false);
 
         if (result.Outcome == DialogOutcome.Cancelled)
@@ -143,9 +141,7 @@ internal static class WizardRenderer
     private static Task<WizardStepOutcome> RenderInfoAsync(
         ITerminal terminal, InfoStep step, CancellationToken ct)
     {
-        terminal.Scrollback.Append(new LineBuilder()
-            .Dim(step.Prompt)
-            .Build());
+        terminal.Scrollback.Append(Line.Dim(step.Prompt));
         return Task.FromResult(WizardStepOutcome.Answered);
     }
 }

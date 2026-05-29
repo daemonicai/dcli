@@ -10,10 +10,10 @@
 ## How to resume
 
 - Branch: **`change/api-ergonomics-pass-2`** (created from `main`). Stay on it.
-- Working tree state: CLEAN (§1–§5 committed; §6 unstarted).
+- Working tree state: CLEAN (§1–§6 committed; §7 unstarted).
 - Sanity check command:
   `dotnet build && dotnet test && dotnet format --verify-no-changes && openspec validate api-ergonomics-pass-2 --strict`
-- Resume point: **§6 — Sample migration onto the new Line factories** (first unticked task: `6.1`). See the Section status table for what's done so far.
+- Resume point: **§7 — Validation & packaging** (first unticked task: `7.1`). See the Section status table for what's done so far.
 - Check the memory files listed at the bottom before briefing — several encode hard-won constraints for upcoming sections (render-loop thread discipline for §2/§3/§4; oversized-reprint ordering for §3).
 
 ## Section status
@@ -26,7 +26,8 @@ One row per `## N.` section in `tasks.md`. Add a row when the section commits.
 | 2 | Scrollback.AppendRule | `512374a` | 838 (836 + 2) | New `RuleBlock : ILineObject` resolves width at paint time (re-expands on resize for free); `AppendRule()` posts a private nested `AppendRuleToScrollbackCommand` mirroring `AppendToScrollbackCommand`; the `// AppendRule … deferred` gap comment removed. Surfaced: adding a member to `IScrollback` required a `FakeScrollback.AppendRule()` stub in `FakeTerminalTests.cs`. Reviewer round 1 should-fix: the test hand-rolled doubles instead of `HeadlessTerminal`/`FrameSnapshot` — rewritten onto the real harness (also fixed a latent size-source/resize-watcher desync by using `harness.Resize`). Round 2 clean. |
 | 3 | Incremental Collapsible.AppendLine | `ad8c8a1` | 844 (838 + 6) | `Collapsible._hiddenLines` → owned `List<Line>` (`.ToList()` copy in ctor — also closes a latent off-thread-mutation leak); `AppendHidden` dumb-add; new `ScrollbackModel.AppendToCollapsible` with the SAME guard precedence as `ExpandCollapsible` (horizon-freeze → already-expanded → act); façade `AppendLine(Line)`/`(string)` via nested `AppendLineToCollapsibleFacadeCommand`. Tests are **model-level** (`ScrollbackModelTests` house style — HeadlessTerminal can't observe `IsExpanded`/`NewlyCommittedRows`), incl. a 3.7 oversized-reprint ordering regression. Reviewer round 1 should-fix: worker left an orphan `Commands/AppendToCollapsibleCommand.cs` (never instantiated) — deleted. Round 2 clean. Decision-4 holds: append touches only the pre-expansion snapshot and never initiates a reprint, so it can't worsen [[scrollback-oversized-reprint-ordering]]. |
 | 4 | PasteEvent editor routing | `7476fb0` | 848 (844 + 4) | New `IOverlay.HandlePaste(string)→bool`; `InputDialog` inserts+flips `_userEdited`+consumes; `Dialog`→`Modal` (modal consumes/ignores, non-modal passes); `Autocomplete`→`false` (pass-through, cursor in base editor). `LoopEngine.ApplyInputEvent` gains a `PasteEvent` case mirroring the KeyEvent intercept chain; base-editor paste emits `InputChanged`; stale "paste not routed" comment removed. **Terminal-safety verified by reviewer:** pasted escape bytes are neutralized on the render path (`TextBuffer.Render`/`MaskLine` build via the sanitizing `Segment` ctor — `Segment.Raw` is NOT on the paste path). Reviewer note (pre-existing, not §4): `_userEdited` has no runtime reader — secret masking is unconditional on `_isSecret`, so "default→buffer masking" coincides (buffer==default before edit); security outcome holds. **No HITL needed** (no raw-mode/real-terminal behaviour changed; headless tests cover it). Round 1 clean. |
-| 5 | Multi-select Back via '[' | `<§5 hash>` | 856 (848 + 8) | **The one contended edit** — REVERSES the shipped "MultiSelectRequest SHALL continue to omit AllowBack". `MultiSelectRequest` gains `AllowBack` (mirrors SelectRequest ctor pattern; `params` ctors omit it). One `[`-Back branch in `Dialog.HandleKey` (before type-to-filter, gated `_allowBack && _filterText.Length==0 && (List.MultiSelect \|\| !_hasMoved)`): multi-select fires at any time (Space-toggle doesn't set `_hasMoved`), select/choice only before movement (like Backspace). `Terminal.MultiSelectAsync` passes `allowBack: req.AllowBack`; `OpenModalAsync` already maps Back→`DialogOutcome.Back` (Back returns `default!`/null Value — consumer must null-check). Removed the obsolete `MultiSelectRequestDoesNotHaveAllowBackProperty` test (pinned the reversed contract). Reviewer: approve, 6 dims clean; folded in 2 of 3 nits (arrow-then-`[` regression guard + doc clause). Architectural note: the multi-vs-single suppression divergence is now load-bearing and lives in the `List.MultiSelect` predicate — the spot to revisit if a 4th dialog type appears. |
+| 5 | Multi-select Back via '[' | `7928485` | 856 (848 + 8) | **The one contended edit** — REVERSES the shipped "MultiSelectRequest SHALL continue to omit AllowBack". `MultiSelectRequest` gains `AllowBack` (mirrors SelectRequest ctor pattern; `params` ctors omit it). One `[`-Back branch in `Dialog.HandleKey` (before type-to-filter, gated `_allowBack && _filterText.Length==0 && (List.MultiSelect \|\| !_hasMoved)`): multi-select fires at any time (Space-toggle doesn't set `_hasMoved`), select/choice only before movement (like Backspace). `Terminal.MultiSelectAsync` passes `allowBack: req.AllowBack`; `OpenModalAsync` already maps Back→`DialogOutcome.Back` (Back returns `default!`/null Value — consumer must null-check). Removed the obsolete `MultiSelectRequestDoesNotHaveAllowBackProperty` test (pinned the reversed contract). Reviewer: approve, 6 dims clean; folded in 2 of 3 nits (arrow-then-`[` regression guard + doc clause). Architectural note: the multi-vs-single suppression divergence is now load-bearing and lives in the `List.MultiSelect` predicate — the spot to revisit if a 4th dialog type appears. |
+| 6 | Sample migration onto the new Line factories | `<§6 hash>` | 856 (unchanged — samples only) | `WizardRenderer.cs` 13 single-style `LineBuilder` sites → `Line.Bold/Dim/Fg` (0 `LineBuilder` left); `Program.cs` 22 migrated, 11 multi-segment chains correctly left (`.Bold().Text()`, `.Text().Bold()`, an `.Italic()` site with no factory). 6.3 optional `AppendRule`/`AppendLine` demo skipped (no natural fit — not forced). Equivalence is the §1-proven `Line.X(s) ≡ LineBuilder().X(s).Build()`. Reviewer: approve, all dims clean. |
 
 ## Decisions & deviations
 
@@ -40,7 +41,7 @@ Narrative log of anything that wasn't a straight read-off-the-spec-and-implement
 Anything that can't be settled by automated gates. For each: section reference, exact copy-pasteable command, what the user should see, and current status.
 
 - **§4 — PasteEvent into the input editor — NOT NEEDED (resolved 2026-05-29).** Reviewer confirmed §4 changes no raw-mode/real-terminal behaviour; the intercept-chain routing, caret/wrap, secret-default flip, and the pasted-escape sanitization are all fully covered by headless tests. No real-terminal eyeball required.
-- **§5 — `[`-as-Back keybinding (possible HITL).** Multi-select Back via `[` is fully testable headlessly, but a real-terminal confirmation that `[` doesn't collide with any list interaction may be worth a quick eyeball.
+- **§5 — `[`-as-Back keybinding — NOT NEEDED (resolved 2026-05-29).** Multi-select Back via `[` is fully covered headlessly (8 tests incl. survives-toggle and survives-arrow-move); reviewer approved with no real-terminal flag. The `[` binding is gated behind opt-in `AllowBack=true` and multi-select dialogs don't type-to-filter, so no key-collision risk. No eyeball required.
 
 *(Concrete commands/expected-output added when the relevant section lands and the need is confirmed.)*
 
@@ -62,10 +63,9 @@ Surface gaps for future changes. Link to memory files where the constraint is en
 
 ## Resume point
 
-> **Currently at §6.1 — Sample migration.** §1–§5 shipped (856 tests). Next: brief the `worker` on
-> §6 — migrate the single-style `new LineBuilder().Bold(s)/.Dim(s)/.Fg(s,color).Build()` sites in
-> `samples/Dcli.Demo.DmonWizard/Engine/WizardRenderer.cs` (~10) and `samples/Dcli.Demo/Program.cs`
-> (~14) onto the new `Line.Bold/Dim/Fg` factories (§1); leave multi-segment `LineBuilder` sites
-> untouched; optionally demo `AppendRule`/`Collapsible.AppendLine` in `Program.cs` (minimal). Samples
-> only — no production code. Then §7: gates + `0.2.0-rc.3` version bump in both `.csproj` + `dotnet
-> pack` + record per-section hashes here.
+> **Currently at §7.1 — Validation & packaging.** §1–§6 shipped (856 tests). Final section, mostly
+> orchestrator-direct (no feature code): run all four gates against the version bump, bump `Version`
+> `0.2.0-rc.2 → 0.2.0-rc.3` in `src/Dcli/Dcli.csproj` AND `src/Dcli.Testing/Dcli.Testing.csproj`,
+> `dotnet pack -c Release` → expect `dcli.0.2.0-rc.3.{nupkg,snupkg}` + `dcli.testing.0.2.0-rc.3.{nupkg,snupkg}`,
+> then this DEVLOG's per-section hashes are already recorded. After §7 commits, freeze the DEVLOG
+> (`/devlog freeze`) and propose `/opsx:archive` — do NOT archive without user confirmation.

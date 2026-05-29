@@ -52,11 +52,11 @@
 
 ## 6. Sample migration onto the new Line factories
 
-- [ ] 6.1 Replace the single-style `new LineBuilder().Bold(s)/.Dim(s)/.Fg(s, color).Build()` sites in `samples/Dcli.Demo.DmonWizard/Engine/WizardRenderer.cs` (~10 sites) with `Line.Bold(s)` / `Line.Dim(s)` / `Line.Fg(s, color)`.
-- [ ] 6.2 Replace the single-style `new LineBuilder()....Build()` label sites in `samples/Dcli.Demo/Program.cs` (~14 sites) with the corresponding `Line.Bold/Dim/Fg` factories.
-- [ ] 6.3 Optionally demonstrate `AppendRule` and/or incremental `Collapsible.AppendLine` in `Program.cs` where it tightens the demo (keep minimal; samples-only).
-- [ ] 6.4 Confirm samples build; multi-segment `LineBuilder` sites (not single-style) are left untouched.
-- [ ] 6.5 Build + test + format gates clean for this section.
+- [x] 6.1 Replace the single-style `new LineBuilder().Bold(s)/.Dim(s)/.Fg(s, color).Build()` sites in `samples/Dcli.Demo.DmonWizard/Engine/WizardRenderer.cs` (~10 sites) with `Line.Bold(s)` / `Line.Dim(s)` / `Line.Fg(s, color)`.
+- [x] 6.2 Replace the single-style `new LineBuilder()....Build()` label sites in `samples/Dcli.Demo/Program.cs` (~14 sites) with the corresponding `Line.Bold/Dim/Fg` factories.
+- [x] 6.3 Optionally demonstrate `AppendRule` and/or incremental `Collapsible.AppendLine` in `Program.cs` where it tightens the demo (keep minimal; samples-only).
+- [x] 6.4 Confirm samples build; multi-segment `LineBuilder` sites (not single-style) are left untouched.
+- [x] 6.5 Build + test + format gates clean for this section.
 
 ## 7. Validation & packaging
 

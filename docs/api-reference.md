@@ -204,7 +204,9 @@ Structural (sequence) equality over segments. No implicit `string` → `Line` co
 
 ### Segment
 
-`public record Segment(string Text, Style Style = default)` — text emitted verbatim, no markup.
+`public record Segment(string Text, Style Style = default)` — text is **sanitized at construction**: whitespace controls (`\t \n \v \f \r`) become a single space; other C0/C1/DEL bytes are stripped (or replaced with visible glyphs under `DCLI_SANITIZE_MODE=replace`). Bracket and markup characters are treated literally — never interpreted as directives. See [Sanitize by default](styled-text.md#sanitize-by-default).
+
+`static Segment Raw(string text)` — skips sanitization entirely; the caller is responsible for terminal integrity.
 
 ### Style
 
@@ -244,6 +246,7 @@ LineBuilder Bold(string s);  Italic(string s);  Underline(string s);
 LineBuilder Dim(string s);   Reverse(string s);  Strikethrough(string s);
 LineBuilder Fg(string s, Color foreground);
 LineBuilder Bg(string s, Color background);
+LineBuilder Raw(string s);                        // verbatim; skips sanitization
 Line        Build();
 ```
 

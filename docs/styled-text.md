@@ -23,8 +23,8 @@ var plain  = new Segment("hello");
 var styled = new Segment("hello", new Style(Foreground: Color.Named(Color.AnsiColor.Cyan)));
 ```
 
-Text is stored and emitted **verbatim** — no escape sequences or control characters are
-interpreted.
+Text is stored as provided and rendered as printable characters. Control and escape bytes are
+neutralized at construction — see [Sanitize by default](#sanitize-by-default) below.
 
 ### Line
 
@@ -142,11 +142,56 @@ Line line = new LineBuilder()
     .Build();
 ```
 
-## A note on sanitization
+## Sanitize by default
 
-Segment text is emitted verbatim. If your content comes from an untrusted source and may contain
-raw VT escape sequences, **sanitize it before wrapping it in a `Segment`** — dcli does not strip
-control characters from segment text in the current release.
+dcli sanitizes text at `Segment` construction — you never need to pre-clean consumer text before
+wrapping it in a `Segment` or passing it to `Line.FromText`/`LineBuilder`.
+
+**Two byte classes are neutralized:**
+
+| Class | Bytes | Default action |
+| --- | --- | --- |
+| Whitespace controls | `\t \n \v \f \r` | Replaced with a single space |
+| Other C0/C1/DEL | `U+0000–U+0008`, `U+000E–U+001F`, `U+007F`, `U+0080–U+009F` | Stripped (removed) |
+
+Ordinary printable text — including multi-byte UTF-8, CJK characters, emoji, and combining marks
+— is completely unaffected.
+
+### Raw (verbatim) escape hatch
+
+When you deliberately need to emit pre-rendered ANSI sequences — for example, to relay a
+hyperlink OSC sequence or a pre-colored block — use `Segment.Raw` or `LineBuilder.Raw`:
+
+```csharp
+// Segment: skip sanitization entirely for one run
+var raw = Segment.Raw("\x1b[1mBold via raw ANSI\x1b[m");
+
+// LineBuilder: mix sanitized and raw segments in one line
+Line line = new LineBuilder()
+    .Text("Status: ")
+    .Raw("\x1b[32mOK\x1b[m")   // verbatim; caller owns terminal integrity
+    .Build();
+```
+
+The caller is responsible for terminal integrity when using raw segments — an unclosed SGR or
+half-written OSC sequence will corrupt the output.
+
+### Debugging with DCLI_SANITIZE_MODE
+
+Set the environment variable `DCLI_SANITIZE_MODE=replace` before launching your process to make
+stripped bytes visible rather than silently removed:
+
+```sh
+DCLI_SANITIZE_MODE=replace dotnet run
+```
+
+In `replace` mode, each stripped C0/C1/DEL byte is substituted with its Unicode Control-Picture
+glyph (e.g. `ESC` → `␛`, `NUL` → `␀`), making it easy to spot where unexpected control bytes
+were injected into your text. The default is `strip`.
+
+> **Why does this matter?** Without sanitization, a raw VT escape sequence embedded in consumer
+> text could defeat the synchronized-output fence, reposition the cursor, or trigger an OSC
+> handler — silently breaking the rendering invariants dcli relies on.
 
 ## See also
 

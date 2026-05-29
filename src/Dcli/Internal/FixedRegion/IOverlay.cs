@@ -81,6 +81,16 @@ internal interface IOverlay
     bool HandleKey(KeyEvent key);
 
     /// <summary>
+    /// Attempts to handle a paste event.
+    /// </summary>
+    /// <param name="text">The pasted text.</param>
+    /// <returns>
+    /// <see langword="true"/> if the overlay consumed the paste and the event must not be forwarded
+    /// to the base editor; <see langword="false"/> if the paste falls through to the next handler.
+    /// </returns>
+    bool HandlePaste(string text);
+
+    /// <summary>
     /// Renders the overlay rows at the given terminal width.
     /// Delegates to the hosted <see cref="ScrollableList.Render"/>.
     /// </summary>

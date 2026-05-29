@@ -11,6 +11,12 @@ namespace Dcli.Internal.Scrollback;
 /// collapse operation — the spec forbids re-collapse.
 /// </para>
 /// <para>
+/// <strong>Incremental append:</strong> while still collapsed-and-live, callers may append
+/// lines to the hidden set via <see cref="AppendHidden"/>. The caller
+/// (<see cref="ScrollbackModel"/>) guarantees this is invoked only while the collapsible is
+/// collapsed and present in the live list.
+/// </para>
+/// <para>
 /// <strong>Oversized expansion:</strong> if the expanded height would exceed the live-window
 /// cap the expansion is handled by <see cref="ScrollbackModel.ExpandCollapsible"/> instead
 /// of being performed inline. The collapsible stays a collapsed marker in the live list and
@@ -30,7 +36,8 @@ namespace Dcli.Internal.Scrollback;
 internal sealed class Collapsible : ILineObject
 {
     private readonly Line _summary;
-    private readonly IReadOnlyList<Line> _hiddenLines;
+    // Owned mutable copy — callers cannot mutate the original list after construction.
+    private readonly List<Line> _hiddenLines;
 
     /// <summary>Whether <see cref="Expand"/> has been called (successfully).</summary>
     internal bool IsExpanded { get; private set; }
@@ -39,12 +46,25 @@ internal sealed class Collapsible : ILineObject
     /// Initialises a new <see cref="Collapsible"/> in the collapsed state.
     /// </summary>
     /// <param name="summary">The single summary line shown while collapsed.</param>
-    /// <param name="hiddenLines">The lines revealed on expansion.</param>
+    /// <param name="hiddenLines">The lines revealed on expansion. Copied at construction so
+    /// off-thread mutations to the original list cannot affect this object.</param>
     internal Collapsible(Line summary, IReadOnlyList<Line> hiddenLines)
     {
         ArgumentNullException.ThrowIfNull(hiddenLines);
         _summary = summary;
-        _hiddenLines = hiddenLines;
+        _hiddenLines = hiddenLines.ToList();
+    }
+
+    /// <summary>
+    /// Appends <paramref name="line"/> to the hidden-line set.
+    /// </summary>
+    /// <remarks>
+    /// The caller (<see cref="ScrollbackModel"/>) guarantees this is invoked only while the
+    /// block is collapsed and present in the live list. Guards live in the model, not here.
+    /// </remarks>
+    internal void AppendHidden(Line line)
+    {
+        _hiddenLines.Add(line);
     }
 
     /// <summary>

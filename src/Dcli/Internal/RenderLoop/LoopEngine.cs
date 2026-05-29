@@ -400,8 +400,6 @@ internal sealed class LoopEngine : IDisposable
                     // Emit InputChanged when the editor text changed due to user input.
                     // This covers Insert, Backspace, Delete, and history recall (Up/Down),
                     // but excludes pure caret movement (Left/Right/Home/End/MoveUp/MoveDown).
-                    // PasteEvent is not currently routed to the editor — wiring paste is out of
-                    // Chunk C scope; paste would need a separate InputChanged trigger when added.
                     if (consumed && editor.Text != textBefore)
                         _outbound.Writer.TryWrite(new InputChanged(editor.Text));
                 }
@@ -440,6 +438,31 @@ internal sealed class LoopEngine : IDisposable
                 _snapshotColumns = re.Columns;
                 _snapshotRows = re.Rows;
                 _outbound.Writer.TryWrite(new Resized(re.Columns, re.Rows));
+                break;
+
+            case PasteEvent pe:
+                {
+                    // Intercept-chain: active overlay is the FRONT (first refusal).
+                    bool pasteConsumed = false;
+                    if (_model.ActiveOverlay is { } pasteOverlay)
+                    {
+                        pasteConsumed = pasteOverlay.HandlePaste(pe.Text);
+                        if (pasteOverlay.IsDismissed)
+                        {
+                            _model.PendingModalCompletion?.Invoke();
+                            _model.ClearOverlay();
+                        }
+                    }
+
+                    if (!pasteConsumed)
+                    {
+                        TextBuffer editor = _model.FixedRegion.Editor;
+                        string textBefore = editor.Text;
+                        editor.Insert(pe.Text);
+                        if (editor.Text != textBefore)
+                            _outbound.Writer.TryWrite(new InputChanged(editor.Text));
+                    }
+                }
                 break;
         }
     }

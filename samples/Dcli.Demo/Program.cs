@@ -26,22 +26,18 @@ t.Scrollback.Append(new LineBuilder()
     .Text(" -- smoke tour")
     .Build());
 
-t.Scrollback.Append(new LineBuilder()
-    .Fg("  Styled output flows into the real terminal scrollback.", Color.Named(Color.AnsiColor.Cyan))
-    .Build());
+t.Scrollback.Append(Line.Fg("  Styled output flows into the real terminal scrollback.", Color.Named(Color.AnsiColor.Cyan)));
 
 t.Scrollback.Append("  A small interactive region is pinned at the bottom.");
 
-t.Scrollback.Append(new LineBuilder()
-    .Dim("  Content above the commit horizon is frozen and terminal-owned.")
-    .Build());
+t.Scrollback.Append(Line.Dim("  Content above the commit horizon is frozen and terminal-owned."));
 
 await Task.Delay(TimeSpan.FromMilliseconds(800));
 
 // ── Phase 2: Streaming live block (~3s) ──────────────────────────────────────
 
-t.Status.SetRows(new LineBuilder().Dim("Phase 2/6 -- streaming live block").Build());
-t.Scrollback.Append(new LineBuilder().Bold("--- Streaming live block ---").Build());
+t.Status.SetRows(Line.Dim("Phase 2/6 -- streaming live block"));
+t.Scrollback.Append(Line.Bold("--- Streaming live block ---"));
 
 ILiveBlock live = t.Scrollback.BeginLive();
 
@@ -63,31 +59,29 @@ await Task.Delay(TimeSpan.FromMilliseconds(300));
 live.SetContent(
 [
     new LineBuilder().Bold("Response (final): ").Text("Hello from dcli!").Build(),
-    new LineBuilder().Dim("  (SetContent replaced the streamed buffer)").Build(),
+    Line.Dim("  (SetContent replaced the streamed buffer)"),
 ]);
 
 await Task.Delay(TimeSpan.FromMilliseconds(400));
 live.Commit();
 
-t.Scrollback.Append(new LineBuilder().Dim("  Live block committed.").Build());
+t.Scrollback.Append(Line.Dim("  Live block committed."));
 await Task.Delay(TimeSpan.FromMilliseconds(300));
 
 // ── Phase 3: Collapsible "thinking" block (~2s) ───────────────────────────────
 
-t.Status.SetRows(new LineBuilder().Dim("Phase 3/6 -- collapsible block").Build());
-t.Scrollback.Append(new LineBuilder().Bold("--- Collapsible block ---").Build());
+t.Status.SetRows(Line.Dim("Phase 3/6 -- collapsible block"));
+t.Scrollback.Append(Line.Bold("--- Collapsible block ---"));
 
 // Build 24 hidden lines so the expand is visually obvious.
 List<Line> hiddenLines = [];
 for (int i = 1; i <= 24; i++)
 {
-    hiddenLines.Add(new LineBuilder()
-        .Dim($"  thinking line {i,2}: reasoning about token {i * 7}...")
-        .Build());
+    hiddenLines.Add(Line.Dim($"  thinking line {i,2}: reasoning about token {i * 7}..."));
 }
 
 ICollapsible collapsed = t.Scrollback.BeginCollapsible(
-    summary: new LineBuilder().Dim("> thinking (24 lines hidden)").Build(),
+    summary: Line.Dim("> thinking (24 lines hidden)"),
     hiddenLines: hiddenLines);
 
 await Task.Delay(TimeSpan.FromMilliseconds(1000));
@@ -106,7 +100,7 @@ t.Status.SetRows(new LineBuilder()
     .Text(" and you would see suggestions; Esc to dismiss")
     .Build());
 
-t.Scrollback.Append(new LineBuilder().Bold("--- Autocomplete overlay ---").Build());
+t.Scrollback.Append(Line.Bold("--- Autocomplete overlay ---"));
 
 AutocompleteCandidate[] candidates =
 [
@@ -125,15 +119,15 @@ t.Autocomplete.Show(candidates);
 await Task.Delay(TimeSpan.FromMilliseconds(1500));
 t.Autocomplete.Hide();
 
-t.Scrollback.Append(new LineBuilder().Dim("  Autocomplete dismissed.").Build());
+t.Scrollback.Append(Line.Dim("  Autocomplete dismissed."));
 await Task.Delay(TimeSpan.FromMilliseconds(300));
 
 // ── Phase 5: Wizard chain (Select → Input → MultiSelect → Choice) ────────────
 // Dialogs require keyboard input to submit. The demo auto-cancels each via a
 // CancellationTokenSource timeout so the tour is fully self-driving.
 
-t.Status.SetRows(new LineBuilder().Dim("Phase 5/6 -- wizard chain (auto-cancels after 1.5s each)").Build());
-t.Scrollback.Append(new LineBuilder().Bold("--- Wizard chain ---").Build());
+t.Status.SetRows(Line.Dim("Phase 5/6 -- wizard chain (auto-cancels after 1.5s each)"));
+t.Scrollback.Append(Line.Bold("--- Wizard chain ---"));
 
 // 5a: Select
 {
@@ -143,11 +137,11 @@ t.Scrollback.Append(new LineBuilder().Bold("--- Wizard chain ---").Build());
         new SelectRequest(
             Items:
             [
-                new LineBuilder().Fg("C#", Color.Named(Color.AnsiColor.Cyan)).Build(),
-                new LineBuilder().Fg("Go", Color.Named(Color.AnsiColor.Yellow)).Build(),
-                new LineBuilder().Fg("Rust", Color.Named(Color.AnsiColor.Red)).Build(),
+                Line.Fg("C#", Color.Named(Color.AnsiColor.Cyan)),
+                Line.Fg("Go", Color.Named(Color.AnsiColor.Yellow)),
+                Line.Fg("Rust", Color.Named(Color.AnsiColor.Red)),
             ],
-            Title: new LineBuilder().Bold("Pick your favourite language").Build()),
+            Title: Line.Bold("Pick your favourite language")),
         cts.Token);
 
     string langText = lang.Outcome == DialogOutcome.Submitted
@@ -167,7 +161,7 @@ await Task.Delay(TimeSpan.FromMilliseconds(200));
 
     DialogResult<string> name = await t.InputAsync(
         new InputRequest(
-            Prompt: new LineBuilder().Bold("What's your name?").Build(),
+            Prompt: Line.Bold("What's your name?"),
             Default: "ada"),
         cts.Token);
 
@@ -195,7 +189,7 @@ await Task.Delay(TimeSpan.FromMilliseconds(200));
                 Line.FromText("Autocomplete overlay"),
                 Line.FromText("Dialog wizard chain"),
             ],
-            Title: new LineBuilder().Bold("Which features interest you?").Build()),
+            Title: Line.Bold("Which features interest you?")),
         cts.Token);
 
     string featText = features.Outcome == DialogOutcome.Submitted
@@ -218,13 +212,13 @@ await Task.Delay(TimeSpan.FromMilliseconds(200));
         new ChoiceRequest(
             Options:
             [
-                new LineBuilder().Fg("Yes", Color.Named(Color.AnsiColor.Green)).Build(),
-                new LineBuilder().Fg("No", Color.Named(Color.AnsiColor.Red)).Build(),
+                Line.Fg("Yes", Color.Named(Color.AnsiColor.Green)),
+                Line.Fg("No", Color.Named(Color.AnsiColor.Red)),
             ],
             Prompt:
             [
-                new LineBuilder().Bold("Run the tour again?").Build(),
-                new LineBuilder().Dim("Arrow keys to navigate; Enter to confirm.").Build(),
+                Line.Bold("Run the tour again?"),
+                Line.Dim("Arrow keys to navigate; Enter to confirm."),
             ]),
         cts.Token);
 
@@ -241,14 +235,10 @@ await Task.Delay(TimeSpan.FromMilliseconds(300));
 
 // ── Phase 6: Finale (~3s) ────────────────────────────────────────────────────
 
-t.Status.SetRows(new LineBuilder()
-    .Fg("DONE - Tour complete - press Ctrl+C to exit, or wait 3s.", Color.Named(Color.AnsiColor.Green))
-    .Build());
+t.Status.SetRows(Line.Fg("DONE - Tour complete - press Ctrl+C to exit, or wait 3s.", Color.Named(Color.AnsiColor.Green)));
 
-t.Scrollback.Append(new LineBuilder().Bold("--- Tour complete ---").Build());
-t.Scrollback.Append(new LineBuilder()
-    .Fg("All dcli public surfaces exercised successfully.", Color.Named(Color.AnsiColor.BrightGreen))
-    .Build());
+t.Scrollback.Append(Line.Bold("--- Tour complete ---"));
+t.Scrollback.Append(Line.Fg("All dcli public surfaces exercised successfully.", Color.Named(Color.AnsiColor.BrightGreen)));
 
 await Task.Delay(TimeSpan.FromSeconds(3));
 

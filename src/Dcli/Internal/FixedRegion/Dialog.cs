@@ -53,9 +53,12 @@ internal sealed class Dialog : IModalOverlay
     /// <c>List.MaxRows</c> is reduced accordingly so the total output never exceeds the budget.
     /// </param>
     /// <param name="allowBack">
-    /// When <see langword="true"/>, Backspace closes the dialog with
-    /// <see cref="OverlayCloseKind.Back"/> provided the user has not yet moved the selection
-    /// cursor and the filter text is empty. Defaults to <see langword="false"/>.
+    /// When <see langword="true"/>, <c>[</c> closes the dialog with
+    /// <see cref="OverlayCloseKind.Back"/> at any time for multi-select (toggling items with
+    /// Space does not disarm it). For single-select/choice, <c>[</c> is additionally accepted as
+    /// a secondary Back key subject to the same movement-suppression as Backspace (only before
+    /// the selection cursor has moved and the filter is empty). Backspace also fires Back for
+    /// single-select/choice under those same conditions. Defaults to <see langword="false"/>.
     /// </param>
     internal Dialog(bool multiSelect = false, bool modal = true, bool typeToFilter = false, IReadOnlyList<Line>? title = null, bool allowBack = false)
     {
@@ -110,6 +113,12 @@ internal sealed class Dialog : IModalOverlay
     ///   has not yet moved the selection cursor, and <see cref="FilterText"/> is empty →
     ///   <see cref="CloseRequest"/> = Back; consumed. (Does not fire when the cursor has moved or
     ///   filter text is present, so it cannot mask the type-to-filter Backspace-trim behaviour.)</description></item>
+    ///   <item><description><c>[</c> (U+005B) when constructed with <c>allowBack: true</c> and
+    ///   <see cref="FilterText"/> is empty → <see cref="CloseRequest"/> = Back; consumed.
+    ///   For multi-select (<see cref="ScrollableList.MultiSelect"/> is <see langword="true"/>),
+    ///   fires at any time (Space-toggle does not disarm it). For single-select/choice,
+    ///   additionally requires that the selection cursor has not yet moved (same movement-
+    ///   suppression as Backspace).</description></item>
     ///   <item><description><c>↑</c> / <c>↓</c> → navigate the list (sets the internal moved flag); consumed.</description></item>
     ///   <item><description>Space (U+0020) when <see cref="ScrollableList.MultiSelect"/> → toggle current; consumed.</description></item>
     ///   <item><description>Printable rune (≥ U+0020, ≠ U+007F) when <see cref="TypeToFilter"/> → append to <see cref="FilterText"/>; consumed. Backspace → trim <see cref="FilterText"/>; consumed.</description></item>
@@ -138,6 +147,20 @@ internal sealed class Dialog : IModalOverlay
         //    ensures this branch cannot mask the type-to-filter Backspace-trim path (rule 5).
         if (key.Code.Kind == KeyCode.KeyCodeKind.Named && key.Code.NamedValue == NamedKey.Backspace &&
             _allowBack && !_hasMoved && _filterText.Length == 0)
+        {
+            CloseRequest = OverlayCloseKind.Back;
+            return true;
+        }
+
+        // 3.5. '['-Back: fires when AllowBack is true and filter text is empty. For multi-select,
+        //      fires at any time — Space-toggle does not disarm it. For single-select/choice,
+        //      additionally requires the cursor has not yet moved (matching the movement-suppression
+        //      of the Backspace-Back branch above). Placed before type-to-filter so '[' cannot be
+        //      appended to the filter string when it should produce Back.
+        if (key.Code.Kind == KeyCode.KeyCodeKind.UnicodeScalar &&
+            key.Code.RuneValue.Value == '[' &&
+            _allowBack && _filterText.Length == 0 &&
+            (List.MultiSelect || !_hasMoved))
         {
             CloseRequest = OverlayCloseKind.Back;
             return true;
@@ -194,6 +217,12 @@ internal sealed class Dialog : IModalOverlay
         // 8. Non-modal fall-through
         return false;
     }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// A modal dialog captures all input including paste. A non-modal dialog passes paste through.
+    /// </remarks>
+    public bool HandlePaste(string text) => Modal;
 
     /// <inheritdoc/>
     /// <remarks>

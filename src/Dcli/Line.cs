@@ -60,6 +60,120 @@ public sealed record Line(IReadOnlyList<Segment> Segments)
         new(new[] { new Segment(text ?? throw new ArgumentNullException(nameof(text)), style ?? default) });
 
     /// <summary>
+    /// Shorthand for a single <b>bold</b> line — equivalent to
+    /// <c>Line.FromText(text, new Style(Format: Format.Bold))</c>.
+    /// <para>
+    /// The text is routed through the ordinary sanitizing <see cref="Segment"/> constructor:
+    /// control/escape bytes are stripped (or replaced) exactly as they would be under
+    /// <see cref="FromText"/>.
+    /// </para>
+    /// <para>
+    /// Only four single-style shorthands exist on <see cref="Line"/>: <see cref="Bold"/>,
+    /// <see cref="Dim"/>, <see cref="Fg"/>, and <see cref="Bg"/>. There is deliberately no
+    /// <c>Line.Italic</c>, <c>Line.Underline</c>, <c>Line.Reverse</c>,
+    /// <c>Line.Strikethrough</c>, or <c>Line.Raw</c> factory. <see cref="Segment.Raw"/> and
+    /// <see cref="LineBuilder"/> remain the only verbatim/escape seams.
+    /// No implicit <see langword="string"/>→<see cref="Line"/> conversion is defined.
+    /// </para>
+    /// </summary>
+    /// <param name="text">The text content. Must not be <see langword="null"/>.</param>
+    /// <returns>
+    /// A <see cref="Line"/> containing a single bold <see cref="Segment"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="text"/> is <see langword="null"/>.
+    /// </exception>
+    public static Line Bold(string text) =>
+        FromText(text, new Style(Format: Format.Bold));
+
+    /// <summary>
+    /// Shorthand for a single <b>dim</b> line — equivalent to
+    /// <c>Line.FromText(text, new Style(Format: Format.Dim))</c>.
+    /// <para>
+    /// The text is routed through the ordinary sanitizing <see cref="Segment"/> constructor:
+    /// control/escape bytes are stripped (or replaced) exactly as they would be under
+    /// <see cref="FromText"/>.
+    /// </para>
+    /// <para>
+    /// Only four single-style shorthands exist on <see cref="Line"/>: <see cref="Bold"/>,
+    /// <see cref="Dim"/>, <see cref="Fg"/>, and <see cref="Bg"/>. There is deliberately no
+    /// <c>Line.Italic</c>, <c>Line.Underline</c>, <c>Line.Reverse</c>,
+    /// <c>Line.Strikethrough</c>, or <c>Line.Raw</c> factory. <see cref="Segment.Raw"/> and
+    /// <see cref="LineBuilder"/> remain the only verbatim/escape seams.
+    /// No implicit <see langword="string"/>→<see cref="Line"/> conversion is defined.
+    /// </para>
+    /// </summary>
+    /// <param name="text">The text content. Must not be <see langword="null"/>.</param>
+    /// <returns>
+    /// A <see cref="Line"/> containing a single dim <see cref="Segment"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="text"/> is <see langword="null"/>.
+    /// </exception>
+    public static Line Dim(string text) =>
+        FromText(text, new Style(Format: Format.Dim));
+
+    /// <summary>
+    /// Shorthand for a single foreground-colored line — equivalent to
+    /// <c>Line.FromText(text, new Style(Foreground: foreground))</c>.
+    /// No format flags are set; <see cref="Style.Format"/> is <see cref="Format.None"/>.
+    /// <para>
+    /// The text is routed through the ordinary sanitizing <see cref="Segment"/> constructor:
+    /// control/escape bytes are stripped (or replaced) exactly as they would be under
+    /// <see cref="FromText"/>.
+    /// </para>
+    /// <para>
+    /// Only four single-style shorthands exist on <see cref="Line"/>: <see cref="Bold"/>,
+    /// <see cref="Dim"/>, <see cref="Fg"/>, and <see cref="Bg"/>. There is deliberately no
+    /// <c>Line.Italic</c>, <c>Line.Underline</c>, <c>Line.Reverse</c>,
+    /// <c>Line.Strikethrough</c>, or <c>Line.Raw</c> factory. <see cref="Segment.Raw"/> and
+    /// <see cref="LineBuilder"/> remain the only verbatim/escape seams.
+    /// No implicit <see langword="string"/>→<see cref="Line"/> conversion is defined.
+    /// </para>
+    /// </summary>
+    /// <param name="text">The text content. Must not be <see langword="null"/>.</param>
+    /// <param name="foreground">The foreground color to apply.</param>
+    /// <returns>
+    /// A <see cref="Line"/> containing a single foreground-colored <see cref="Segment"/>
+    /// with <see cref="Format.None"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="text"/> is <see langword="null"/>.
+    /// </exception>
+    public static Line Fg(string text, Color foreground) =>
+        FromText(text, new Style(Foreground: foreground));
+
+    /// <summary>
+    /// Shorthand for a single background-colored line — equivalent to
+    /// <c>Line.FromText(text, new Style(Background: background))</c>.
+    /// No format flags are set; <see cref="Style.Format"/> is <see cref="Format.None"/>.
+    /// <para>
+    /// The text is routed through the ordinary sanitizing <see cref="Segment"/> constructor:
+    /// control/escape bytes are stripped (or replaced) exactly as they would be under
+    /// <see cref="FromText"/>.
+    /// </para>
+    /// <para>
+    /// Only four single-style shorthands exist on <see cref="Line"/>: <see cref="Bold"/>,
+    /// <see cref="Dim"/>, <see cref="Fg"/>, and <see cref="Bg"/>. There is deliberately no
+    /// <c>Line.Italic</c>, <c>Line.Underline</c>, <c>Line.Reverse</c>,
+    /// <c>Line.Strikethrough</c>, or <c>Line.Raw</c> factory. <see cref="Segment.Raw"/> and
+    /// <see cref="LineBuilder"/> remain the only verbatim/escape seams.
+    /// No implicit <see langword="string"/>→<see cref="Line"/> conversion is defined.
+    /// </para>
+    /// </summary>
+    /// <param name="text">The text content. Must not be <see langword="null"/>.</param>
+    /// <param name="background">The background color to apply.</param>
+    /// <returns>
+    /// A <see cref="Line"/> containing a single background-colored <see cref="Segment"/>
+    /// with <see cref="Format.None"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="text"/> is <see langword="null"/>.
+    /// </exception>
+    public static Line Bg(string text, Color background) =>
+        FromText(text, new Style(Background: background));
+
+    /// <summary>
     /// Returns <see langword="true"/> when <paramref name="other"/> contains exactly the same
     /// segments in the same order.
     /// </summary>

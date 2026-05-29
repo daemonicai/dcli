@@ -727,6 +727,141 @@ public sealed class InputDialogTests
         await dialogTask;
     }
 
+    // ── §4 PasteEvent routing ─────────────────────────────────────────────────
+
+    // 4.4 — Paste inserts text at the caret in the base editor and the caret advances.
+    [Fact]
+    public async Task PasteInsertsTextAtCaretInBaseEditor()
+    {
+        (LoopEngine engine, VirtualClock clock, CapturingOutputSink sink) = CreateEngine();
+        try
+        {
+            engine.InputWriter.TryWrite(new PasteEvent("hello"));
+            await SettleAsync(engine, clock);
+
+            Assert.NotNull(sink.LastModel);
+            TextBuffer editor = sink.LastModel.FixedRegion.Editor;
+            Assert.Equal("hello", editor.Text);
+            // Caret must have advanced to the end of the inserted text.
+            Assert.Equal("hello".Length, editor.CaretIndex);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    // 4.5 — Paste of text wider than the available width wraps and caret lands correctly.
+    [Fact]
+    public async Task PasteWiderThanWidthWrapsAndCaretLandsAtEnd()
+    {
+        // Use a narrow width so a long paste forces wrapping.
+        (LoopEngine engine, VirtualClock clock, CapturingOutputSink sink) = CreateEngine(cols: 10);
+        try
+        {
+            // 25 chars — more than 2 rows at width=10.
+            string payload = "ABCDEFGHIJKLMNOPQRSTUVWXY";
+            engine.InputWriter.TryWrite(new PasteEvent(payload));
+            await SettleAsync(engine, clock);
+
+            Assert.NotNull(sink.LastModel);
+            TextBuffer editor = sink.LastModel.FixedRegion.Editor;
+            Assert.Equal(payload, editor.Text);
+            Assert.Equal(payload.Length, editor.CaretIndex);
+
+            // Render at width=10: must produce more than one visual row.
+            IReadOnlyList<Line> rows = editor.Render(width: 10, allottedHeight: 10).VisibleRows;
+            Assert.True(rows.Count > 1,
+                $"Expected wrapping to produce >1 row for {payload.Length}-char paste at width 10; got {rows.Count}");
+
+            // The caret visual position reported by the model must be in the last row.
+            (int caretRow, _) = sink.LastModel.CaretPosition!.Value;
+            // The fixed region's rows start at 0 in the frame; the editor occupies the last rows.
+            // We just need the caret row to be positive (beyond the first row) — confirming wrap.
+            Assert.True(caretRow > 0, $"Caret row should be > 0 after wrap; was {caretRow}");
+        }
+        finally { engine.Dispose(); }
+    }
+
+    // 4.6 — Paste as first interaction on IsSecret=true+Default flips masking and Submit returns
+    //        the real edited buffer (not the seeded default).
+    [Fact]
+    public async Task PasteAsFirstInteractionOnSecretDefaultFlipsMaskingAndSubmitReturnsBuffer()
+    {
+        (LoopEngine engine, VirtualClock clock, CapturingOutputSink sink) = CreateEngine();
+        try
+        {
+            Task<DialogResult<string>> task = PostInputDialog(engine, @default: "original", isSecret: true);
+            await SettleAsync(engine, clock);
+
+            // Before paste: default is seeded; _userEdited=false → masking uses default length (8 bullets).
+            RenderModel? beforeModel = sink.LastModel;
+            Assert.NotNull(beforeModel);
+
+            // Paste as the first user interaction.
+            engine.InputWriter.TryWrite(new PasteEvent("newpass"));
+            await SettleAsync(engine, clock);
+
+            // After paste: _userEdited=true → masking uses buffer width (original 8 + new 7 = 15 chars).
+            RenderModel? afterModel = sink.LastModel;
+            Assert.NotNull(afterModel);
+            string renderedText = string.Concat(
+                afterModel.FixedRegionRows.SelectMany(l => l.Segments).Select(s => s.Text));
+
+            // The rendered overlay must show bullets, not the clear-text content.
+            Assert.DoesNotContain("original", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain("newpass", renderedText, StringComparison.Ordinal);
+            Assert.Contains("•", renderedText, StringComparison.Ordinal);
+
+            // The bullets must reflect the buffer content ("originalnewpass" = 15 chars → 15 bullets).
+            int bulletCount = renderedText.Count(c => c == '•');
+            Assert.Equal("original".Length + "newpass".Length, bulletCount);
+
+            // Submit must return the actual buffer text (not the original default).
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Enter), Modifiers.None));
+            await SettleAsync(engine, clock);
+            DialogResult<string> result = await task;
+
+            Assert.Equal(DialogOutcome.Submitted, result.Outcome);
+            Assert.Equal("originalnewpass", result.Value);
+        }
+        finally { engine.Dispose(); }
+    }
+
+    // 4.7 — Paste is consumed by an active modal dialog and does NOT leak to the base editor.
+    [Fact]
+    public async Task PasteConsumedByModalDialogDoesNotLeakToBaseEditor()
+    {
+        (LoopEngine engine, VirtualClock clock, CapturingOutputSink sink) = CreateEngine();
+        try
+        {
+            // Type something into the base editor first so we have a baseline.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.FromRune(new Rune('x')), Modifiers.None));
+            await SettleAsync(engine, clock);
+            Assert.Equal("x", sink.LastModel!.FixedRegion.Editor.Text);
+
+            // Open a modal select dialog.
+            Dialog selectDialog = new(multiSelect: false, modal: true);
+            selectDialog.List.SetItems([PlainLine("A"), PlainLine("B")]);
+            TaskCompletionSource<int> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            engine.Post(new OpenDialogCommand(
+                selectDialog,
+                () => tcs.TrySetResult(selectDialog.CloseRequest == OverlayCloseKind.Submit ? 1 : 0),
+                () => tcs.TrySetResult(-1)));
+            await SettleAsync(engine, clock);
+
+            // Paste while modal dialog is active.
+            engine.InputWriter.TryWrite(new PasteEvent("should-not-appear"));
+            await SettleAsync(engine, clock);
+
+            // The base editor must be unchanged — paste was consumed by the modal dialog.
+            Assert.Equal("x", sink.LastModel!.FixedRegion.Editor.Text);
+
+            // Dismiss the dialog.
+            engine.InputWriter.TryWrite(new KeyEvent(KeyCode.Named(NamedKey.Escape), Modifiers.None));
+            await SettleAsync(engine, clock);
+            await tcs.Task;
+        }
+        finally { engine.Dispose(); }
+    }
+
     // ── Helper ────────────────────────────────────────────────────────────────
 
     private static int FindRowIndexContaining(IReadOnlyList<Line> rows, string needle)

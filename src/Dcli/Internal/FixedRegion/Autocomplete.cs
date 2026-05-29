@@ -114,6 +114,14 @@ internal sealed class Autocomplete : IOverlay
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Autocomplete is non-modal: the caret stays in the base input editor while the dropdown
+    /// is visible, so paste belongs to the base editor. Returning <see langword="false"/> lets
+    /// the resulting <see cref="InputChanged"/> re-drive autocomplete as normal.
+    /// </remarks>
+    public bool HandlePaste(string text) => false;
+
+    /// <inheritdoc/>
     public IReadOnlyList<Line> Render(int width) => _list.Render(width);
 
     // ── Public API ────────────────────────────────────────────────────────────

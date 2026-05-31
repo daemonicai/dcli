@@ -136,6 +136,43 @@ public sealed class DialogRequestsTests
         Assert.Null(req.Prompt);
     }
 
+    // ── back-nav-input §2.1 — InputRequest.AllowBack default and settable ───────
+
+    [Fact]
+    public void InputRequestAllowBackDefaultsToFalse()
+    {
+        InputRequest req = new();
+        Assert.False(req.AllowBack);
+    }
+
+    [Fact]
+    public void InputRequestAllowBackSetOnPrimaryCtorIReadOnlyListLine()
+    {
+        InputRequest req = new(Prompt: (IReadOnlyList<Line>?)null, AllowBack: true);
+        Assert.True(req.AllowBack);
+    }
+
+    [Fact]
+    public void InputRequestAllowBackSetOnLineCtor()
+    {
+        InputRequest req = new(Prompt: (Line?)null, AllowBack: true);
+        Assert.True(req.AllowBack);
+    }
+
+    [Fact]
+    public void InputRequestAllowBackSetOnStringCtor()
+    {
+        InputRequest req = new(prompt: (string?)null, allowBack: true);
+        Assert.True(req.AllowBack);
+    }
+
+    [Fact]
+    public void InputRequestAllowBackSetOnIReadOnlyListStringCtor()
+    {
+        InputRequest req = new(prompt: (IReadOnlyList<string>?)null, allowBack: true);
+        Assert.True(req.AllowBack);
+    }
+
     // ── §3.6 — Null string preamble convenience ctor produces null property ──
 
     [Fact]

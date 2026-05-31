@@ -221,7 +221,7 @@ public sealed class Terminal : ITerminal
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(req);
-        InputDialog dialog = new(req.Prompt, req.Default, req.IsSecret);
+        InputDialog dialog = new(req.Prompt, req.Default, req.IsSecret, req.AllowBack);
         return OpenModalAsync<string>(
             dialog,
             () => new DialogResult<string>(DialogOutcome.Submitted, dialog.Text),

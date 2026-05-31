@@ -39,6 +39,6 @@
 
 ## 3. Validation & packaging
 
-- [ ] 3.1 Bump `<Version>` in `src/Dcli/Dcli.csproj` from `0.2.0-rc.3` to `0.2.0-rc.4`.
-- [ ] 3.2 Gates: `dotnet build` clean (warnings-as-errors), `dotnet test` green,
+- [x] 3.1 Bump `<Version>` in `src/Dcli/Dcli.csproj` from `0.2.0-rc.3` to `0.2.0-rc.4`.
+- [x] 3.2 Gates: `dotnet build` clean (warnings-as-errors), `dotnet test` green,
   `openspec validate back-nav-input --strict`, `dotnet format --verify-no-changes` clean.

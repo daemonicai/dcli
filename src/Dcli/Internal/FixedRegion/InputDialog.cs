@@ -23,6 +23,7 @@ internal sealed class InputDialog : IModalOverlay
 {
     private readonly TextBuffer _buffer;
     private readonly bool _isSecret;
+    private readonly bool _allowBack;
     // True once the user makes any buffer-mutating keystroke (insert, Backspace, Delete).
     // Sticky: never reset to false after being set. Used so that masking semantics are
     // consistent: _userEdited=false means the buffer still holds the seeded Default exactly
@@ -42,10 +43,15 @@ internal sealed class InputDialog : IModalOverlay
     /// <param name="prompt">Optional preamble lines rendered above the text field.</param>
     /// <param name="default">Optional pre-filled text; the caret starts at its end.</param>
     /// <param name="isSecret">When <see langword="true"/>, rendered characters are masked.</param>
-    internal InputDialog(IReadOnlyList<Line>? prompt, string? @default, bool isSecret)
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, Backspace on an empty buffer closes the dialog with
+    /// <see cref="OverlayCloseKind.Back"/>.
+    /// </param>
+    internal InputDialog(IReadOnlyList<Line>? prompt, string? @default, bool isSecret, bool allowBack = false)
     {
         Prompt = prompt;
         _isSecret = isSecret;
+        _allowBack = allowBack;
         _buffer = new TextBuffer();
         if (!string.IsNullOrEmpty(@default))
             _buffer.SetText(@default);
@@ -132,6 +138,11 @@ internal sealed class InputDialog : IModalOverlay
             switch (key.Code.NamedValue)
             {
                 case NamedKey.Backspace:
+                    if (_allowBack && _buffer.Text.Length == 0)
+                    {
+                        CloseRequest = OverlayCloseKind.Back;
+                        return true;
+                    }
                     _userEdited = true;
                     _buffer.Backspace();
                     return true;

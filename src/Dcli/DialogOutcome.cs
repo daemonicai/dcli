@@ -6,9 +6,13 @@ namespace Dcli;
 /// <remarks>
 /// <para>
 /// <see cref="Submitted"/> and <see cref="Cancelled"/> are produced by all v1 list-based dialogs.
-/// <see cref="Back"/> is produced by <see cref="Terminal.SelectAsync"/> and
-/// <see cref="Terminal.ChoiceAsync"/> when the request has <c>AllowBack = true</c> and the user
-/// presses Backspace before moving the selection cursor.
+/// <see cref="Back"/> is produced by four methods when the request has <c>AllowBack = true</c>:
+/// <list type="bullet">
+///   <item><description><see cref="Terminal.SelectAsync"/> — Backspace before moving the selection cursor.</description></item>
+///   <item><description><see cref="Terminal.ChoiceAsync"/> — Backspace before moving the selection cursor.</description></item>
+///   <item><description><see cref="Terminal.MultiSelectAsync"/> — pressing <c>[</c> at any time.</description></item>
+///   <item><description><see cref="Terminal.InputAsync"/> — Backspace while the input buffer is empty.</description></item>
+/// </list>
 /// </para>
 /// </remarks>
 public enum DialogOutcome
@@ -17,13 +21,20 @@ public enum DialogOutcome
     Submitted,
 
     /// <summary>
-    /// The user pressed Backspace to navigate back in a wizard flow.
-    /// Produced by <see cref="Terminal.SelectAsync"/> and <see cref="Terminal.ChoiceAsync"/>
-    /// when the request has <c>AllowBack = true</c> and the user presses Backspace before
-    /// moving the selection cursor (and before entering any filter text when type-to-filter
-    /// is active). <see cref="DialogResult{T}.Value"/> is <see langword="default"/> when this
-    /// outcome is returned.
+    /// The user pressed a back-navigation trigger in a wizard flow.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Produced by four dialog methods when the request has <c>AllowBack = true</c>:
+    /// <list type="bullet">
+    ///   <item><description><see cref="Terminal.SelectAsync"/> — Backspace before moving the selection cursor (and before entering any filter text when type-to-filter is active).</description></item>
+    ///   <item><description><see cref="Terminal.ChoiceAsync"/> — Backspace before moving the selection cursor.</description></item>
+    ///   <item><description><see cref="Terminal.MultiSelectAsync"/> — pressing <c>[</c> at any time (including after toggling items).</description></item>
+    ///   <item><description><see cref="Terminal.InputAsync"/> — Backspace while the input buffer is empty (typing and deleting back to empty still arms Back).</description></item>
+    /// </list>
+    /// </para>
+    /// <para><see cref="DialogResult{T}.Value"/> is <see langword="default"/> when this outcome is returned.</para>
+    /// </remarks>
     Back,
 
     /// <summary>The user dismissed without confirming (Escape or cancellation token).</summary>

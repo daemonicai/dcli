@@ -2,22 +2,22 @@
 
 ## 1. InputRequest.AllowBack + dialog wiring
 
-- [ ] 1.1 Add `bool AllowBack = false` as the trailing parameter of the `InputRequest` primary
+- [x] 1.1 Add `bool AllowBack = false` as the trailing parameter of the `InputRequest` primary
   constructor and of the convenience overloads that already accept `Default`/`IsSecret` (the
   `Line?`, `string?`, and `IReadOnlyList<string>?` forms). Leave the two `params`-tail overloads
   (`params Line[]`, `params string[]`) unchanged — `params` must be last, so they cannot carry
   `AllowBack`; document this on each, mirroring `MultiSelectRequest`. Add an `<param>`/`<summary>`
   XML doc for `AllowBack` describing the Backspace-on-empty trigger.
-- [ ] 1.2 Add an `allowBack` constructor parameter to `InputDialog` and store it in a
+- [x] 1.2 Add an `allowBack` constructor parameter to `InputDialog` and store it in a
   `private readonly bool _allowBack` field; thread `req.AllowBack` through `Terminal.InputAsync`
   via `new InputDialog(req.Prompt, req.Default, req.IsSecret, req.AllowBack)`
   (mirror `SelectAsync`'s `allowBack: req.AllowBack` wiring).
-- [ ] 1.3 In `InputDialog.HandleKey`, inside the `NamedKey.Backspace` arm, add a Back branch
+- [x] 1.3 In `InputDialog.HandleKey`, inside the `NamedKey.Backspace` arm, add a Back branch
   guarded by `_allowBack && _buffer.Text.Length == 0`: set `CloseRequest = OverlayCloseKind.Back`
   and return `true` (consumed). Otherwise fall through to the existing `_buffer.Backspace()` delete
   path. Confirm Enter/Escape precedence and the Ctrl/Alt gate above are unaffected (Ctrl+Backspace
   must not trigger Back). No change to `OpenModalAsync` — it already maps `OverlayCloseKind.Back`.
-- [ ] 1.4 Update the `DialogOutcome.Back` enum-member summary and `<remarks>` in `DialogOutcome.cs`
+- [x] 1.4 Update the `DialogOutcome.Back` enum-member summary and `<remarks>` in `DialogOutcome.cs`
   to enumerate all four producers (`SelectAsync`, `ChoiceAsync`, `MultiSelectAsync`, `InputAsync`)
   and each trigger: Backspace-before-movement (Select/Choice), `[` (MultiSelect), Backspace-on-empty
   (Input). Keep the `Value` is `default` note.

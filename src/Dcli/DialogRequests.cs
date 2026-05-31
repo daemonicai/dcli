@@ -391,7 +391,14 @@ public sealed record ChoiceRequest(IReadOnlyList<Line> Options, IReadOnlyList<Li
 /// in the rendered overlay, preserving column-width arithmetic. The <see cref="DialogResult{T}.Value"/>
 /// always carries the real (unmasked) entered text.
 /// </param>
-public sealed record InputRequest(IReadOnlyList<Line>? Prompt = null, string? Default = null, bool IsSecret = false)
+/// <param name="AllowBack">
+/// When <see langword="true"/>, pressing Backspace while the input buffer is empty closes the
+/// dialog with <see cref="DialogOutcome.Back"/>. Intended for wizard flows where the user can
+/// step backwards. Typing text then deleting back to empty still arms Back — emptiness at the
+/// moment Backspace is pressed is the only test. Defaults to <see langword="false"/>; existing
+/// callers are unaffected.
+/// </param>
+public sealed record InputRequest(IReadOnlyList<Line>? Prompt = null, string? Default = null, bool IsSecret = false, bool AllowBack = false)
 {
     /// <summary>
     /// Constructs an <see cref="InputRequest"/> with a single <see cref="Line"/> prompt.
@@ -404,8 +411,12 @@ public sealed record InputRequest(IReadOnlyList<Line>? Prompt = null, string? De
     /// <param name="Prompt">Optional single-line preamble; <see langword="null"/> means no preamble.</param>
     /// <param name="Default">Optional pre-filled text.</param>
     /// <param name="IsSecret">When <see langword="true"/>, input characters are masked.</param>
-    public InputRequest(Line? Prompt, string? Default = null, bool IsSecret = false)
-        : this(Prompt is null ? null : (IReadOnlyList<Line>)[Prompt], Default, IsSecret) { }
+    /// <param name="AllowBack">
+    /// When <see langword="true"/>, Backspace on an empty buffer closes the dialog with
+    /// <see cref="DialogOutcome.Back"/>. Defaults to <see langword="false"/>.
+    /// </param>
+    public InputRequest(Line? Prompt, string? Default = null, bool IsSecret = false, bool AllowBack = false)
+        : this(Prompt is null ? null : (IReadOnlyList<Line>)[Prompt], Default, IsSecret, AllowBack) { }
 
     /// <summary>
     /// Constructs an <see cref="InputRequest"/> with a plain-text prompt string.
@@ -415,28 +426,38 @@ public sealed record InputRequest(IReadOnlyList<Line>? Prompt = null, string? De
     /// <param name="prompt">Optional plain-text prompt string; <see langword="null"/> means no preamble.</param>
     /// <param name="Default">Optional pre-filled text.</param>
     /// <param name="IsSecret">When <see langword="true"/>, input characters are masked.</param>
-    public InputRequest(string? prompt, string? Default = null, bool IsSecret = false)
-        : this(prompt is null ? null : Line.FromText(prompt), Default, IsSecret) { }
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, Backspace on an empty buffer closes the dialog with
+    /// <see cref="DialogOutcome.Back"/>. Defaults to <see langword="false"/>.
+    /// </param>
+    public InputRequest(string? prompt, string? Default = null, bool IsSecret = false, bool allowBack = false)
+        : this(prompt is null ? null : Line.FromText(prompt), Default, IsSecret, allowBack) { }
 
     /// <summary>
     /// Constructs an <see cref="InputRequest"/> with a multi-line string preamble. Each string
     /// entry is converted via <see cref="Line.FromText(string, Style?)"/>.
     /// Shorthand equivalent to passing <c>prompt.Select(Line.FromText).ToList()</c> as <c>Prompt</c>.
     /// No implicit conversion is defined; pass strings explicitly. Note: the
-    /// <see langword="params"/> form does not accept <c>Default</c> or <c>IsSecret</c>; use this
-    /// overload when those parameters are needed.
+    /// <see langword="params"/> form does not accept <c>Default</c>, <c>IsSecret</c>, or
+    /// <c>AllowBack</c>; use this overload when those parameters are needed.
     /// </summary>
     /// <param name="prompt">Optional multi-line string preamble; <see langword="null"/> means no preamble.</param>
     /// <param name="Default">Optional pre-filled text.</param>
     /// <param name="IsSecret">When <see langword="true"/>, input characters are masked.</param>
-    public InputRequest(IReadOnlyList<string>? prompt, string? Default = null, bool IsSecret = false)
-        : this(ConvertPreamble(prompt), Default, IsSecret) { }
+    /// <param name="allowBack">
+    /// When <see langword="true"/>, Backspace on an empty buffer closes the dialog with
+    /// <see cref="DialogOutcome.Back"/>. Defaults to <see langword="false"/>.
+    /// </param>
+    public InputRequest(IReadOnlyList<string>? prompt, string? Default = null, bool IsSecret = false, bool allowBack = false)
+        : this(ConvertPreamble(prompt), Default, IsSecret, allowBack) { }
 
     /// <summary>
     /// Constructs an <see cref="InputRequest"/> with multiple <see cref="Line"/> preamble
     /// entries supplied as a <see langword="params"/> array. Each line is painted in order
     /// above the input field. No implicit conversion is defined; pass lines explicitly.
-    /// Note: <c>Default</c> and <c>IsSecret</c> cannot be specified alongside
+    /// <c>AllowBack</c> cannot be set via this constructor because <see langword="params"/> must
+    /// be the last parameter; use the primary constructor or another overload.
+    /// Note: <c>Default</c>, <c>IsSecret</c>, and <c>AllowBack</c> cannot be specified alongside
     /// <see langword="params"/>; use the <see cref="IReadOnlyList{Line}"/>-overload for those.
     /// </summary>
     /// <param name="prompt">Preamble lines in top-to-bottom order (may be empty).</param>
@@ -446,7 +467,9 @@ public sealed record InputRequest(IReadOnlyList<Line>? Prompt = null, string? De
     /// <summary>
     /// Constructs an <see cref="InputRequest"/> with a <see langword="params"/> string preamble.
     /// Each string is converted via <see cref="Line.FromText(string, Style?)"/>.
-    /// Note: <c>Default</c> and <c>IsSecret</c> cannot be specified alongside
+    /// <c>AllowBack</c> cannot be set via this constructor because <see langword="params"/> must
+    /// be the last parameter; use the primary constructor or another overload.
+    /// Note: <c>Default</c>, <c>IsSecret</c>, and <c>AllowBack</c> cannot be specified alongside
     /// <see langword="params"/>; use the <see cref="IReadOnlyList{String}"/>-overload for those.
     /// </summary>
     /// <param name="prompt">Preamble strings in top-to-bottom order (may be empty).</param>

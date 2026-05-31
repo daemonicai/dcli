@@ -24,17 +24,17 @@
 
 ## 2. Tests
 
-- [ ] 2.1 `InputRequest.AllowBack` defaults to `false` and is settable on the primary ctor and each
+- [x] 2.1 `InputRequest.AllowBack` defaults to `false` and is settable on the primary ctor and each
   non-`params` convenience overload (compile-level + value assertions).
-- [ ] 2.2 `AllowBack=true` + empty field + Backspace → `DialogResult` outcome is `Back`, `Value` is
+- [x] 2.2 `AllowBack=true` + empty field + Backspace → `DialogResult` outcome is `Back`, `Value` is
   `default` (empty string).
-- [ ] 2.3 `AllowBack=true`, type text then Backspace back to empty, then one more Backspace → `Back`
+- [x] 2.3 `AllowBack=true`, type text then Backspace back to empty, then one more Backspace → `Back`
   (trigger is current emptiness, not pristine state).
-- [ ] 2.4 `AllowBack=true` + non-empty text + Backspace → character deleted, dialog stays open, no
+- [x] 2.4 `AllowBack=true` + non-empty text + Backspace → character deleted, dialog stays open, no
   `Back`.
-- [ ] 2.5 `AllowBack=false` (default) + empty field + Backspace → no-op, dialog stays open
+- [x] 2.5 `AllowBack=false` (default) + empty field + Backspace → no-op, dialog stays open
   (v1 behaviour preserved).
-- [ ] 2.6 `AllowBack=true` + `[` keypress → `[` inserted as literal text, dialog stays open
+- [x] 2.6 `AllowBack=true` + `[` keypress → `[` inserted as literal text, dialog stays open
   (no Back binding for input).
 
 ## 3. Validation & packaging

@@ -862,6 +862,83 @@ public sealed class InputDialogTests
         finally { engine.Dispose(); }
     }
 
+    // ── back-nav-input §2 — InputDialog AllowBack / Back behaviour ───────────
+
+    // §2.2 — AllowBack=true + empty field + Backspace → CloseRequest = Back.
+    [Fact]
+    public void AllowBackTrueBackspaceOnEmptyBufferSetsBack()
+    {
+        InputDialog dialog = new(prompt: null, @default: null, isSecret: false, allowBack: true);
+
+        dialog.HandleKey(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+
+        Assert.Equal(OverlayCloseKind.Back, dialog.CloseRequest);
+        Assert.Equal(string.Empty, dialog.Text);
+    }
+
+    // §2.3 — AllowBack=true, type text then delete back to empty, one more Backspace → Back.
+    //         Trigger is current emptiness, not pristine never-edited state.
+    [Fact]
+    public void AllowBackTrueBackspaceOnEditedThenEmptyBufferSetsBack()
+    {
+        InputDialog dialog = new(prompt: null, @default: null, isSecret: false, allowBack: true);
+
+        // Insert two characters.
+        dialog.HandleKey(new KeyEvent(KeyCode.FromRune(new Rune('a')), Modifiers.None));
+        dialog.HandleKey(new KeyEvent(KeyCode.FromRune(new Rune('b')), Modifiers.None));
+
+        // Delete them both — buffer is now empty but _userEdited is true (sticky).
+        dialog.HandleKey(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+        Assert.Null(dialog.CloseRequest); // still open after first delete: "ab"→"a" (non-empty)
+        dialog.HandleKey(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+        Assert.Null(dialog.CloseRequest); // still open after second delete: "a"→"" (non-empty when pressed)
+
+        // Buffer is now empty; one more Backspace must fire Back.
+        dialog.HandleKey(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+
+        Assert.Equal(OverlayCloseKind.Back, dialog.CloseRequest);
+        Assert.Equal(string.Empty, dialog.Text);
+    }
+
+    // §2.4 — AllowBack=true + non-empty text + Backspace → char deleted, dialog stays open.
+    [Fact]
+    public void AllowBackTrueBackspaceOnNonEmptyBufferDeletesChar()
+    {
+        InputDialog dialog = new(prompt: null, @default: null, isSecret: false, allowBack: true);
+
+        dialog.HandleKey(new KeyEvent(KeyCode.FromRune(new Rune('x')), Modifiers.None));
+        dialog.HandleKey(new KeyEvent(KeyCode.FromRune(new Rune('y')), Modifiers.None));
+
+        dialog.HandleKey(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+
+        Assert.Null(dialog.CloseRequest);
+        Assert.Equal("x", dialog.Text);
+    }
+
+    // §2.5 — AllowBack=false (default) + empty field + Backspace → no-op; dialog stays open.
+    [Fact]
+    public void AllowBackFalseBackspaceOnEmptyBufferIsNoOp()
+    {
+        InputDialog dialog = new(prompt: null, @default: null, isSecret: false);
+
+        dialog.HandleKey(new KeyEvent(KeyCode.Named(NamedKey.Backspace), Modifiers.None));
+
+        Assert.Null(dialog.CloseRequest);
+        Assert.Equal(string.Empty, dialog.Text);
+    }
+
+    // §2.6 — AllowBack=true + '[' keypress → '[' inserted as literal text; dialog stays open.
+    [Fact]
+    public void AllowBackTrueBracketKeyInsertsLiteralText()
+    {
+        InputDialog dialog = new(prompt: null, @default: null, isSecret: false, allowBack: true);
+
+        dialog.HandleKey(new KeyEvent(KeyCode.FromRune(new Rune('[')), Modifiers.None));
+
+        Assert.Null(dialog.CloseRequest);
+        Assert.Equal("[", dialog.Text);
+    }
+
     // ── Helper ────────────────────────────────────────────────────────────────
 
     private static int FindRowIndexContaining(IReadOnlyList<Line> rows, string needle)

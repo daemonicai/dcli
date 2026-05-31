@@ -1,0 +1,20 @@
+remote_theme: daemonicai/dmon-pages
+baseurl: "/dcli"
+url: "https://daemonicai.github.io"
+
+title: dcli
+tagline: inline terminal rendering for .NET
+description: Inline terminal-rendering for .NET — styled output flows into the real scrollback while a small interactive region stays pinned at the bottom.
+
+github:
+  owner: daemonicai
+  repo: dcli
+org_url: "https://github.com/daemonicai"
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+
+defaults:
+  - scope: { path: "" }
+    values: { layout: home }

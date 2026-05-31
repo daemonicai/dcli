@@ -124,10 +124,13 @@ Each dialog request type SHALL carry an optional **multi-line preamble** rendere
 
 Each request type SHALL expose backwards-compatible convenience constructors that accept a single `Line`, a single `string` (converted via `Line.FromText`), an `IReadOnlyList<Line>`, a `params Line[]`, an `IReadOnlyList<string>`, or a `params string[]` for the preamble. Single-`Line` and single-`string` forms SHALL be internally equivalent to passing a one-element list. When the preamble is `null` or empty, no preamble row SHALL be painted and the full overlay budget SHALL be available to the interactive widget.
 
-`SelectRequest`, `ChoiceRequest`, and `MultiSelectRequest` SHALL each expose an opt-in `AllowBack` flag (default `false`, backward-compatible). When `AllowBack=false`, no key produces `Back` and existing v1 behaviour is preserved. When `AllowBack=true`:
+`SelectRequest`, `ChoiceRequest`, `MultiSelectRequest`, and `InputRequest` SHALL each expose an opt-in `AllowBack` flag (default `false`, backward-compatible). When `AllowBack=false`, no key produces `Back` and existing v1 behaviour is preserved. When `AllowBack=true`:
 
 - `SelectRequest` and `ChoiceRequest` SHALL produce `DialogOutcome.Back` when **Backspace** is pressed before the selection is moved (the binding introduced in `api-ergonomics-pass-1`), and SHALL additionally accept **`[`** as a secondary Back key with no movement-suppression.
 - `MultiSelectRequest` SHALL produce `DialogOutcome.Back` when **`[`** is pressed at any time, regardless of whether items have been toggled. Multi-select SHALL NOT bind Backspace to `Back` — Space-toggle and Backspace interplay makes a Backspace-position heuristic unreliable, so a distinct key (`[`) is used instead.
+- `InputRequest` SHALL produce `DialogOutcome.Back` when **Backspace** is pressed while the input field is currently empty (text length zero), regardless of edit history (typing then deleting back to empty SHALL still arm Back). Backspace with any text present SHALL delete the character before the caret as normal and SHALL NOT produce `Back`. Input SHALL NOT bind `[` to `Back` — `[` is a literal character users type into free-text fields (URLs, JSON, keys), so rebinding it would corrupt legitimate input.
+
+For every request type, `DialogResult.Value` SHALL be `default` when the outcome is `Back`.
 
 #### Scenario: Select submitted
 
@@ -166,8 +169,8 @@ Each request type SHALL expose backwards-compatible convenience constructors tha
 
 #### Scenario: AllowBack=false is the default
 
-- **WHEN** a `SelectRequest`, `ChoiceRequest`, or `MultiSelectRequest` is constructed without setting `AllowBack`
-- **THEN** Backspace and `[` have no effect on the dialog and existing v1 behaviour is preserved
+- **WHEN** a `SelectRequest`, `ChoiceRequest`, `MultiSelectRequest`, or `InputRequest` is constructed without setting `AllowBack`
+- **THEN** Backspace and `[` have no effect on Back navigation and existing v1 behaviour is preserved (for `InputRequest`, Backspace on an empty field remains a no-op)
 
 #### Scenario: AllowBack=true on MultiSelect produces Back via '['
 
@@ -183,6 +186,26 @@ Each request type SHALL expose backwards-compatible convenience constructors tha
 
 - **WHEN** a `SelectRequest` or `ChoiceRequest` with `AllowBack=true` is shown and the user presses `[` before moving the selection
 - **THEN** the awaited result is `DialogOutcome.Back`
+
+#### Scenario: AllowBack=true on Input produces Back via Backspace-on-empty
+
+- **WHEN** an `InputRequest` with `AllowBack=true` is shown with an empty field and the user presses Backspace
+- **THEN** the awaited result is `DialogOutcome.Back` and `DialogResult.Value` is `default`
+
+#### Scenario: Input Back arms after typing then deleting back to empty
+
+- **WHEN** an `InputRequest` with `AllowBack=true` is shown, the user types text, deletes it all back to empty with Backspace, and then presses Backspace once more
+- **THEN** the awaited result is `DialogOutcome.Back` (the trigger is current emptiness, not a pristine never-edited field)
+
+#### Scenario: Input Backspace with text present deletes normally
+
+- **WHEN** an `InputRequest` with `AllowBack=true` is shown with non-empty text and the user presses Backspace
+- **THEN** the character before the caret is deleted and the dialog remains open — no `Back` is produced
+
+#### Scenario: Input '[' is a literal character, not Back
+
+- **WHEN** an `InputRequest` with `AllowBack=true` is shown and the user presses `[`
+- **THEN** `[` is inserted into the buffer as ordinary text and the dialog remains open
 
 #### Scenario: Multi-line preamble renders all lines above the widget
 

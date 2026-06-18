@@ -96,7 +96,7 @@ public sealed class FixedRegionTests
         StatusLine status = new() { Rows = [PlainLine("status-A"), PlainLine("status-B")] };
         TextBuffer editor = new();
         editor.Insert("hi");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         composer.Compose(model);
 
@@ -114,7 +114,7 @@ public sealed class FixedRegionTests
         StatusLine status = new() { Rows = [PlainLine("status")] };
         TextBuffer editor = new();
         editor.Insert("A");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         composer.Compose(model);
 
@@ -134,7 +134,7 @@ public sealed class FixedRegionTests
         TextBuffer editor = new();
         // Insert 8 logical lines (9 visual rows with width=80).
         editor.Insert("line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         composer.Compose(model);
 
@@ -160,7 +160,7 @@ public sealed class FixedRegionTests
         StatusLine status = new() { Rows = [PlainLine("st")] };
         TextBuffer editor = new();
         editor.Insert("hello");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         // Append some scrollback content.
         ScrollbackModel scrollback = model.Scrollback;
@@ -370,7 +370,7 @@ public sealed class FixedRegionTests
         };
         TextBuffer editor = new();
         editor.Insert("input");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         composer.Compose(model);
 
@@ -390,7 +390,7 @@ public sealed class FixedRegionTests
         StatusLine statusNormal = new() { Rows = [PlainLine("status")] };
         TextBuffer editor = new();
         editor.Insert("hello");
-        FixedRegionComposer composerNormal = new(editor, statusNormal);
+        FixedRegionComposer composerNormal = new(editor, new PreambleLine(), statusNormal);
         composerNormal.Compose(model);
 
         // Sanity: after a normal compose EditorCaretLocal must be non-null.
@@ -403,7 +403,7 @@ public sealed class FixedRegionTests
         {
             Rows = Enumerable.Range(1, 5).Select(i => PlainLine($"s{i}")).ToList()
         };
-        FixedRegionComposer composerDegenerate = new(editor, statusDegenerate);
+        FixedRegionComposer composerDegenerate = new(editor, new PreambleLine(), statusDegenerate);
         composerDegenerate.Compose(model);
 
         // All three caret-related fields must be null/false — no contradiction.

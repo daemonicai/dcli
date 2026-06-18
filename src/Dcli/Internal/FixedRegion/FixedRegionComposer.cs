@@ -48,11 +48,13 @@ namespace Dcli.Internal.FixedRegion;
 /// </remarks>
 internal sealed class FixedRegionComposer
 {
+    private readonly PreambleLine _preamble;
     private readonly StatusLine _status;
 
-    internal FixedRegionComposer(TextBuffer editor, StatusLine status)
+    internal FixedRegionComposer(TextBuffer editor, PreambleLine preamble, StatusLine status)
     {
         Editor = editor;
+        _preamble = preamble;
         _status = status;
     }
 
@@ -61,6 +63,12 @@ internal sealed class FixedRegionComposer
     /// this object and then calls <see cref="Compose"/> to recompose the fixed region.
     /// </summary>
     internal TextBuffer Editor { get; }
+
+    /// <summary>
+    /// The preamble component. Exposed so façade commands can set
+    /// <see cref="PreambleLine.Rows"/> on the loop thread via <c>model.FixedRegion.Preamble</c>.
+    /// </summary>
+    internal PreambleLine Preamble => _preamble;
 
     /// <summary>
     /// The status line component. Exposed so façade commands can set
@@ -128,7 +136,7 @@ internal sealed class FixedRegionComposer
         }
 
         // Normal path.
-        // budget = rows available for input + overlay (status is sacred, already accounted for).
+        // budget = rows available for input + preamble + overlay (status is sacred, already accounted for).
         int budget = cap - statusCount; // > 0 here
 
         // Input keeps the caret visible: allot the full budget so the editor can scroll
@@ -137,6 +145,15 @@ internal sealed class FixedRegionComposer
         IReadOnlyList<Line> inputRows = editorResult.VisibleRows;
         (int editorCaretRow, int editorCaretCol) = editorResult.CaretPosition;
 
+        // Preamble truncates before the editor loses its last row.
+        // Budget remaining after the editor has claimed its rows.
+        IReadOnlyList<Line> preambleRows = _preamble.Rows;
+        int preambleNatural = preambleRows.Count;
+        int preambleBudget = Math.Max(0, budget - inputRows.Count);
+        int preambleCount = Math.Min(preambleNatural, preambleBudget);
+        if (preambleCount < preambleNatural)
+            preambleRows = preambleRows.Take(preambleCount).ToList();
+
         // Overlay absorbs the squeeze: whatever is left of the budget, capped at DefaultOverlayMaxRows.
         // Do NOT read overlay.MaxRows back after writing it — compute overlayCap from budget and
         // inputRows.Count to prevent stale values from blocking re-expansion when the budget grows.
@@ -144,7 +161,7 @@ internal sealed class FixedRegionComposer
         IReadOnlyList<Line> overlayRows = [];
         if (overlay is not null)
         {
-            int overlayCap = Math.Clamp(budget - inputRows.Count, 0, _defaultOverlayMaxRows);
+            int overlayCap = Math.Clamp(budget - inputRows.Count - preambleCount, 0, _defaultOverlayMaxRows);
             overlay.MaxRows = overlayCap; // sets the viewport for this frame (clamped to ≥1 by ScrollableList)
             // Only render when the budget permits at least one row; otherwise the overlay is
             // effectively squeezed to zero and we skip rendering to honour the cap proof.
@@ -152,15 +169,17 @@ internal sealed class FixedRegionComposer
                 overlayRows = overlay.Render(width); // ≤ overlayCap rows
         }
 
-        // Assemble: [overlay if AboveInput] [input] [overlay if BelowInput] [status].
-        // Proof that total ≤ cap: overlayRows.Count ≤ budget − inputRows.Count,
-        // so overlayRows.Count + inputRows.Count ≤ budget = cap − statusCount,
-        // thus total = overlayRows.Count + inputRows.Count + statusCount ≤ cap.
-        int aboveCount = (overlay?.Placement == OverlayPlacement.AboveInput) ? overlayRows.Count : 0;
+        // Assemble: [overlay if AboveInput] [preamble] [input] [overlay if BelowInput] [status].
+        // Proof that total ≤ cap: overlayRows.Count ≤ budget − inputRows.Count − preambleCount,
+        // so overlayRows.Count + preambleCount + inputRows.Count ≤ budget = cap − statusCount,
+        // thus total = overlayRows.Count + preambleCount + inputRows.Count + statusCount ≤ cap.
+        int aboveCount = (overlay?.Placement == OverlayPlacement.AboveInput ? overlayRows.Count : 0)
+                       + preambleCount;
 
-        List<Line> fixedRows = new(overlayRows.Count + inputRows.Count + statusCount);
+        List<Line> fixedRows = new(overlayRows.Count + preambleCount + inputRows.Count + statusCount);
         if (overlay?.Placement == OverlayPlacement.AboveInput)
             fixedRows.AddRange(overlayRows);
+        fixedRows.AddRange(preambleRows);
         fixedRows.AddRange(inputRows);
         if (overlay?.Placement == OverlayPlacement.BelowInput)
             fixedRows.AddRange(overlayRows);
@@ -186,10 +205,10 @@ internal sealed class FixedRegionComposer
                  overlay.CaretInOverlay is { } overlayCaret)
         {
             // The overlay owns the cursor (e.g. InputDialog). overlayStartRow is 0 for
-            // AboveInput overlays and inputRows.Count for BelowInput overlays.
+            // AboveInput overlays and aboveCount + inputRows.Count for BelowInput overlays.
             int overlayStartRow = overlay.Placement == OverlayPlacement.AboveInput
                 ? 0
-                : inputRows.Count;
+                : aboveCount + inputRows.Count;
             model.EditorCaretLocal = (overlayStartRow + overlayCaret.Row, overlayCaret.Col);
             model.IsCursorVisible = true;
         }

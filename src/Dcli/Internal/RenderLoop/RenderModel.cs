@@ -125,7 +125,7 @@ internal sealed class RenderModel
     /// The fixed-region composer (§10). Populates <see cref="FixedRegionRows"/> and
     /// <see cref="EditorCaretLocal"/> each paint cycle, before scrollback PrePaint.
     /// </summary>
-    internal FixedRegionComposer FixedRegion { get; } = new(new TextBuffer(), new StatusLine());
+    internal FixedRegionComposer FixedRegion { get; } = new(new TextBuffer(), new PreambleLine(), new StatusLine());
 
     /// <summary>
     /// The editor-relative caret position set by <see cref="FixedRegionComposer.Compose"/>:

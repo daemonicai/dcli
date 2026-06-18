@@ -346,7 +346,7 @@ public sealed class OverlayRoutingTests
         StatusLine status = new() { Rows = [PlainLine("status")] };
         TextBuffer editor = new();
         editor.Insert("hi");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         Autocomplete ac = new(editor);
         ac.Show([new AutocompleteCandidate("hello", PlainLine("hello")), new AutocompleteCandidate("hi", PlainLine("hi"))]);
@@ -384,7 +384,7 @@ public sealed class OverlayRoutingTests
         StatusLine status = new() { Rows = [PlainLine("status")] };
         TextBuffer editor = new();
         editor.Insert("hi");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         Dialog dialog = new(modal: true);
         dialog.List.SetItems([PlainLine("option A"), PlainLine("option B")]);
@@ -416,7 +416,7 @@ public sealed class OverlayRoutingTests
         StatusLine status = new() { Rows = [PlainLine("s1"), PlainLine("s2")] };
         TextBuffer editor = new();
         editor.Insert("line1\nline2\nline3\nline4\nline5\nline6");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         Autocomplete ac = new(editor);
         ac.Show(Enumerable.Range(1, 20).Select(i => new AutocompleteCandidate($"item{i}", PlainLine($"item{i}"))).ToList());
@@ -444,7 +444,7 @@ public sealed class OverlayRoutingTests
         StatusLine status = new() { Rows = [PlainLine("s1"), PlainLine("s2")] };
         TextBuffer editor = new();
         editor.Insert("line1\nline2\nline3\nline4\nline5\nline6");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         Autocomplete ac = new(editor);
         ac.Show([new AutocompleteCandidate("suggestion", PlainLine("suggestion"))]);
@@ -470,7 +470,7 @@ public sealed class OverlayRoutingTests
         StatusLine status = new() { Rows = [PlainLine("status")] };
         TextBuffer editor = new();
         editor.Insert("hello");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         composer.Compose(model);
 
@@ -549,7 +549,7 @@ public sealed class OverlayRoutingTests
         StatusLine status = new() { Rows = [PlainLine("s1"), PlainLine("s2")] };
         TextBuffer editor = new();
         editor.Insert("line1\nline2\nline3\nline4\nline5\nline6");
-        FixedRegionComposer composer = new(editor, status);
+        FixedRegionComposer composer = new(editor, new PreambleLine(), status);
 
         Autocomplete ac = new(editor);
         ac.Show(Enumerable.Range(1, 5).Select(i =>

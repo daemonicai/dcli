@@ -1,15 +1,15 @@
 ## 1. Public surface
 
-- [ ] 1.1 Add `IInputPreamble` to `src/Dcli/` — interface with `SetRows(params Line[])` and `SetRows(IReadOnlyList<Line>)`, doc-comments mirroring `IStatus`
-- [ ] 1.2 Add `InputPreambleSurface` (impl) mirroring `StatusSurface`: each `SetRows` overload posts `_loop.Post(new SetInputPreambleCommand(rows))`; empty argument clears
-- [ ] 1.3 Add `ITerminal.InputPreamble` property (and on `HeadlessTerminal`); wire `InputPreamble = new InputPreambleSurface(loop)` in `Terminal` construction exactly as `Status` is wired
+- [x] 1.1 Add `IInputPreamble` to `src/Dcli/` — interface with `SetRows(params Line[])` and `SetRows(IReadOnlyList<Line>)`, doc-comments mirroring `IStatus`
+- [x] 1.2 Add `InputPreambleSurface` (impl) mirroring `StatusSurface`: each `SetRows` overload posts `_loop.Post(new SetInputPreambleCommand(rows))`; empty argument clears
+- [x] 1.3 Add `ITerminal.InputPreamble` property (and on `HeadlessTerminal`); wire `InputPreamble = new InputPreambleSurface(loop)` in `Terminal` construction exactly as `Status` is wired
 
 ## 2. Render model + composer band
 
-- [ ] 2.1 Add a `Preamble` rows holder to `RenderModel.FixedRegion` (parallel to `Status`)
-- [ ] 2.2 Add `SetInputPreambleCommand : ILoopCommand` whose `Apply(model)` sets `model.FixedRegion.Preamble.Rows = rows` and calls `model.MarkDirty()` (mirror `SetStatusCommand`)
-- [ ] 2.3 In `FixedRegionComposer.Compose`, emit the preamble rows immediately above the input editor band (below an above-input overlay, above the input rows); reuse the existing `fixedRows.AddRange(...)` assembly
-- [ ] 2.4 Fold the preamble into the height-budget arithmetic: preamble truncates before the input editor loses its last usable row; status remains sacred. Null/empty preamble contributes zero rows
+- [x] 2.1 Add a `Preamble` rows holder to `RenderModel.FixedRegion` (parallel to `Status`)
+- [x] 2.2 Add `SetInputPreambleCommand : ILoopCommand` whose `Apply(model)` sets `model.FixedRegion.Preamble.Rows = rows` and calls `model.MarkDirty()` (mirror `SetStatusCommand`)
+- [x] 2.3 In `FixedRegionComposer.Compose`, emit the preamble rows immediately above the input editor band (below an above-input overlay, above the input rows); reuse the existing `fixedRows.AddRange(...)` assembly
+- [x] 2.4 Fold the preamble into the height-budget arithmetic: preamble truncates before the input editor loses its last usable row; status remains sacred. Null/empty preamble contributes zero rows
 
 ## 3. Tests (tests/Dcli.Tests, via HeadlessTerminal)
 

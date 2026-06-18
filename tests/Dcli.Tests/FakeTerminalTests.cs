@@ -113,6 +113,24 @@ internal sealed class FakeAutocomplete : IAutocomplete
     public void Hide() => HideCount++;
 }
 
+/// <summary>Records SetRows calls for the input preamble surface.</summary>
+internal sealed class FakeInputPreamble : IInputPreamble
+{
+    internal List<IReadOnlyList<Line>> SetCalls { get; } = [];
+
+    public void SetRows(params Line[] rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        SetCalls.Add(rows);
+    }
+
+    public void SetRows(IReadOnlyList<Line> rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        SetCalls.Add(rows);
+    }
+}
+
 #endregion
 
 #region FakeTerminal
@@ -131,6 +149,7 @@ internal sealed class FakeTerminal : ITerminal
     internal FakeScrollback FakeScrollback { get; } = new();
     internal FakeInput FakeInput { get; } = new();
     internal FakeStatus FakeStatus { get; } = new();
+    internal FakeInputPreamble FakeInputPreamble { get; } = new();
     internal FakeAutocomplete FakeAutocomplete { get; } = new();
 
     // ── Dialog recordings ─────────────────────────────────────────────────────
@@ -163,6 +182,7 @@ internal sealed class FakeTerminal : ITerminal
     public IScrollback Scrollback => FakeScrollback;
     public IInput Input => FakeInput;
     public IStatus Status => FakeStatus;
+    public IInputPreamble InputPreamble => FakeInputPreamble;
     public IAutocomplete Autocomplete => FakeAutocomplete;
 
     public ChannelReader<TerminalEvent> Events => _events.Reader;

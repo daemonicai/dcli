@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`IInputPreamble` / `ITerminal.InputPreamble`** — a persistent multi-row band rendered immediately above the input editor. Set via `terminal.InputPreamble.SetRows(...)` using the same `Line`/`LineBuilder` API as status. Persists across input submissions; clear with `SetRows()` (no args). Truncates under a constrained `MaxFixedHeight` before the input editor loses rows; status rows remain sacred. No overlay/intercept — purely presentational.
+
 ### Security
 
 - **VT-escape injection gap closed.** Consumer text passed to `Segment`, `Line.FromText`, or

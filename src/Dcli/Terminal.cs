@@ -58,6 +58,7 @@ public sealed class Terminal : ITerminal
         Scrollback = new ScrollbackSurface(loop);
         Input = new InputSurface(loop);
         Status = new StatusSurface(loop);
+        InputPreamble = new InputPreambleSurface(loop);
         Autocomplete = new AutocompleteSurface(loop);
     }
 
@@ -96,6 +97,11 @@ public sealed class Terminal : ITerminal
     /// Status bar surface: set the sacred status rows at the bottom of the fixed region.
     /// </summary>
     public IStatus Status { get; }
+
+    /// <summary>
+    /// Input preamble surface: set styled rows rendered directly above the input editor.
+    /// </summary>
+    public IInputPreamble InputPreamble { get; }
 
     /// <summary>
     /// Autocomplete overlay surface: show and hide the completion dropdown.

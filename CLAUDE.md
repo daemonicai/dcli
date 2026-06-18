@@ -70,8 +70,8 @@ The unit of work is a **`## N.` section**. Walk sections in order from the resum
    go hunting — give it what it needs to stay focused.
 2. **Worker implements the whole section.** If a section is large or complex (e.g. the VT input parser),
    split it into sub-chunks across multiple `worker` calls — but it remains **one commit at section end**.
-3. **Audit.** Spawn `reviewer` on the section diff (correctness, ADR compliance, OpenSpec scope, C#
-   idiom, agentic-AI design quality).
+3. **Audit.** Spawn `reviewer` on the section diff (correctness, binding-design-decision compliance,
+   OpenSpec scope, C# idiom, terminal-rendering safety).
 4. **Review loop.** Feed the reviewer's findings back to the `worker`; worker fixes; `reviewer`
    re-audits. **Repeat until the reviewer signs off.**
 5. **Gates — all four must pass before ticking any box:**
@@ -80,7 +80,8 @@ The unit of work is a **`## N.` section**. Walk sections in order from the resum
    - `openspec validate <change-name> --strict`
    - `dotnet format --verify-no-changes` clean
    If a gate fails, it's back to step 4, not a commit.
-6. **Tick the boxes.** Mark every `- [x] N.M` in the section in `tasks.md`.
+6. **Tick the boxes.** Mark every `- [x] N.M` in the section in `tasks.md`. Never rewrite `tasks.md`
+   wholesale — only flip `[ ]→[x]`; it holds all future sections.
 7. **Commit — one conventional commit per section:**
    ```
    feat(<change-name>): <section title> (section N)
@@ -91,6 +92,8 @@ The unit of work is a **`## N.` section**. Walk sections in order from the resum
 
    Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
    ```
+8. **Report and pause.** Tell the user what landed in this section and ask before starting the next —
+   unless told to "apply all sections" / "apply without pausing".
 
 ## 4. Stop and ask — do not push on
 

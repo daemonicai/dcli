@@ -9,7 +9,7 @@
     <!-- NuGet packaging -->
     <IsPackable>true</IsPackable>
     <PackageId>dcli</PackageId>
-    <Version>0.2.0-rc.4</Version>
+    <Version>0.2.0-rc.5</Version>
     <Authors>daemonicai</Authors>
     <Company>daemonicai</Company>
     <Description>Inline terminal-rendering library. Claude-Code-style styled output flows into the terminal's real scrollback, with a small interactive region pinned at the bottom.</Description>

@@ -99,6 +99,31 @@ public interface IStatus
 }
 
 /// <summary>
+/// Consumer-facing interface for setting the preamble rows rendered directly above the input editor.
+/// </summary>
+/// <remarks>
+/// The preamble is presentational only — it is not part of the key-routing intercept chain.
+/// When the height budget is tight, preamble rows are truncated before the editor loses its
+/// last row; the status bar remains sacred and is never truncated.
+/// </remarks>
+public interface IInputPreamble
+{
+    /// <summary>
+    /// Replaces the preamble content with the given rows.
+    /// An empty argument list clears the preamble.
+    /// </summary>
+    /// <param name="rows">The rows to display directly above the input editor.</param>
+    void SetRows(params Line[] rows);
+
+    /// <summary>
+    /// Replaces the preamble content with the given rows.
+    /// Passing an empty list clears the preamble.
+    /// </summary>
+    /// <param name="rows">The rows to display directly above the input editor.</param>
+    void SetRows(IReadOnlyList<Line> rows);
+}
+
+/// <summary>
 /// Consumer-facing interface for showing and hiding the autocomplete dropdown overlay.
 /// </summary>
 /// <remarks>
@@ -156,6 +181,11 @@ public interface ITerminal : IAsyncDisposable
     /// Status bar surface: set the sacred status rows at the bottom of the fixed region.
     /// </summary>
     IStatus Status { get; }
+
+    /// <summary>
+    /// Input preamble surface: set styled rows rendered directly above the input editor.
+    /// </summary>
+    IInputPreamble InputPreamble { get; }
 
     /// <summary>
     /// Autocomplete overlay surface: show and hide the completion dropdown.

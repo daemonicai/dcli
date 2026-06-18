@@ -51,7 +51,7 @@ If a task seems to require breaking one of these, **stop and surface it** — do
 
 ## Boundaries — what you must NOT do
 
-- **Do not tick `tasks.md` boxes.** The orchestrator flips `[ ]→[x]` after the gates pass. Instead, report which `N.M` tasks you completed.
+- **Do not tick `tasks.md` boxes.** The orchestrator flips `[ ]→[x]` after the gates pass. Instead, report which `N.M` tasks you completed. Never rewrite `tasks.md` wholesale — it holds all future sections.
 - **Do not commit, push, open PRs, or amend.** The orchestrator commits per section.
 - **Do not self-approve.** When the section builds and tests pass, report it complete and request the `reviewer`.
 - Do not suppress warnings, disable analyzers, or weaken tests to go green.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Sections 1 + 2 in progress (worker running).
+All sections complete. Section 5 gates all pass (build clean, 872 tests green, format clean, openspec valid). Awaiting commit and archive.
 
 ## Pre-flight notes
 
@@ -35,3 +35,18 @@ compile independently, so the worker produces both sections, then two separate c
 - `InputPreambleSurface` in `src/Dcli/InputPreambleSurface.cs`.
 - `ITerminal.InputPreamble : IInputPreamble` property added after `Status`.
 - `Terminal` ctor: `InputPreamble = new InputPreambleSurface(loop)` after `Status = ...`.
+
+## Section 5 — Validation & packaging
+
+Gates passed by orchestrator before worker brief:
+- `dotnet build` clean (0 warnings, 0 errors)
+- `dotnet test` 872/872 green
+- `dotnet format --verify-no-changes` clean
+- `openspec validate persistent-input-preamble --strict` valid
+
+Version bumped: `0.2.0-rc.4` → `0.2.0-rc.5` in `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj`.
+CHANGELOG updated with `IInputPreamble` surface entry.
+
+### dmon coordination
+
+dmon's Terminal UX change consumes `ITerminal.InputPreamble` and must reference dcli `0.2.0-rc.5` (not rc.4). Update the NuGet reference in dmon after this change is published.

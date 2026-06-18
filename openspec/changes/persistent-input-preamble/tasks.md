@@ -26,11 +26,11 @@
 
 ## 5. Validation & packaging
 
-- [ ] 5.1 `dotnet build` clean (analyzers warnings-as-errors; nullable enabled)
-- [ ] 5.2 `dotnet test` all green
-- [ ] 5.3 `dotnet format --verify-no-changes` clean
-- [ ] 5.4 `openspec validate persistent-input-preamble --strict` passes
-- [ ] 5.5 Version bump: `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj` `0.2.0-rc.4` → `0.2.0-rc.5`
-- [ ] 5.6 Update `CHANGELOG.md` with the new surface
-- [ ] 5.7 Keep a `DEVLOG.md` in the change directory while applying
-- [ ] 5.8 dmon coordination: note that dmon's Terminal UX change consumes `ITerminal.InputPreamble` and must reference dcli `0.2.0-rc.5`
+- [x] 5.1 `dotnet build` clean (analyzers warnings-as-errors; nullable enabled)
+- [x] 5.2 `dotnet test` all green
+- [x] 5.3 `dotnet format --verify-no-changes` clean
+- [x] 5.4 `openspec validate persistent-input-preamble --strict` passes
+- [x] 5.5 Version bump: `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj` `0.2.0-rc.4` → `0.2.0-rc.5`
+- [x] 5.6 Update `CHANGELOG.md` with the new surface
+- [x] 5.7 Keep a `DEVLOG.md` in the change directory while applying
+- [x] 5.8 dmon coordination: note that dmon's Terminal UX change consumes `ITerminal.InputPreamble` and must reference dcli `0.2.0-rc.5`

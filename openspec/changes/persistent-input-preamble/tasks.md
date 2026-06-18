@@ -13,12 +13,12 @@
 
 ## 3. Tests (tests/Dcli.Tests, via HeadlessTerminal)
 
-- [ ] 3.1 Preamble rows render directly above the input editor on the next frame
-- [ ] 3.2 Preamble persists across multiple input submissions without being re-set
-- [ ] 3.3 `SetRows` with an empty argument clears the preamble and returns its rows to the budget
-- [ ] 3.4 Under a constrained `MaxFixedHeight`, the preamble truncates while the input editor keeps ≥1 row and the status rows stay fully rendered
-- [ ] 3.5 Keys routed with a preamble set (no overlay) all reach the input editor; the hardware cursor parks at the input caret
-- [ ] 3.6 Existing fixed-region/status tests stay green (regression guard)
+- [x] 3.1 Preamble rows render directly above the input editor on the next frame
+- [x] 3.2 Preamble persists across multiple input submissions without being re-set
+- [x] 3.3 `SetRows` with an empty argument clears the preamble and returns its rows to the budget
+- [x] 3.4 Under a constrained `MaxFixedHeight`, the preamble truncates while the input editor keeps ≥1 row and the status rows stay fully rendered
+- [x] 3.5 Keys routed with a preamble set (no overlay) all reach the input editor; the hardware cursor parks at the input caret
+- [x] 3.6 Existing fixed-region/status tests stay green (regression guard)
 
 ## 4. Sample / demo
 

@@ -21,7 +21,7 @@
 
 ## 4. Sample / demo
 
-- [ ] 4.1 Update a sample (or the demo) to set an input prompt (e.g. `SetPrompt("❯ ")`) so the surface is exercised end-to-end
+- [x] 4.1 Update a sample (or the demo) to set an input prompt (e.g. `SetPrompt("❯ ")`) so the surface is exercised end-to-end
 
 ## 5. Validation & packaging
 

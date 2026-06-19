@@ -7,7 +7,7 @@
     <!-- NuGet packaging -->
     <IsPackable>true</IsPackable>
     <PackageId>dcli.testing</PackageId>
-    <Version>0.2.0-rc.5</Version>
+    <Version>0.2.0-rc.6</Version>
     <Authors>daemonicai</Authors>
     <Company>daemonicai</Company>
     <Description>Headless test harness for the dcli inline terminal-rendering library.</Description>

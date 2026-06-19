@@ -9,6 +9,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **`IInputPreamble` / `ITerminal.InputPreamble`** — a persistent multi-row band rendered immediately above the input editor. Set via `terminal.InputPreamble.SetRows(...)` using the same `Line`/`LineBuilder` API as status. Persists across input submissions; clear with `SetRows()` (no args). Truncates under a constrained `MaxFixedHeight` before the input editor loses rows; status rows remain sacred. No overlay/intercept — purely presentational.
 
+- **`IInput.SetPrompt(Line)` / `IInput.SetPrompt(string)`** — sets a styled prefix that is rendered before the editable text on the first row of the input editor. The prefix is purely presentational: submitted values and `InputChanged` payloads contain only the user-typed text. Clears with an empty line (`SetPrompt(new Line([]))`) or via the string overload (`SetPrompt("")` or `SetPrompt(null)`). Persists across submissions and `Clear()`. First-row wrap capacity is reduced by the prompt width; continuation rows use full width.
+
 ### Security
 
 - **VT-escape injection gap closed.** Consumer text passed to `Segment`, `Line.FromText`, or

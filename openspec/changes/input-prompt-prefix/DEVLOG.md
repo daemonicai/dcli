@@ -2,13 +2,13 @@
 
 ## Status
 
-| Section | Title                  | Status      |
-|---------|------------------------|-------------|
-| 1       | Public surface         | in progress |
-| 2       | Command + editor model | in progress |
-| 3       | Tests                  | pending     |
-| 4       | Sample / demo          | pending     |
-| 5       | Validation & packaging | pending     |
+| Section | Title                  | Status   |
+|---------|------------------------|----------|
+| 1       | Public surface         | complete |
+| 2       | Command + editor model | complete |
+| 3       | Tests                  | complete |
+| 4       | Sample / demo          | complete |
+| 5       | Validation & packaging | complete |
 
 ## Context
 
@@ -33,3 +33,17 @@ which needs the prompt field and render logic).
 - `MoveHome`/`MoveEnd` on row 0 must not include the prompt columns in the buffer's char-index
   mapping — the prompt is not in the buffer. The char-index mapping is unchanged; only the
   reported visual column is offset.
+
+## Section 5 — Validation & packaging
+
+Gate results (all pass):
+- `dotnet build` — clean, 0 warnings, 0 errors (890 tests compiled).
+- `dotnet test` — 890 passed, 0 failed, 0 skipped.
+- `dotnet format --verify-no-changes` — clean (no output).
+- `openspec validate input-prompt-prefix --strict` — "Change 'input-prompt-prefix' is valid".
+
+Actions taken:
+- Version bumped `0.2.0-rc.5` → `0.2.0-rc.6` in `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj`.
+- CHANGELOG.md updated: added `IInput.SetPrompt` bullet under `[Unreleased] ### Added`.
+
+Task 5.8 (dmon coordination) is informational — no dcli code change required.

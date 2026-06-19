@@ -25,11 +25,11 @@
 
 ## 5. Validation & packaging
 
-- [ ] 5.1 `dotnet build` clean (analyzers warnings-as-errors; nullable enabled)
-- [ ] 5.2 `dotnet test` all green
-- [ ] 5.3 `dotnet format --verify-no-changes` clean
-- [ ] 5.4 `openspec validate input-prompt-prefix --strict` passes
-- [ ] 5.5 Version bump: `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj` to the next preview revision after `persistent-input-preamble` (`0.2.0-rc.6`, or a shared bump if applied together)
-- [ ] 5.6 Update `CHANGELOG.md` with the new `SetPrompt` surface
-- [ ] 5.7 Keep a `DEVLOG.md` in the change directory while applying
-- [ ] 5.8 dmon coordination: dmon's Terminal UX change consumes `ITerminal.Input.SetPrompt(...)` for the `❯` glyph alongside `ITerminal.InputPreamble`
+- [x] 5.1 `dotnet build` clean (analyzers warnings-as-errors; nullable enabled)
+- [x] 5.2 `dotnet test` all green
+- [x] 5.3 `dotnet format --verify-no-changes` clean
+- [x] 5.4 `openspec validate input-prompt-prefix --strict` passes
+- [x] 5.5 Version bump: `src/Dcli/Dcli.csproj` and `src/Dcli.Testing/Dcli.Testing.csproj` to the next preview revision after `persistent-input-preamble` (`0.2.0-rc.6`, or a shared bump if applied together)
+- [x] 5.6 Update `CHANGELOG.md` with the new `SetPrompt` surface
+- [x] 5.7 Keep a `DEVLOG.md` in the change directory while applying
+- [x] 5.8 dmon coordination: dmon's Terminal UX change consumes `ITerminal.Input.SetPrompt(...)` for the `❯` glyph alongside `ITerminal.InputPreamble`

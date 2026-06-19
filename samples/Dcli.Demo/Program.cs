@@ -34,6 +34,8 @@ t.Scrollback.Append(Line.Dim("  Content above the commit horizon is frozen and t
 
 t.InputPreamble.SetRows(Line.Dim("── dcli demo ─────────────────────────────────────────────────────────────"));
 t.Scrollback.Append(Line.Dim("  InputPreamble set -- a rule above the input editor."));
+t.Input.SetPrompt("❯ ");
+t.Scrollback.Append(Line.Dim("  Input prompt set to ❯."));
 
 await Task.Delay(TimeSpan.FromMilliseconds(800));
 
@@ -241,7 +243,8 @@ await Task.Delay(TimeSpan.FromMilliseconds(300));
 t.Status.SetRows(Line.Fg("DONE - Tour complete - press Ctrl+C to exit, or wait 3s.", Color.Named(Color.AnsiColor.Green)));
 
 t.InputPreamble.SetRows();
-t.Scrollback.Append(Line.Dim("  InputPreamble cleared."));
+t.Input.SetPrompt("");
+t.Scrollback.Append(Line.Dim("  InputPreamble and input prompt cleared."));
 
 t.Scrollback.Append(Line.Bold("--- Tour complete ---"));
 t.Scrollback.Append(Line.Fg("All dcli public surfaces exercised successfully.", Color.Named(Color.AnsiColor.BrightGreen)));

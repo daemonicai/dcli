@@ -14,16 +14,15 @@ namespace Dcli;
 /// <strong>Thread safety:</strong> all methods are safe to call from any thread.
 /// </para>
 /// <para>
-/// <strong>No <c>InputChanged</c> on programmatic mutation:</strong> <see cref="SetText"/>
-/// and <see cref="Clear"/> do NOT emit <see cref="InputChanged"/>. That event is reserved for
-/// user-driven edits so that a consumer reacting to <see cref="InputChanged"/> (e.g. to update
-/// autocomplete candidates) cannot trigger a feedback loop from its own programmatic writes.
+/// <strong>No <c>InputChanged</c> on programmatic mutation:</strong> <see cref="SetText"/>,
+/// <see cref="Clear"/>, and <see cref="SetPrompt(Line)"/> do NOT emit <see cref="InputChanged"/>.
+/// That event is reserved for user-driven edits so that a consumer reacting to
+/// <see cref="InputChanged"/> (e.g. to update autocomplete candidates) cannot trigger a feedback
+/// loop from its own programmatic writes.
 /// </para>
 /// <para>
 /// <strong>Documented gaps:</strong>
 /// <list type="bullet">
-///   <item><c>Prompt</c> — a prompt prefix shown before the editable region — is not in the
-///     §10 model and is deferred to a later §10 refinement pass.</item>
 ///   <item><c>ReadOnly</c> — preventing user edits — is similarly deferred.</item>
 /// </list>
 /// </para>
@@ -57,6 +56,28 @@ public sealed class InputSurface : IInput
         _loop.Post(new ClearCommand());
     }
 
+    /// <summary>
+    /// Sets the prompt prefix rendered immediately before the editable region on the first visual row.
+    /// An empty line clears the prompt and renders no prefix.
+    /// Does not emit <see cref="InputChanged"/>.
+    /// </summary>
+    public void SetPrompt(Line line)
+    {
+        _loop.Post(new SetPromptCommand(line));
+    }
+
+    /// <summary>
+    /// Sets the prompt prefix to a plain-text string.
+    /// Null or empty clears the prompt and renders no prefix.
+    /// Does not emit <see cref="InputChanged"/>.
+    /// </summary>
+    /// <param name="text">The plain text to use as the prompt prefix. Null or empty clears the prompt.</param>
+    public void SetPrompt(string text)
+    {
+        Line line = string.IsNullOrEmpty(text) ? new Line([]) : Line.FromText(text);
+        _loop.Post(new SetPromptCommand(line));
+    }
+
     // ── Commands ───────────────────────────────────────────────────────────────
 
     private sealed class SetTextCommand : ILoopCommand
@@ -77,6 +98,19 @@ public sealed class InputSurface : IInput
         void ILoopCommand.Apply(RenderModel model)
         {
             model.FixedRegion.Editor.Clear();
+            model.MarkDirty();
+        }
+    }
+
+    private sealed class SetPromptCommand : ILoopCommand
+    {
+        private readonly Line _line;
+
+        internal SetPromptCommand(Line line) => _line = line;
+
+        void ILoopCommand.Apply(RenderModel model)
+        {
+            model.FixedRegion.Editor.SetPrompt(_line);
             model.MarkDirty();
         }
     }

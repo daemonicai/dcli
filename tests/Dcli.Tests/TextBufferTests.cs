@@ -771,4 +771,159 @@ public sealed class TextBufferTests
         RenderResult r = buf.Render(2);
         Assert.Equal(2, r.VisibleRows.Count);
     }
+
+    // ── Prompt prefix ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void SetPromptEmptyLineProducesNoOffset()
+    {
+        // Empty prompt → behaviour identical to no prompt (regression guard).
+        TextBuffer buf = Buffer("hello");
+        buf.SetPrompt(new Line([]));
+        RenderResult r = buf.Render(80);
+        Assert.Single(r.VisibleRows);
+        Assert.Equal(5, r.CaretPosition.Col); // caret at end, col = len("hello")
+    }
+
+    [Fact]
+    public void SetPromptAddsSegmentToFirstVisualRow()
+    {
+        // Prompt "> " (2 cols) prepended to row 0 line.
+        TextBuffer buf = Buffer("hello");
+        buf.SetPrompt(Line.FromText("> "));
+        RenderResult r = buf.Render(80);
+        // First row segments: prompt + text.
+        IReadOnlyList<Segment> segs = r.VisibleRows[0].Segments;
+        // Prompt segment first, then the text segment.
+        Assert.True(segs.Count >= 2);
+        Assert.Equal("> ", segs[0].Text);
+        Assert.Equal("hello", segs[1].Text);
+    }
+
+    [Fact]
+    public void SetPromptOffsetsCaret()
+    {
+        // Prompt "> " = 2 cols. Caret at start of "hello" should be col 2.
+        TextBuffer buf = Buffer("hello");
+        buf.SetPrompt(Line.FromText("> "));
+        buf.SetCaretIndexForTest(0);
+        RenderResult r = buf.Render(80);
+        Assert.Equal(2, r.CaretPosition.Col);
+    }
+
+    [Fact]
+    public void SetPromptOffsetsCaretAtEndOfText()
+    {
+        // Prompt ">>> " = 4 cols. Caret at end of "hi" should be col 4 + 2 = 6.
+        TextBuffer buf = Buffer("hi");
+        buf.SetPrompt(Line.FromText(">>> "));
+        RenderResult r = buf.Render(80);
+        Assert.Equal(6, r.CaretPosition.Col);
+    }
+
+    [Fact]
+    public void SetPromptReducesAvailableWidthForWrapping()
+    {
+        // Width 10, prompt ">>> " = 4 cols → first row content width = 6.
+        // Text "abcdefghij" (10 chars) should wrap at 6 chars on row 0.
+        TextBuffer buf = Buffer("abcdefghij");
+        buf.SetPrompt(Line.FromText(">>> "));
+        RenderResult r = buf.Render(10);
+        // Row 0 wraps at 6 chars; remaining 4 chars on row 1.
+        Assert.True(r.VisibleRows.Count >= 2);
+        // Row 0: prompt ">>> " + 6 chars of text.
+        IReadOnlyList<Segment> row0segs = r.VisibleRows[0].Segments;
+        Assert.Equal(">>> ", row0segs[0].Text);
+        Assert.Equal("abcdef", row0segs[1].Text);
+        // Row 1: remainder, no prompt.
+        Assert.Equal("ghij", r.VisibleRows[1].Segments[0].Text);
+    }
+
+    [Fact]
+    public void SetPromptDoesNotAffectRow1AndBeyond()
+    {
+        // Prompt ">> " = 3 cols. Width 10. Multiline text.
+        // Row 1 (second logical line) must not have prompt prepended.
+        TextBuffer buf = Buffer("abc\ndef");
+        buf.SetPrompt(Line.FromText(">> "));
+        RenderResult r = buf.Render(80);
+        Assert.Equal(2, r.VisibleRows.Count);
+        // Row 0: has prompt + "abc"
+        Assert.True(r.VisibleRows[0].Segments.Count >= 2);
+        Assert.Equal(">> ", r.VisibleRows[0].Segments[0].Text);
+        // Row 1: only "def", no prompt prefix.
+        Assert.Equal("def", r.VisibleRows[1].Segments[0].Text);
+        Assert.Single(r.VisibleRows[1].Segments);
+    }
+
+    [Fact]
+    public void SetPromptTextDoesNotAppearInTextProperty()
+    {
+        // Prompt must never bleed into the editable text.
+        TextBuffer buf = Buffer("hello");
+        buf.SetPrompt(Line.FromText("> "));
+        Assert.Equal("hello", buf.Text);
+    }
+
+    [Fact]
+    public void SetPromptClearingLeavesNoOffset()
+    {
+        // Set a prompt, then clear it with an empty line. Caret should return to col 0.
+        TextBuffer buf = Buffer("hi");
+        buf.SetPrompt(Line.FromText("> "));
+        buf.SetPrompt(new Line([])); // clear
+        buf.SetCaretIndexForTest(0);
+        RenderResult r = buf.Render(80);
+        Assert.Equal(0, r.CaretPosition.Col);
+    }
+
+    [Fact]
+    public void SetPromptEmptyTextProducesNoPrefix()
+    {
+        // Second regression guard: same behaviour as SetPromptEmptyLineProducesNoOffset.
+        TextBuffer buf = Buffer("hello");
+        buf.SetPrompt(new Line([]));
+        RenderResult r = buf.Render(80);
+        // Only one segment (the "hello" text), no prompt segment prepended.
+        Assert.Equal("hello", r.VisibleRows[0].Segments[0].Text);
+    }
+
+    [Fact]
+    public void SetPromptOnEmptyBufferProducesPromptOnlyRow()
+    {
+        // Prompt "$ " with empty buffer → first row has only prompt segments.
+        TextBuffer buf = new();
+        buf.SetPrompt(Line.FromText("$ "));
+        RenderResult r = buf.Render(80);
+        Assert.Single(r.VisibleRows);
+        Assert.Equal("$ ", r.VisibleRows[0].Segments[0].Text);
+        // Caret at col 2 (after prompt).
+        Assert.Equal(2, r.CaretPosition.Col);
+    }
+
+    [Fact]
+    public void SetPromptDoesNotClearOnSetText()
+    {
+        // SetText should not reset the prompt.
+        TextBuffer buf = new();
+        buf.SetPrompt(Line.FromText("> "));
+        buf.SetText("new text");
+        RenderResult r = buf.Render(80);
+        Assert.Equal("> ", r.VisibleRows[0].Segments[0].Text);
+    }
+
+    [Fact]
+    public void SetPromptDoesNotClearOnClear()
+    {
+        // Clear() clears the buffer but must not clear the prompt.
+        TextBuffer buf = new();
+        buf.SetPrompt(Line.FromText("> "));
+        buf.SetText("some text");
+        buf.Clear();
+        RenderResult r = buf.Render(80);
+        // After Clear(), buffer is empty but prompt should still be visible.
+        Assert.Equal("> ", r.VisibleRows[0].Segments[0].Text);
+        // Caret is after prompt (col 2), not at col 0.
+        Assert.Equal(2, r.CaretPosition.Col);
+    }
 }

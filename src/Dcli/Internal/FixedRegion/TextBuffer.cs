@@ -80,6 +80,19 @@ internal sealed class TextBuffer
     /// </summary>
     private string? _historyStash;
 
+    // ── Prompt ─────────────────────────────────────────────────────────────────────────────────
+
+    private Line _prompt = new([]);
+
+    /// <summary>
+    /// Sets the prompt prefix rendered before the editable region on the first visual row.
+    /// An empty line removes the prefix.
+    /// </summary>
+    internal void SetPrompt(Line prompt)
+    {
+        _prompt = prompt;
+    }
+
     // ── Helpers: grapheme cluster iteration ─────────────────────────────────────────────────
 
     /// <summary>
@@ -445,11 +458,15 @@ internal sealed class TextBuffer
     /// <summary>
     /// Computes all visual rows for the current text at the given width.
     /// Each logical line (delimited by <c>\n</c>) is independently wrapped.
+    /// When a prompt prefix is set, its width is subtracted from the first row's available width
+    /// and its segments are prepended to the first visual row's <see cref="Line"/>.
     /// </summary>
     private List<VisualRowInfo> BuildVisualRows(int width)
     {
         if (width < 1)
             width = 1;
+
+        int promptWidth = MeasureLineWidth(_prompt);
 
         // Split text into logical lines on \n and wrap each independently.
         List<VisualRowInfo> result = [];
@@ -457,7 +474,8 @@ internal sealed class TextBuffer
         // Edge case: empty text → one empty row (caret can sit here).
         if (_text.Length == 0)
         {
-            result.Add(new VisualRowInfo(new Line([]), 0, 0));
+            Line emptyRow = promptWidth > 0 ? new Line([.. _prompt.Segments]) : new Line([]);
+            result.Add(new VisualRowInfo(emptyRow, 0, 0));
             return result;
         }
 
@@ -471,18 +489,32 @@ internal sealed class TextBuffer
                 ? _text[searchFrom..]
                 : _text[searchFrom..newlinePos];
 
+            // On the very first row ever produced, reduce available width by the prompt.
+            bool isFirstLogicalLine = result.Count == 0;
+            int effectiveWidth = (isFirstLogicalLine && promptWidth > 0)
+                ? Math.Max(1, width - promptWidth)
+                : width;
+
             // Wrap the logical line into visual rows.
             Line sourceLine = new([new Segment(logicalLine)]);
-            IReadOnlyList<Line> wrappedRows = LineWrapper.Wrap(sourceLine, width);
+            IReadOnlyList<Line> wrappedRows = LineWrapper.Wrap(sourceLine, effectiveWidth);
 
             // Assign char ranges: each wrapped row covers a contiguous span of logicalLine.
             int charInLogical = 0;
+            bool firstWrappedRow = true;
             foreach (Line wRow in wrappedRows)
             {
                 int rowChars = wRow.Segments.Sum(s => s.Text.Length);
                 int rowStart = searchFrom + charInLogical;
-                result.Add(new VisualRowInfo(wRow, rowStart, rowStart + rowChars));
+
+                // Prepend prompt segments to the very first visual row.
+                Line paintRow = (isFirstLogicalLine && firstWrappedRow && promptWidth > 0)
+                    ? new Line([.. _prompt.Segments, .. wRow.Segments])
+                    : wRow;
+
+                result.Add(new VisualRowInfo(paintRow, rowStart, rowStart + rowChars));
                 charInLogical += rowChars;
+                firstWrappedRow = false;
             }
 
             if (newlinePos == -1)
@@ -583,6 +615,10 @@ internal sealed class TextBuffer
                 string beforeCaret = _text[row.StartCharIndex..caretIdx];
                 int visualCol = MeasureDisplayWidth(beforeCaret);
 
+                // On the first visual row, offset the column by the prompt width.
+                if (i == 0)
+                    visualCol += MeasureLineWidth(_prompt);
+
                 return new VisualPosition
                 {
                     VisualRow = i,
@@ -599,6 +635,9 @@ internal sealed class TextBuffer
             VisualRowInfo last = rows[^1];
             string beforeCaret = _text[last.StartCharIndex..Math.Min(caretIdx, _text.Length)];
             int visualCol = MeasureDisplayWidth(beforeCaret);
+            // If the last row is also row 0, offset by prompt width.
+            if (rows.Count == 1)
+                visualCol += MeasureLineWidth(_prompt);
             return new VisualPosition
             {
                 VisualRow = rows.Count - 1,
@@ -701,6 +740,18 @@ internal sealed class TextBuffer
             col += DisplayWidth.MeasureWithColumn(rune, col);
         }
         return col;
+    }
+
+    /// <summary>
+    /// Measures the display width of a <see cref="Line"/> by summing each segment's rune widths.
+    /// </summary>
+    private static int MeasureLineWidth(Line line)
+    {
+        int w = 0;
+        foreach (Segment seg in line.Segments)
+            foreach (Rune r in seg.Text.EnumerateRunes())
+                w += DisplayWidth.Measure(r);
+        return w;
     }
 }
 

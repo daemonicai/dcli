@@ -70,6 +70,7 @@ internal sealed class FakeInput : IInput
 {
     internal List<string> SetTextCalls { get; } = [];
     internal int ClearCount { get; private set; }
+    internal List<Line> SetPromptCalls { get; } = [];
 
     public void SetText(string text)
     {
@@ -78,6 +79,11 @@ internal sealed class FakeInput : IInput
     }
 
     public void Clear() => ClearCount++;
+
+    public void SetPrompt(Line line) => SetPromptCalls.Add(line);
+
+    public void SetPrompt(string text) =>
+        SetPromptCalls.Add(string.IsNullOrEmpty(text) ? new Line([]) : Line.FromText(text));
 }
 
 /// <summary>Records SetRows calls.</summary>

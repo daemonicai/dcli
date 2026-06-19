@@ -73,6 +73,23 @@ public interface IInput
     /// Does not emit <see cref="InputChanged"/>.
     /// </summary>
     void Clear();
+
+    /// <summary>
+    /// Sets the prompt prefix rendered immediately before the editable region on the first visual row.
+    /// Passing an empty or null-equivalent line clears the prompt and renders no prefix.
+    /// Does not emit <see cref="InputChanged"/>.
+    /// </summary>
+    /// <param name="line">The styled line to render as the prompt prefix.</param>
+    void SetPrompt(Line line);
+
+    /// <summary>
+    /// Sets the prompt prefix to a plain-text string rendered immediately before the editable region.
+    /// Passing a null or empty string clears the prompt and renders no prefix.
+    /// Shorthand equivalent to <c>SetPrompt(Line.FromText(text))</c>.
+    /// Does not emit <see cref="InputChanged"/>.
+    /// </summary>
+    /// <param name="text">The plain text to use as the prompt prefix. Null or empty clears the prompt.</param>
+    void SetPrompt(string text);
 }
 
 /// <summary>

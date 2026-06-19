@@ -1,14 +1,14 @@
 ## 1. Public surface
 
-- [ ] 1.1 Add `SetPrompt(Line)` and `SetPrompt(string)` to `IInput` (string via `Line.FromText`); doc-comment that empty/`null` clears and that it does not emit `InputChanged`
-- [ ] 1.2 Implement both overloads on `InputSurface`: each posts `_loop.Post(new SetPromptCommand(line))`
-- [ ] 1.3 Remove the `Prompt` bullet from the `InputSurface` "Documented gaps" remarks (keep the `ReadOnly` bullet)
+- [x] 1.1 Add `SetPrompt(Line)` and `SetPrompt(string)` to `IInput` (string via `Line.FromText`); doc-comment that empty/`null` clears and that it does not emit `InputChanged`
+- [x] 1.2 Implement both overloads on `InputSurface`: each posts `_loop.Post(new SetPromptCommand(line))`
+- [x] 1.3 Remove the `Prompt` bullet from the `InputSurface` "Documented gaps" remarks (keep the `ReadOnly` bullet)
 
 ## 2. Command + editor model
 
-- [ ] 2.1 Add `SetPromptCommand : ILoopCommand` whose `Apply(model)` calls `model.FixedRegion.Editor.SetPrompt(line)` and `model.MarkDirty()` (mirror `SetTextCommand`)
-- [ ] 2.2 Add a prompt field to the owned editor (`TextBuffer`/editor) with a `SetPrompt` mutator; empty/`null` means no prefix
-- [ ] 2.3 Render the prefix on the editor's first visual row: editable text starts at `promptWidth`, caret column offset by `promptWidth` on row 0, first-row capacity = `width - promptWidth`; continuation rows begin at column 0 (no repeat). Ensure the prefix is never inserted into buffer contents
+- [x] 2.1 Add `SetPromptCommand : ILoopCommand` whose `Apply(model)` calls `model.FixedRegion.Editor.SetPrompt(line)` and `model.MarkDirty()` (mirror `SetTextCommand`)
+- [x] 2.2 Add a prompt field to the owned editor (`TextBuffer`/editor) with a `SetPrompt` mutator; empty/`null` means no prefix
+- [x] 2.3 Render the prefix on the editor's first visual row: editable text starts at `promptWidth`, caret column offset by `promptWidth` on row 0, first-row capacity = `width - promptWidth`; continuation rows begin at column 0 (no repeat). Ensure the prefix is never inserted into buffer contents
 
 ## 3. Tests (tests/Dcli.Tests, via HeadlessTerminal)
 

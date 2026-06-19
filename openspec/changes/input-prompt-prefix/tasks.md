@@ -12,12 +12,12 @@
 
 ## 3. Tests (tests/Dcli.Tests, via HeadlessTerminal)
 
-- [ ] 3.1 Prefix renders before the editable text on the first row
-- [ ] 3.2 Caret parks immediately after the prefix when the buffer is empty
-- [ ] 3.3 No prompt set ⇒ editor renders identically to v1 (regression guard)
-- [ ] 3.4 Prompt persists across multiple submissions and across `Clear()`
-- [ ] 3.5 Submitted value and `InputChanged` payload exclude the prefix; history stores only user text
-- [ ] 3.6 First-row wrapping uses `width - promptWidth`; continuation row starts at column 0
+- [x] 3.1 Prefix renders before the editable text on the first row
+- [x] 3.2 Caret parks immediately after the prefix when the buffer is empty
+- [x] 3.3 No prompt set ⇒ editor renders identically to v1 (regression guard)
+- [x] 3.4 Prompt persists across multiple submissions and across `Clear()`
+- [x] 3.5 Submitted value and `InputChanged` payload exclude the prefix; history stores only user text
+- [x] 3.6 First-row wrapping uses `width - promptWidth`; continuation row starts at column 0
 
 ## 4. Sample / demo
 
